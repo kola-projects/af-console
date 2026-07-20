@@ -19,8 +19,10 @@ npm install
 npm run dev                    # http://localhost:5273
 ```
 
-Tài khoản đăng nhập tạo trong Supabase Dashboard → Authentication. Console không có màn đăng ký —
-đây là công cụ nội bộ một người dùng.
+**Người đăng ký đầu tiên của hệ thống tự động là admin.** Mở trang lần đầu sẽ thấy thẳng tab đăng ký.
+Không cần xác nhận email.
+
+Từ người thứ hai trở đi, admin quyết định có cho đăng ký tiếp hay không (màn **Users** → *Tắt đăng ký*).
 
 ## Điều kiện tiên quyết
 
@@ -30,6 +32,8 @@ DB phải đã apply **cả hai** migration ở repo app-factory:
 |---|---|
 | `db/migrations/0001_init.sql` | Toàn bộ bảng + view |
 | `db/migrations/0002_console.sql` | Trạng thái `approved`, **RLS**, `v_lesson_dead`, `v_graduation_queue` |
+| `db/migrations/0003_count_backfill.sql` | Sửa ngưỡng duyệt (tính cả run backfill) |
+| `db/migrations/0004_users.sql` | Đăng ký, phân quyền admin/member, cờ tắt đăng ký |
 
 Thiếu `0002` thì đăng nhập xong vẫn không thấy gì (hoặc gặp lỗi RLS), và nút duyệt sẽ hỏng.
 
@@ -55,6 +59,21 @@ web không với tới. Nếu web tự đánh dấu, DB sẽ nói "đã tốt ng
 không ai truy ra được luật đó đến từ đâu.
 
 Sau khi duyệt trên web, **phải chạy `af_db graduate`** thì vòng mới khép.
+
+## Phân quyền
+
+| | admin | member |
+|---|---|---|
+| Đọc/ghi dữ liệu AF (lessons, bugs, runs…) | ✅ | ✅ |
+| Bật/tắt đăng ký | ✅ | ❌ |
+| Nâng/hạ vai trò, khoá tài khoản | ✅ | ❌ |
+
+Tài khoản bị khoá (`is_active = false`) không đọc được gì — RLS của cả 18 bảng dữ liệu đều đòi
+`is_active_user()`.
+
+Hai chốt chặn chống khoá chết hệ thống:
+- Người **đầu tiên** luôn đăng ký được, kể cả khi cờ đăng ký đang tắt.
+- Không hạ cấp / khoá được **admin cuối cùng** còn hoạt động.
 
 ## Bảo mật
 
@@ -88,8 +107,8 @@ Sau khi duyệt trên web, **phải chạy `af_db graduate`** thì vòng mới k
 
 ## Còn thiếu (đọc trước khi tin)
 
-- **Chưa chạy với DB thật lần nào.** Mới kiểm chứng: `tsc` sạch, `npm run build` xanh, màn đăng nhập
-  render đúng, không lỗi console. Mọi màn **sau khi đăng nhập** chưa được chạy với dữ liệu thực.
 - `v_promotion_candidates` không trả cột `verified_in_our_stack`, nên thẻ duyệt chưa chặn cứng lesson
   chưa kiểm chứng. Thực tế view đã lọc ≥3 app từ run thật của ta nên rủi ro thấp, nhưng muốn chặn
   tường minh thì cần thêm cột ở một migration sau.
+- Mọi người đăng nhập đều đọc/ghi được **toàn bộ** dữ liệu AF — chưa phân quyền theo từng màn. Nếu
+  sau này có người chỉ nên xem, cần thêm vai trò `viewer` và siết RLS theo lệnh (`select` vs `update`).
