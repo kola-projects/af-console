@@ -149,3 +149,26 @@ export const GRADUATION_TARGETS = [
   'instructions/LIBRARY_REGISTRY.md',
   'instructions/workflow/MEMORY_PROTOCOL.md',
 ] as const
+
+export type UserRole = 'admin' | 'member'
+
+export interface AppUser {
+  id: string
+  email: string | null
+  role: UserRole
+  is_active: boolean
+  created_at: string
+}
+
+export interface AppSettings {
+  id: number
+  signup_enabled: boolean
+  updated_at: string
+}
+
+/** Trang đăng nhập cần biết điều này KHI CHƯA đăng nhập, nên nó đến từ RPC
+ *  signup_status() chứ không từ bảng app_settings (bảng đó anon không đọc được). */
+export interface SignupStatus {
+  enabled: boolean
+  bootstrap: boolean
+}

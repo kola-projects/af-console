@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { promotionCandidates, tags } from '../lib/queries'
+import { myProfile, promotionCandidates, tags } from '../lib/queries'
 
 const NAV = [
   { to: '/lessons', label: 'Lessons' },
@@ -18,6 +18,10 @@ export default function Shell({ email }: { email: string }) {
   const pending = useQuery({ queryKey: ['promotion'], queryFn: promotionCandidates })
   const newTags = useQuery({ queryKey: ['tags'], queryFn: tags })
   const newTagCount = newTags.data?.filter((t) => t.status === 'new').length ?? 0
+  // Chỉ admin thấy mục Users. Đây thuần tuý là dọn giao diện — quyền THẬT do RLS
+  // ở DB thực thi, member có gõ thẳng /users cũng không sửa được gì.
+  const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
+  const nav = me.data?.role === 'admin' ? [...NAV, { to: '/users', label: 'Users' }] : NAV
 
   return (
     <div className="mx-auto flex min-h-full max-w-[1400px] gap-6 px-6 py-6">
@@ -26,7 +30,7 @@ export default function Shell({ email }: { email: string }) {
           <div className="text-sm">af-console</div>
           <div className="text-[11px] text-neutral-500">App-Factory</div>
         </div>
-        {NAV.map((n) => (
+        {nav.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
@@ -51,6 +55,9 @@ export default function Shell({ email }: { email: string }) {
 
         <div className="mt-6 border-t border-neutral-200 px-2 pt-3 dark:border-neutral-800">
           <div className="truncate text-[11px] text-neutral-500">{email}</div>
+          {me.data && (
+            <div className="text-[11px] text-neutral-400">{me.data.role}</div>
+          )}
           <button
             onClick={() => supabase.auth.signOut()}
             className="mt-1 text-xs text-neutral-500 underline hover:text-neutral-900 dark:hover:text-neutral-100"

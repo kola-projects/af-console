@@ -12,6 +12,7 @@ import RunDetail from './routes/RunDetail'
 import Bugs from './routes/Bugs'
 import Libraries from './routes/Libraries'
 import Tags from './routes/Tags'
+import Users from './routes/Users'
 
 const qc = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 } },
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="bugs" element={<Bugs />} />
             <Route path="libraries" element={<Libraries />} />
             <Route path="tags" element={<Tags />} />
+            <Route path="users" element={<Users />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

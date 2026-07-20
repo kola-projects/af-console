@@ -1,5 +1,7 @@
 import { supabase } from './supabase'
 import type {
+  AppSettings,
+  AppUser,
   Bug,
   Decision,
   LessonDead,
@@ -9,7 +11,9 @@ import type {
   Run,
   RunHealth,
   RunPhase,
+  SignupStatus,
   Tag,
+  UserRole,
 } from './types'
 
 /** LUẬT CỨNG: đọc CHỈ qua view, không select thẳng bảng nghiệp vụ.
@@ -135,4 +139,65 @@ export async function mergeTag(id: number, into: number) {
     .update({ status: 'merged', merged_into: into })
     .eq('id', id)
   if (error) throw new Error(error.message)
+}
+
+// ─── Người dùng & cấu hình ────────────────────────────────────────────
+
+/** Gọi được khi CHƯA đăng nhập — trang login cần biết có hiện tab Đăng ký không.
+ *  `bootstrap = true` nghĩa là chưa ai trong hệ thống: luôn cho đăng ký, và
+ *  người đó sẽ thành admin. */
+export async function signupStatus(): Promise<SignupStatus> {
+  const { data, error } = await supabase.rpc('signup_status')
+  if (error) throw new Error(error.message)
+  return data as SignupStatus
+}
+
+/** Đăng ký rồi đăng nhập luôn. Không cần verify email — trigger phía DB đã
+ *  tự đặt email_confirmed_at, nên phiên đăng nhập lấy được ngay. */
+export async function signUp(email: string, password: string) {
+  const { error } = await supabase.auth.signUp({ email, password })
+  if (error) throw new Error(error.message)
+  const { error: e2 } = await supabase.auth.signInWithPassword({ email, password })
+  if (e2) throw new Error(e2.message)
+}
+
+export const appUsers = async () =>
+  unwrap<AppUser[]>(await supabase.from('app_users').select('*').order('created_at'))
+
+export async function myProfile(): Promise<AppUser | null> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return null
+  const { data, error } = await supabase
+    .from('app_users').select('*').eq('id', auth.user.id).maybeSingle()
+  if (error) throw new Error(error.message)
+  return data as AppUser | null
+}
+
+export const appSettings = async () => {
+  const { data, error } = await supabase.from('app_settings').select('*').eq('id', 1).single()
+  if (error) throw new Error(error.message)
+  return data as AppSettings
+}
+
+/** RLS chỉ cho admin; member gọi sẽ không đổi được dòng nào (không phải lỗi,
+ *  là 0 dòng bị ảnh hưởng) — nên trả về số dòng để giao diện báo cho đúng. */
+export async function setSignupEnabled(enabled: boolean) {
+  const { data, error } = await supabase
+    .from('app_settings')
+    .update({ signup_enabled: enabled, updated_at: new Date().toISOString() })
+    .eq('id', 1).select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
+}
+
+export async function setUserRole(id: string, role: UserRole) {
+  const { data, error } = await supabase.from('app_users').update({ role }).eq('id', id).select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
+}
+
+export async function setUserActive(id: string, is_active: boolean) {
+  const { data, error } = await supabase.from('app_users').update({ is_active }).eq('id', id).select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
 }
