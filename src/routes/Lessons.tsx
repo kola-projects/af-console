@@ -8,7 +8,7 @@ import {
   rejectLesson,
 } from '../lib/queries'
 import { GRADUATION_TARGETS, type LessonHot, type PromotionCandidate } from '../lib/types'
-import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table } from '../components/ui'
+import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 
 type Tab = 'queue' | 'all' | 'dead'
 
@@ -121,7 +121,7 @@ export default function Lessons() {
                     <Cell>{d.times_retrieved}</Cell>
                     <Cell className="text-red-700 dark:text-red-300">{d.times_used}</Cell>
                     <Cell className="text-neutral-500">
-                      {d.last_retrieved_at?.slice(0, 10) ?? '—'}
+                      {localTime(d.last_retrieved_at)}
                     </Cell>
                   </Row>
                 ))}

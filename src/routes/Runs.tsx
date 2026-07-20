@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { runs } from '../lib/queries'
-import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table } from '../components/ui'
+import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 
 export default function Runs() {
   const q = useQuery({ queryKey: ['runs'], queryFn: runs })
@@ -50,7 +50,7 @@ export default function Runs() {
                   </span>
                 )}
               </Cell>
-              <Cell className="text-neutral-500">{r.started_at.slice(0, 16).replace('T', ' ')}</Cell>
+              <Cell className="text-neutral-500">{localTime(r.started_at)}</Cell>
             </Row>
           ))}
         </Table>

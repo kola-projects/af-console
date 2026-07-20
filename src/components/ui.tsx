@@ -47,6 +47,17 @@ export function Mono({ children, className = '' }: { children: ReactNode; classN
   return <span className={`font-mono text-xs ${className}`}>{children}</span>
 }
 
+/** Giờ địa phương, KHÔNG phải UTC. `run_name` nhúng giờ lúc sinh app
+ *  (Columbia-20260715-181213 = 18:12 giờ máy), nên cắt chuỗi ISO sẽ hiện 11:12
+ *  và người đọc tưởng là hai lần chạy khác nhau. */
+export function localTime(iso: string | null) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 export function Empty({ children }: { children: ReactNode }) {
   return (
     <div className="rounded-lg border border-dashed border-neutral-300 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-700">
