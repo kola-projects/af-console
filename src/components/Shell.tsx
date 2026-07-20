@@ -1,0 +1,68 @@
+import { NavLink, Outlet } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '../lib/supabase'
+import { promotionCandidates, tags } from '../lib/queries'
+
+const NAV = [
+  { to: '/lessons', label: 'Lessons' },
+  { to: '/', label: 'Dashboard', end: true },
+  { to: '/runs', label: 'Runs' },
+  { to: '/bugs', label: 'Bugs' },
+  { to: '/libraries', label: 'Libraries' },
+  { to: '/tags', label: 'Tags' },
+]
+
+export default function Shell({ email }: { email: string }) {
+  // Hai con số duy nhất được phép hiện ở nav: chúng là HÀNG ĐỢI VIỆC PHẢI LÀM,
+  // không phải số liệu trang trí.
+  const pending = useQuery({ queryKey: ['promotion'], queryFn: promotionCandidates })
+  const newTags = useQuery({ queryKey: ['tags'], queryFn: tags })
+  const newTagCount = newTags.data?.filter((t) => t.status === 'new').length ?? 0
+
+  return (
+    <div className="mx-auto flex min-h-full max-w-[1400px] gap-6 px-6 py-6">
+      <nav className="w-44 flex-none">
+        <div className="mb-4 px-2">
+          <div className="text-sm">af-console</div>
+          <div className="text-[11px] text-neutral-500">App-Factory</div>
+        </div>
+        {NAV.map((n) => (
+          <NavLink
+            key={n.to}
+            to={n.to}
+            end={n.end}
+            className={({ isActive }) =>
+              `flex items-center justify-between rounded px-2 py-1.5 text-sm ${
+                isActive
+                  ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                  : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-900'
+              }`
+            }
+          >
+            {n.label}
+            {n.label === 'Lessons' && !!pending.data?.length && (
+              <span className="text-[11px]">{pending.data.length}</span>
+            )}
+            {n.label === 'Tags' && newTagCount > 0 && (
+              <span className="text-[11px] text-amber-600 dark:text-amber-400">{newTagCount}</span>
+            )}
+          </NavLink>
+        ))}
+
+        <div className="mt-6 border-t border-neutral-200 px-2 pt-3 dark:border-neutral-800">
+          <div className="truncate text-[11px] text-neutral-500">{email}</div>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="mt-1 text-xs text-neutral-500 underline hover:text-neutral-900 dark:hover:text-neutral-100"
+          >
+            Đăng xuất
+          </button>
+        </div>
+      </nav>
+
+      <main className="min-w-0 flex-1">
+        <Outlet />
+      </main>
+    </div>
+  )
+}

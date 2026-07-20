@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+/* Console mật độ cao, không phải trang marketing.
+   Màu CÓ NGHĨA, không trang trí:
+     đỏ   = logic_compile_ok / failed  (lỗi compile xanh mà chết lúc chạy — đắt nhất)
+     vàng = chưa kiểm chứng / tag mới
+     lục  = đã cứu được build (applied_prevented)
+   Ngoài ba cái đó để xám. */
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
