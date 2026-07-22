@@ -28,7 +28,7 @@ export default function BlueprintTab({ runName }: { runName: string }) {
 
   // Nhóm + sắp xếp một lần khi có danh sách.
   const groups = useMemo(() => {
-    const map: Record<Group, BlueprintFileMeta[]> = { docs: [], mockups: [], screenshots: [], data: [] }
+    const map: Record<Group, BlueprintFileMeta[]> = { docs: [], aso: [], mockups: [], screenshots: [], data: [] }
     for (const f of files.data ?? []) map[groupOf(f.path)].push(f)
     for (const g of GROUP_ORDER) {
       const order = sortInGroup(map[g].map((f) => f.path), g)
