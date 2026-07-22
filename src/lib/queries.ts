@@ -2,6 +2,8 @@ import { supabase } from './supabase'
 import type {
   AppSettings,
   AppUser,
+  BlueprintFileContent,
+  BlueprintFileMeta,
   Bug,
   Decision,
   LessonDead,
@@ -74,6 +76,43 @@ export const run = async (id: number) => {
 export const runPhases = async (runId: number) =>
   unwrap<RunPhase[]>(
     await supabase.from('run_phases').select('*').eq('run_id', runId).order('started_at'),
+  )
+
+// ─── Blueprint (bảng blueprint_files, migration 0005 — không Storage) ──────
+// Lọc theo run_name (cột được index cho việc này). RLS `authenticated` đã bật ở 0005.
+
+/** Cây file: KHÔNG kéo content_b64 (mỗi ảnh/JSON ~1.5MB base64). */
+export const blueprintFiles = async (runName: string) =>
+  unwrap<BlueprintFileMeta[]>(
+    await supabase
+      .from('blueprint_files')
+      .select('path,content_type,bytes')
+      .eq('run_name', runName)
+      .order('path'),
+  )
+
+/** Nội dung 1 file — lazy, chỉ gọi khi người dùng mở file đó. */
+export const blueprintFile = async (runName: string, path: string) => {
+  const res = await supabase
+    .from('blueprint_files')
+    .select('path,content_b64,content_type')
+    .eq('run_name', runName)
+    .eq('path', path)
+    .single()
+  if (res.error) throw new Error(res.error.message)
+  return res.data as BlueprintFileContent
+}
+
+/** Mọi file dưới một prefix (vd 'design_previews/') — để mockup HTML dựng map link
+ *  tương đối rồi mới render. Kéo content vì các file này nhỏ (html/svg/icon). */
+export const blueprintDir = async (runName: string, prefix: string) =>
+  unwrap<BlueprintFileContent[]>(
+    await supabase
+      .from('blueprint_files')
+      .select('path,content_b64,content_type')
+      .eq('run_name', runName)
+      .like('path', `${prefix}%`)
+      .order('path'),
   )
 
 export const runDecisions = async (runId: number) =>

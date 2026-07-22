@@ -70,7 +70,24 @@ export interface Run {
   finished_at: string | null
   host: string | null
   outbox_flushed: boolean
+  /** jsonb tự do ở bảng runs. Con trỏ blueprint sống ở đây:
+   *  extra.blueprint_run = <run_name> (run đã push blueprint), extra.blueprint_table = 'blueprint_files'. */
+  extra: Record<string, unknown> | null
   apps?: { name: string } | null
+}
+
+/** Một file blueprint = một dòng bảng blueprint_files (migration 0005), lưu base64.
+ *  Meta (không kèm content) để dựng cây file; content lấy lazy khi mở. */
+export interface BlueprintFileMeta {
+  path: string
+  content_type: string
+  bytes: number | null
+}
+
+export interface BlueprintFileContent {
+  path: string
+  content_b64: string
+  content_type: string
 }
 
 export interface RunPhase {
