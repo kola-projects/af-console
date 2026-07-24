@@ -3,7 +3,6 @@ import { changePassword } from '../lib/queries'
 import { ErrorBox } from '../components/ui'
 
 export default function ChangePassword({ onClose }: { onClose: () => void }) {
-  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +32,6 @@ export default function ChangePassword({ onClose }: { onClose: () => void }) {
     try {
       await changePassword(newPassword)
       setSuccess(true)
-      setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
       // Auto close after 2 seconds
