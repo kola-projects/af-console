@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { APP_VERSION, fetchLatestVersion } from '../lib/appVersion'
 import { myProfile, promotionCandidates, tags } from '../lib/queries'
 
 const NAV = [
@@ -24,42 +25,17 @@ export default function Shell({ email }: { email: string }) {
   const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
   const nav = me.data?.role === 'admin' ? [...NAV, { to: '/users', label: 'Users' }] : NAV
 
-  const [appVersion, setAppVersion] = useState<string>('')
+  const appVersion = APP_VERSION
   const [latestVersion, setLatestVersion] = useState<string>('')
   const [versionChecking, setVersionChecking] = useState(false)
 
   useEffect(() => {
-    // Lấy version từ package.json
-    const fetchVersion = async () => {
-      try {
-        const response = await fetch('/package.json')
-        const pkg = await response.json()
-        setAppVersion(pkg.version)
-      } catch (err) {
-        console.error('Failed to fetch version:', err)
-      }
-    }
-    fetchVersion()
-  }, [])
-
-  useEffect(() => {
-    // Check version từ server
-    const checkLatestVersion = async () => {
-      setVersionChecking(true)
-      try {
-        const response = await fetch('https://api.github.com/repos/kola-projects/af-console/contents/package.json')
-        const data = await response.json()
-        // Decode base64
-        const content = atob(data.content)
-        const pkg = JSON.parse(content)
-        setLatestVersion(pkg.version)
-      } catch (err) {
-        console.error('Failed to check latest version:', err)
-      } finally {
-        setVersionChecking(false)
-      }
-    }
-    checkLatestVersion()
+    setVersionChecking(true)
+    fetchLatestVersion()
+      .then((v) => {
+        if (v) setLatestVersion(v)
+      })
+      .finally(() => setVersionChecking(false))
   }, [])
 
   const isLatestVersion = appVersion === latestVersion || !latestVersion

@@ -96,6 +96,52 @@ Hai chốt chặn chống khoá chết hệ thống:
 | **Libraries** | Thư viện này có dùng được không? Tỉ lệ tính từ kết quả thật. |
 | **Tags** | Từ vựng có đang loạn không? Duyệt và gộp tag trùng nghĩa. |
 
+## Release & deploy theo tag (Vercel)
+
+Production **không** auto-deploy mỗi commit `main`. Chỉ deploy khi có tag semver (`v1.2.3`).
+
+### Mỗi lần ra bản mới
+
+```bash
+git checkout main && git pull
+pnpm release:patch   # 1.0.0 → 1.0.1  (fix nhỏ)
+pnpm release:minor   # 1.0.0 → 1.1.0  (tính năng)
+pnpm release:major   # 1.0.0 → 2.0.0  (breaking)
+```
+
+Script sẽ: bump `package.json` → commit `release: vX.Y.Z` → tạo tag `vX.Y.Z` → `git push --follow-tags`.
+GitHub Action **Deploy tag** build và đẩy lên Vercel Production.
+
+### Setup một lần (Vercel + GitHub)
+
+1. **Tắt auto-deploy Git** — đã có trong `vercel.json` (`git.deploymentEnabled: false`). Sau khi merge file này, push lên `main`. Trên Vercel Dashboard cũng có thể xác nhận: Project → Settings → Git → không còn deploy mỗi push.
+
+2. **Lấy ID project** (máy local, đã login Vercel):
+   ```bash
+   npx vercel link          # chọn team + project af-console
+   cat .vercel/project.json # lấy projectId, orgId
+   ```
+   (thư mục `.vercel/` đã gitignore.)
+
+3. **Tạo Vercel token**: [vercel.com/account/tokens](https://vercel.com/account/tokens) → Create → copy token.
+
+4. **GitHub repo secrets** (`kola-projects/af-console` → Settings → Secrets and variables → Actions):
+   | Secret | Giá trị |
+   |---|---|
+   | `VERCEL_TOKEN` | token bước 3 |
+   | `VERCEL_ORG_ID` | `orgId` trong `.vercel/project.json` |
+   | `VERCEL_PROJECT_ID` | `projectId` trong `.vercel/project.json` |
+
+5. **Env production trên Vercel** (Settings → Environment Variables): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (Production). Action `vercel pull` sẽ kéo các biến này lúc build.
+
+6. Thử release:
+   ```bash
+   pnpm release:patch
+   gh run watch   # hoặc xem tab Actions → Deploy tag
+   ```
+
+Workflow: [`.github/workflows/deploy-tag.yml`](.github/workflows/deploy-tag.yml). Tham chiếu: [Vercel KB — deploy based on tags](https://vercel.com/kb/guide/can-you-deploy-based-on-tags-releases-on-vercel).
+
 ## Quy ước code
 
 - **Đọc chỉ qua view**, không `select` thẳng bảng tổng hợp — view là lớp đệm để đổi schema không vỡ
