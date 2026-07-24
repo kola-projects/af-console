@@ -240,3 +240,9 @@ export async function setUserActive(id: string, is_active: boolean) {
   if (error) throw new Error(error.message)
   if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
 }
+
+/** Đổi mật khẩu cho người dùng hiện tại. */
+export async function changePassword(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw new Error(error.message)
+}
