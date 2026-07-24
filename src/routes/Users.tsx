@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   appSettings,
@@ -9,9 +10,11 @@ import {
 } from '../lib/queries'
 import type { UserRole } from '../lib/types'
 import { Badge, Cell, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
+import ChangePassword from './ChangePassword'
 
 export default function Users() {
   const qc = useQueryClient()
+  const [showChangePassword, setShowChangePassword] = useState(false)
   const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
   const users = useQuery({ queryKey: ['app-users'], queryFn: appUsers })
   const settings = useQuery({ queryKey: ['app-settings'], queryFn: appSettings })
@@ -101,43 +104,55 @@ export default function Users() {
                 </Cell>
                 <Cell className="text-neutral-500">{localTime(u.created_at)}</Cell>
                 <Cell>
-                  {isAdmin && (
-                    <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {isMe && (
                       <button
-                        disabled={lastAdmin || changeRole.isPending}
-                        title={lastAdmin ? 'Không thể hạ cấp admin cuối cùng' : undefined}
-                        onClick={() =>
-                          changeRole.mutate({
-                            id: u.id,
-                            role: u.role === 'admin' ? 'member' : 'admin',
-                          })
-                        }
-                        className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
+                        onClick={() => setShowChangePassword(true)}
+                        className="rounded border border-neutral-300 px-2 py-1 text-xs dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900"
                       >
-                        {u.role === 'admin' ? 'Hạ thành member' : 'Nâng thành admin'}
+                        Đổi mật khẩu
                       </button>
-                      <button
-                        disabled={lastAdmin || isMe || changeActive.isPending}
-                        title={
-                          lastAdmin
-                            ? 'Không thể khoá admin cuối cùng'
-                            : isMe
-                              ? 'Không tự khoá chính mình'
-                              : undefined
-                        }
-                        onClick={() => changeActive.mutate({ id: u.id, active: !u.is_active })}
-                        className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
-                      >
-                        {u.is_active ? 'Khoá' : 'Mở khoá'}
-                      </button>
-                    </div>
-                  )}
+                    )}
+                    {isAdmin && (
+                      <>
+                        <button
+                          disabled={lastAdmin || changeRole.isPending}
+                          title={lastAdmin ? 'Không thể hạ cấp admin cuối cùng' : undefined}
+                          onClick={() =>
+                            changeRole.mutate({
+                              id: u.id,
+                              role: u.role === 'admin' ? 'member' : 'admin',
+                            })
+                          }
+                          className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
+                        >
+                          {u.role === 'admin' ? 'Hạ thành member' : 'Nâng thành admin'}
+                        </button>
+                        <button
+                          disabled={lastAdmin || isMe || changeActive.isPending}
+                          title={
+                            lastAdmin
+                              ? 'Không thể khoá admin cuối cùng'
+                              : isMe
+                                ? 'Không tự khoá chính mình'
+                                : undefined
+                          }
+                          onClick={() => changeActive.mutate({ id: u.id, active: !u.is_active })}
+                          className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
+                        >
+                          {u.is_active ? 'Khoá' : 'Mở khoá'}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </Cell>
               </Row>
             )
           })}
         </Table>
       </div>
+
+      {showChangePassword && <ChangePassword onClose={() => setShowChangePassword(false)} />}
     </div>
   )
 }
