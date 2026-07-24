@@ -1,11 +1,19 @@
-import { b64ToDataURL, b64ToText } from '../../lib/blueprint'
+import { b64ToDataURL, b64ToText, mimeOf } from '../../lib/blueprint'
 
 /** Ảnh (png/jpg/webp) và SVG icon — dataURL đơn giản, không phải quản vòng đời objectURL. */
-export function ImageView({ b64, contentType, alt }: { b64: string; contentType: string; alt: string }) {
+export function ImageView({
+  b64,
+  contentType,
+  alt,
+}: {
+  b64: string
+  contentType: string
+  alt: string
+}) {
   return (
     <div className="flex justify-center rounded-lg bg-neutral-50 p-4 dark:bg-neutral-900">
       <img
-        src={b64ToDataURL(b64, contentType)}
+        src={b64ToDataURL(b64, mimeOf(alt, contentType))}
         alt={alt}
         className="max-h-[80vh] max-w-full object-contain"
       />

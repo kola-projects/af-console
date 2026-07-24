@@ -2,9 +2,10 @@
  *  Không import React: dùng được cả trong component lẫn ngoài. */
 
 /** base64 → bytes gốc. Đúng cho MỌI loại (text lẫn nhị phân).
- *  Cấp phát trên ArrayBuffer tường minh để type khớp Blob/TextDecoder (TS6 lib generic). */
+ *  Cấp phát trên ArrayBuffer tường minh để type khớp Blob/TextDecoder (TS6 lib generic).
+ *  Bỏ whitespace — CLI `base64` hay wrap 76 cột, atob sẽ ném InvalidCharacterError. */
 export function b64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
-  const bin = atob(b64)
+  const bin = atob(b64.replace(/\s+/g, ''))
   const bytes = new Uint8Array(new ArrayBuffer(bin.length))
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
   return bytes
@@ -24,7 +25,32 @@ export function b64ToObjectURL(b64: string, contentType: string): string {
 
 /** data: URL — tiện khi muốn nhúng thẳng vào HTML mà không phải quản lý vòng đời objectURL. */
 export function b64ToDataURL(b64: string, contentType: string): string {
-  return `data:${contentType};base64,${b64}`
+  return `data:${contentType};base64,${b64.replace(/\s+/g, '')}`
+}
+
+/** MIME tin cậy theo đuôi path. Pipeline đôi khi ghi SVG/CSS là text/plain → data URL
+ *  `data:text/plain;base64,…` làm <img>/<link> không render. */
+export function mimeOf(path: string, contentType?: string): string {
+  const ext = path.toLowerCase().split('.').pop() ?? ''
+  const byExt: Record<string, string> = {
+    svg: 'image/svg+xml',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+    gif: 'image/gif',
+    css: 'text/css',
+    js: 'text/javascript',
+    mjs: 'text/javascript',
+    html: 'text/html',
+    htm: 'text/html',
+    woff: 'font/woff',
+    woff2: 'font/woff2',
+    ttf: 'font/ttf',
+    json: 'application/json',
+  }
+  if (byExt[ext]) return byExt[ext]
+  return contentType?.split(';')[0]?.trim() || 'application/octet-stream'
 }
 
 export type RenderKind = 'md' | 'html' | 'image' | 'svg' | 'json' | 'text'
