@@ -12,9 +12,46 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<SignupStatus | null>(null)
+  const [appVersion, setAppVersion] = useState<string>('')
+  const [latestVersion, setLatestVersion] = useState<string>('')
+  const [versionChecking, setVersionChecking] = useState(false)
 
   useEffect(() => {
     signupStatus().then(setStatus).catch(() => setStatus(null))
+  }, [])
+
+  useEffect(() => {
+    // Lấy version từ package.json
+    const fetchVersion = async () => {
+      try {
+        const response = await fetch('/package.json')
+        const pkg = await response.json()
+        setAppVersion(pkg.version)
+      } catch (err) {
+        console.error('Failed to fetch version:', err)
+      }
+    }
+    fetchVersion()
+  }, [])
+
+  useEffect(() => {
+    // Check version từ server
+    const checkLatestVersion = async () => {
+      setVersionChecking(true)
+      try {
+        const response = await fetch('https://api.github.com/repos/kola-projects/af-console/contents/package.json')
+        const data = await response.json()
+        // Decode base64
+        const content = atob(data.content)
+        const pkg = JSON.parse(content)
+        setLatestVersion(pkg.version)
+      } catch (err) {
+        console.error('Failed to check latest version:', err)
+      } finally {
+        setVersionChecking(false)
+      }
+    }
+    checkLatestVersion()
   }, [])
 
   // Chưa ai trong hệ thống -> luôn cho đăng ký và mở sẵn tab đó:
@@ -24,6 +61,7 @@ export default function Login() {
   }, [status])
 
   const canSignup = !!status && (status.enabled || status.bootstrap)
+  const isLatestVersion = appVersion === latestVersion || !latestVersion
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -46,6 +84,20 @@ export default function Login() {
     <div className="mx-auto flex min-h-full max-w-sm flex-col justify-center px-6 py-20">
       <h1 className="text-lg">af-console</h1>
       <p className="mt-1 text-sm text-neutral-500">Bảng điều khiển App-Factory.</p>
+
+      {/* Version info */}
+      <div className="mt-3 rounded bg-neutral-50 px-3 py-2 text-xs text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
+        <div>Version: {appVersion || 'loading...'}</div>
+        {latestVersion && !isLatestVersion && (
+          <div className="mt-1 text-amber-600 dark:text-amber-400">
+            Phiên bản mới {latestVersion} có sẵn — tải lại trang để cập nhật
+          </div>
+        )}
+        {isLatestVersion && latestVersion && (
+          <div className="mt-1 text-green-600 dark:text-green-400">✓ Đang dùng phiên bản mới nhất</div>
+        )}
+        {versionChecking && <div className="mt-1">Đang kiểm tra phiên bản...</div>}
+      </div>
 
       {status?.bootstrap && (
         <div className="mt-4 rounded border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800">
