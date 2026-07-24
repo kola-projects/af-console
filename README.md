@@ -132,7 +132,11 @@ GitHub Action **Deploy tag** build và đẩy lên Vercel Production.
    | `VERCEL_ORG_ID` | `orgId` trong `.vercel/project.json` |
    | `VERCEL_PROJECT_ID` | `projectId` trong `.vercel/project.json` |
 
-5. **Env production trên Vercel** (Settings → Environment Variables): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (Production). Action `vercel pull` sẽ kéo các biến này lúc build.
+5. **Env Production trên Vercel** (Settings → Environment Variables), đúng tên và đúng môi trường **Production**:
+   - `VITE_SUPABASE_URL` = `https://xxxx.supabase.co` (có `https://`, không bọc dấu ngoặc)
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` = `sb_publishable_…`
+   
+   Action deploy upload source → Vercel build trên cloud → tự inject các biến này. Thiếu hoặc chỉ bật Preview/Development thì runtime sẽ lỗi `Invalid supabaseUrl`.
 
 6. Thử release:
    ```bash

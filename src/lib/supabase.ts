@@ -1,11 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
+const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim()
+const key = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined)?.trim()
 
 if (!url || !key) {
   throw new Error(
-    'Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_PUBLISHABLE_KEY. Copy .env.example thành .env.local rồi điền.',
+    'Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_PUBLISHABLE_KEY. ' +
+      'Local: copy .env.example → .env. Vercel: Settings → Environment Variables (Production).',
+  )
+}
+
+if (!/^https?:\/\//i.test(url)) {
+  throw new Error(
+    `VITE_SUPABASE_URL không hợp lệ (cần https://…): ${JSON.stringify(url)}. ` +
+      'Trên Vercel đừng bọc giá trị trong dấu ngoặc kép.',
   )
 }
 
