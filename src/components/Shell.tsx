@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -22,6 +23,46 @@ export default function Shell({ email }: { email: string }) {
   // ở DB thực thi, member có gõ thẳng /users cũng không sửa được gì.
   const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
   const nav = me.data?.role === 'admin' ? [...NAV, { to: '/users', label: 'Users' }] : NAV
+
+  const [appVersion, setAppVersion] = useState<string>('')
+  const [latestVersion, setLatestVersion] = useState<string>('')
+  const [versionChecking, setVersionChecking] = useState(false)
+
+  useEffect(() => {
+    // Lấy version từ package.json
+    const fetchVersion = async () => {
+      try {
+        const response = await fetch('/package.json')
+        const pkg = await response.json()
+        setAppVersion(pkg.version)
+      } catch (err) {
+        console.error('Failed to fetch version:', err)
+      }
+    }
+    fetchVersion()
+  }, [])
+
+  useEffect(() => {
+    // Check version từ server
+    const checkLatestVersion = async () => {
+      setVersionChecking(true)
+      try {
+        const response = await fetch('https://api.github.com/repos/kola-projects/af-console/contents/package.json')
+        const data = await response.json()
+        // Decode base64
+        const content = atob(data.content)
+        const pkg = JSON.parse(content)
+        setLatestVersion(pkg.version)
+      } catch (err) {
+        console.error('Failed to check latest version:', err)
+      } finally {
+        setVersionChecking(false)
+      }
+    }
+    checkLatestVersion()
+  }, [])
+
+  const isLatestVersion = appVersion === latestVersion || !latestVersion
 
   return (
     <div className="mx-auto flex min-h-full max-w-[1400px] gap-6 px-6 py-6">
@@ -64,6 +105,22 @@ export default function Shell({ email }: { email: string }) {
           >
             Đăng xuất
           </button>
+
+          {/* Version info */}
+          <div className="mt-4 border-t border-neutral-200 pt-3 dark:border-neutral-800">
+            <div className="text-[11px] text-neutral-500">Version: {appVersion || 'loading...'}</div>
+            {latestVersion && !isLatestVersion && (
+              <div className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+                Phiên bản {latestVersion} có sẵn
+              </div>
+            )}
+            {isLatestVersion && latestVersion && (
+              <div className="mt-1 text-[11px] text-green-600 dark:text-green-400">✓ Mới nhất</div>
+            )}
+            {versionChecking && (
+              <div className="mt-1 text-[11px] text-neutral-400">Đang kiểm tra...</div>
+            )}
+          </div>
         </div>
       </nav>
 
