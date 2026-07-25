@@ -12,6 +12,8 @@ import type {
   PromotionCandidate,
   Run,
   RunHealth,
+  RunLearningRow,
+  RunNewLesson,
   RunPhase,
   SignupStatus,
   Tag,
@@ -117,6 +119,30 @@ export const blueprintDir = async (runName: string, prefix: string) =>
 
 export const runDecisions = async (runId: number) =>
   unwrap<Decision[]>(await supabase.from('decisions').select('*').eq('run_id', runId).order('id'))
+
+// ─── Learning loop (migration 0006) — console CHỈ hậu kiểm, không mutation ──
+// Disposition là việc của agent qua CLI (af_db insert lesson_observations);
+// web chỉ hiển thị để con người soát — cùng phân quyền với graduate.
+
+/** Lessons đã bơm vào run (prefetch) + phán quyết từng lesson. Đọc qua view 0006. */
+export const runLearning = async (runId: number) =>
+  unwrap<RunLearningRow[]>(
+    await supabase.from('v_run_learning').select('*').eq('run_id', runId).order('lesson_id'),
+  )
+
+/** Lesson mới sinh từ run này (observation first_seen — bảng con theo FK, ngoại lệ hợp lệ). */
+export const runNewLessons = async (runId: number) =>
+  unwrap<RunNewLesson[]>(
+    await supabase
+      .from('lesson_observations')
+      .select('lesson_id,note,lessons(slug,title,status)')
+      .eq('run_id', runId)
+      .eq('kind', 'first_seen')
+      .order('lesson_id')
+      // lessons(...) là FK n→1 nên thực tế trả OBJECT; supabase-js không biết cardinality
+      // và suy thành mảng — ép kiểu đúng bằng returns<>.
+      .returns<RunNewLesson[]>(),
+  )
 
 export const runBugs = async (runId: number) =>
   unwrap<Bug[]>(await supabase.from('bugs').select('*').eq('run_id', runId).order('id'))

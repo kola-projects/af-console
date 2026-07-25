@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { run, runBugs, runDecisions, runPhases } from '../lib/queries'
-import type { Bug, Decision, Run, RunPhase } from '../lib/types'
+import { run, runBugs, runDecisions, runLearning, runNewLessons, runPhases } from '../lib/queries'
+import type { Bug, Decision, Run, RunLearningRow, RunPhase } from '../lib/types'
 import { Badge, CategoryBadge, Empty, ErrorBox, Loading, Mono } from '../components/ui'
 import BlueprintTab from './blueprint/BlueprintTab'
 
-type Tab = 'timeline' | 'blueprint'
+type Tab = 'timeline' | 'learning' | 'blueprint'
 
 /** Thay cho việc đọc AI_DECISION_LOG.md bằng mắt: timeline phase01→06, dưới mỗi
  *  phase là quyết định và lỗi thuộc về phase đó. Tab Blueprint (v3.3) đọc hồ sơ
@@ -46,6 +46,7 @@ export default function RunDetail() {
         {(
           [
             ['timeline', 'Timeline'],
+            ['learning', 'Learning'],
             ['blueprint', 'Blueprint'],
           ] as [Tab, string][]
         ).map(([k, label]) => (
@@ -66,6 +67,8 @@ export default function RunDetail() {
       <div className="mt-6">
         {tab === 'timeline' ? (
           <Timeline run={r.data} />
+        ) : tab === 'learning' ? (
+          <Learning runId={r.data.id} />
         ) : blueprintRun ? (
           <BlueprintTab runName={blueprintRun} />
         ) : (
@@ -121,6 +124,93 @@ function Timeline({ run: r }: { run: Run }) {
 
       {!phases.data?.length && !decisions.data?.length && !bugs.data?.length && (
         <Empty>Run này chưa ghi phase, quyết định hay lỗi nào.</Empty>
+      )}
+    </div>
+  )
+}
+
+/** [0006] Tab Learning — hậu kiểm vòng học của run: lessons đã bơm (prefetch) +
+ *  phán quyết từng lesson, lesson mới sinh, và bug tái diễn cross-run.
+ *  Console CHỈ hiển thị; disposition là việc của agent qua CLI (như graduate). */
+function Learning({ runId }: { runId: number }) {
+  const learning = useQuery({ queryKey: ['run-learning', runId], queryFn: () => runLearning(runId) })
+  const fresh = useQuery({ queryKey: ['run-new-lessons', runId], queryFn: () => runNewLessons(runId) })
+
+  if (learning.isLoading) return <Loading />
+  const err = learning.error || fresh.error
+  if (err) return <ErrorBox error={err} />
+
+  const rows = learning.data ?? []
+  const missing = rows.filter((r) => r.disposition === 'missing')
+
+  return (
+    <div className="space-y-6">
+      {missing.length > 0 && (
+        <div className="rounded border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-600 dark:bg-amber-950 dark:text-amber-200">
+          Còn <b>{missing.length}</b> lesson đã bơm nhưng chưa định đoạt — run chưa qua được{' '}
+          <Mono>run-finish</Mono>.
+        </div>
+      )}
+
+      <section>
+        <h2 className="text-sm font-medium text-neutral-500">
+          Lessons bơm vào run ({rows.length}) — phán quyết cuối run
+        </h2>
+        {rows.length === 0 ? (
+          <Empty>Run này không có retrieval nào (chạy trước v3.8, hoặc prefetch chưa chạy).</Empty>
+        ) : (
+          <div className="mt-2 space-y-2">
+            {rows.map((r) => (
+              <LearningRow key={r.lesson_id} row={r} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm font-medium text-neutral-500">
+          Lesson mới sinh từ run này ({fresh.data?.length ?? 0})
+        </h2>
+        {(fresh.data ?? []).length === 0 ? (
+          <p className="mt-1 text-sm text-neutral-500">(không có)</p>
+        ) : (
+          <div className="mt-2 space-y-1">
+            {(fresh.data ?? []).map((o) => (
+              <div key={o.lesson_id} className="text-sm">
+                <Mono className="text-neutral-500">#{o.lesson_id}</Mono> {o.lessons?.title ?? '—'}{' '}
+                {o.lessons && <Badge>{o.lessons.status}</Badge>}
+                {o.note && <div className="text-xs text-neutral-500">{o.note}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function LearningRow({ row: r }: { row: RunLearningRow }) {
+  const badge =
+    r.disposition === 'applied_prevented' ? (
+      <Badge tone="good">applied</Badge>
+    ) : r.disposition === 'contradicted' ? (
+      <Badge tone="bad">contradicted</Badge>
+    ) : r.disposition === 'not_relevant' ? (
+      <Badge>not relevant</Badge>
+    ) : (
+      <Badge tone="warn">MISSING</Badge>
+    )
+  return (
+    <div className="text-sm">
+      {badge} <Mono className="text-neutral-500">#{r.lesson_id}</Mono> {r.title}
+      <span className="ml-1 text-xs text-neutral-400">
+        (<Mono className="text-xs">{r.slug}</Mono> · bơm ở {r.retrieved_in_phases.join(', ')})
+      </span>
+      {r.note && (
+        <div className="text-xs text-neutral-500">
+          {r.disposition === 'contradicted' ? 'lý do: ' : 'evidence: '}
+          {r.note}
+        </div>
       )}
     </div>
   )

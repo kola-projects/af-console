@@ -126,6 +126,29 @@ export interface Bug {
   created_at: string
 }
 
+/** [0006] Một dòng = (run × lesson đã bơm qua prefetch) + phán quyết cuối run.
+ *  'missing' = chưa định đoạt → run chưa được phép completed. */
+export type LessonDisposition = 'applied_prevented' | 'contradicted' | 'not_relevant' | 'missing'
+
+export interface RunLearningRow {
+  run_id: number
+  lesson_id: number
+  slug: string
+  title: string
+  lesson_status: LessonStatus
+  disposition: LessonDisposition
+  note: string | null
+  retrieved_in_phases: string[]
+  first_retrieved_at: string
+}
+
+/** Lesson mới sinh trong run (observation kind='first_seen' + embed lessons). */
+export interface RunNewLesson {
+  lesson_id: number
+  note: string | null
+  lessons: { slug: string; title: string; status: LessonStatus } | null
+}
+
 export interface LibraryFeasibility {
   id: number
   feature_key: string
