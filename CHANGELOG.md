@@ -31,3 +31,8 @@ user (Users tab), MIME/base64 cho blueprint viewer, pnpm workflow (v1.0.2), fix 
 Các mốc chính nằm trong lịch sử git: dựng SPA (Vite/React/TS + supabase-js, RLS + publishable key),
 trang Lessons với cổng duyệt graduate, Runs/RunDetail (Timeline), Bugs/Libraries/Tags/Users,
 Blueprint web viewer (bảng `blueprint_files`).
+
+## Ghi chú xoá tag (luật release note: xoá tag phải ghi lại)
+
+- **`v3.8` (AFC) — ĐÃ XOÁ 2026-07-26**: tag đẩy nhầm trong lần push bị reject (trỏ commit tiền-rebase
+  mồ côi `81ebde3`, thiếu các fix 1.0.x). Bản thay thế chính thức: **`v3.8.0` @ `a634b66`**.
