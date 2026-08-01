@@ -9,6 +9,8 @@ import Dashboard from './routes/Dashboard'
 import Lessons from './routes/Lessons'
 import Runs from './routes/Runs'
 import RunDetail from './routes/RunDetail'
+import Apps from './routes/Apps'
+import AppDetail from './routes/AppDetail'
 import Bugs from './routes/Bugs'
 import Libraries from './routes/Libraries'
 import Tags from './routes/Tags'
@@ -43,6 +45,8 @@ export default function App() {
           <Route element={<Shell email={session.user.email ?? ''} />}>
             <Route index element={<Dashboard />} />
             <Route path="lessons" element={<Lessons />} />
+            <Route path="apps" element={<Apps />} />
+            <Route path="apps/:id" element={<AppDetail />} />
             <Route path="runs" element={<Runs />} />
             <Route path="runs/:id" element={<RunDetail />} />
             <Route path="bugs" element={<Bugs />} />

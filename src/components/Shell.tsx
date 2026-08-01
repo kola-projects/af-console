@@ -8,6 +8,7 @@ import { myProfile, promotionCandidates, tags } from '../lib/queries'
 const NAV = [
   { to: '/lessons', label: 'Lessons' },
   { to: '/', label: 'Dashboard', end: true },
+  { to: '/apps', label: 'Apps' },
   { to: '/runs', label: 'Runs' },
   { to: '/bugs', label: 'Bugs' },
   { to: '/libraries', label: 'Libraries' },
