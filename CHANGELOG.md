@@ -20,6 +20,21 @@ không còn chỉ counts. Usage history query lọc server-side theo app/scenari
 
 Chi tiết phía framework: `app-factory/RELEASE.md` § v3.21.
 
+## 3.17.0 — 2026-08-01 (console-only; AF 3.9→3.17 không có thay đổi AFC nên nhảy thẳng từ 3.8.0)
+
+**Trang "Apps" (`/apps`)** — lối vào theo APP thay vì theo run (một app sinh nhiều lần thì tìm
+blueprint qua danh sách run rất khó):
+- Danh sách mọi app với ô tìm kiếm (tên/package) + sắp xếp theo **last update** (mặc định) /
+  **thời điểm tạo** / **tên**. "Last update" suy từ run gần nhất (không có cột riêng trong DB).
+- Cột Blueprints = số run đã push blueprint (con trỏ `runs.extra.blueprint_run` sẵn có).
+- **Chi tiết app (`/apps/:id`)**: mọi run (link sang `/runs/:id`), danh sách blueprint (link mở
+  thẳng tab Blueprint), **lessons quá khứ đã áp vào app** (gom `v_run_learning` cross-run, một
+  lesson bơm vào N run hiện MỘT dòng với N phán quyết) và **lessons app sinh ra mới**
+  (observation `first_seen`).
+- `RunDetail` nhận `?tab=blueprint|learning` để deep-link từ trang Apps.
+- **KHÔNG cần migration** — toàn bộ đọc từ bảng/view sẵn có (`apps`, `runs` embed,
+  `v_run_learning` 0006, `lesson_observations`, `blueprint_files` qua tab run).
+
 ## 3.8.0 — 2026-07-26 (đi cùng AF v3.8 · Learning Loop v0 · DB schema_version=6)
 
 **Tab "Learning" trong RunDetail** (`/runs/:id`) — hậu kiểm vòng học của từng run:

@@ -1,9 +1,12 @@
 import { supabase } from './supabase'
+import { b64ToText } from './blueprint'
 import type {
   AdsProfileMatrixRow,
   AdsScenarioByApp,
   AdsScenarioUsageHistory,
   AdsScenarioVersion,
+  AppNewLesson,
+  AppRow,
   AppSettings,
   AppUser,
   BlueprintFileContent,
@@ -62,6 +65,86 @@ export async function rejectLesson(id: number, reason: string) {
     .update({ status: 'rejected', rejected_reason: reason, updated_at: new Date().toISOString() })
     .eq('id', id)
   if (error) throw new Error(error.message)
+}
+
+// ─── Apps (trang /apps) — KHÔNG cần bảng/cột/view mới ──────────────────────
+// apps + embed runs (FK sẵn có). Search/sort làm client-side: quy mô là chục app ×
+// trăm run, kéo một lần rẻ hơn chế thêm view chỉ để ORDER BY.
+
+/** Toàn bộ app + run của từng app. Ngoại lệ đọc-thẳng-bảng hợp lệ (như runs()):
+ *  đọc theo FK, không tổng hợp phía DB. */
+export const appsWithRuns = async () =>
+  unwrap<AppRow[]>(
+    await supabase
+      .from('apps')
+      .select('id,name,package_name,source_kind,created_at,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
+      .order('created_at', { ascending: false })
+      .order('started_at', { referencedTable: 'runs', ascending: false }),
+  )
+
+export const appDetail = async (id: number) => {
+  const res = await supabase
+    .from('apps')
+    .select('id,name,package_name,source_kind,created_at,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
+    .eq('id', id)
+    .order('started_at', { referencedTable: 'runs', ascending: false })
+    .single()
+  if (res.error) throw new Error(res.error.message)
+  return res.data as unknown as AppRow
+}
+
+/** Icon đại diện của một run blueprint — MỘT request cho đúng MỘT file:
+ *  ưu tiên `aso/icon_512.png` (icon final), fallback `design_previews/app_icon.svg`
+ *  ('a' < 'd' nên order=path rồi limit 1 chọn đúng ưu tiên, không kéo thừa file kia). */
+export const appIcon = async (runName: string) => {
+  const res = await supabase
+    .from('blueprint_files')
+    .select('path,content_b64,content_type')
+    .eq('run_name', runName)
+    .in('path', ['aso/icon_512.png', 'design_previews/app_icon.svg'])
+    .order('path')
+    .limit(1)
+  if (res.error) throw new Error(res.error.message)
+  return (res.data?.[0] ?? null) as BlueprintFileContent | null
+}
+
+/** Package name DETECT từ lịch sử build khi apps.package_name trống:
+ *  dòng `packageName:` trong task.md của blueprint (template bắt buộc có).
+ *  Chỉ hiển thị — không ghi ngược vào bảng apps (sổ cái do CLI ghi). */
+export const detectPackageName = async (runName: string) => {
+  const res = await supabase
+    .from('blueprint_files')
+    .select('content_b64')
+    .eq('run_name', runName)
+    .eq('path', 'task.md')
+    .maybeSingle()
+  if (res.error) throw new Error(res.error.message)
+  if (!res.data) return null
+  const m = b64ToText(res.data.content_b64).match(/^packageName:\s*([A-Za-z][\w.]*)/m)
+  return m?.[1] ?? null
+}
+
+/** Lessons đã bơm vào MỌI run của app + phán quyết — view 0006, lọc theo tập run_id. */
+export const appLearning = async (runIds: number[]) => {
+  if (!runIds.length) return [] as RunLearningRow[]
+  return unwrap<RunLearningRow[]>(
+    await supabase.from('v_run_learning').select('*').in('run_id', runIds).order('lesson_id'),
+  )
+}
+
+/** Lessons sinh mới từ các run của app (first_seen — bảng con theo FK, ngoại lệ hợp lệ). */
+export const appNewLessons = async (runIds: number[]) => {
+  if (!runIds.length) return [] as AppNewLesson[]
+  return unwrap<AppNewLesson[]>(
+    await supabase
+      .from('lesson_observations')
+      .select('lesson_id,run_id,note,lessons(slug,title,status)')
+      .in('run_id', runIds)
+      .eq('kind', 'first_seen')
+      .order('lesson_id')
+      // lessons(...) là FK n→1 → OBJECT; supabase-js suy nhầm thành mảng, ép bằng returns<>.
+      .returns<AppNewLesson[]>(),
+  )
 }
 
 export const runs = async () =>

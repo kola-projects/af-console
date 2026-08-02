@@ -26,14 +26,18 @@ Từ người thứ hai trở đi, admin quyết định có cho đăng ký ti�
 
 ## Điều kiện tiên quyết
 
-DB phải đã apply **cả hai** migration ở repo app-factory:
+DB phải đã apply **toàn bộ** migration ở repo app-factory (`db/migrations/`, hiện tới `0008` — schema_version 8):
 
 | Migration | Cho gì |
 |---|---|
-| `db/migrations/0001_init.sql` | Toàn bộ bảng + view |
-| `db/migrations/0002_console.sql` | Trạng thái `approved`, **RLS**, `v_lesson_dead`, `v_graduation_queue` |
-| `db/migrations/0003_count_backfill.sql` | Sửa ngưỡng duyệt (tính cả run backfill) |
-| `db/migrations/0004_users.sql` | Đăng ký, phân quyền admin/member, cờ tắt đăng ký |
+| `0001_init.sql` | Toàn bộ bảng + view |
+| `0002_console.sql` | Trạng thái `approved`, **RLS**, `v_lesson_dead`, `v_graduation_queue` |
+| `0003_count_backfill.sql` | Sửa ngưỡng duyệt (tính cả run backfill) |
+| `0004_users.sql` | Đăng ký, phân quyền admin/member, cờ tắt đăng ký |
+| `0005_blueprint.sql` | Bảng `blueprint_files` — bản chính blueprint của app sống ở DB, xem trên console |
+| `0006_learning_loop.sql` | Learning loop v3.8: `retrievals`, disposition, cổng `run-finish` |
+| `0007_lesson_cold_start.sql` | Cold-start lesson |
+| `0008_legal_job_kind.sql` | `job_kind` cho lệnh external (legal…) |
 
 Thiếu `0002` thì đăng nhập xong vẫn không thấy gì (hoặc gặp lỗi RLS), và nút duyệt sẽ hỏng.
 
@@ -91,7 +95,7 @@ Hai chốt chặn chống khoá chết hệ thống:
 |---|---|
 | **Lessons** | Có nên đẩy lesson này lên `instructions/` không? Kèm tab *Không ai dùng* để dọn rác. |
 | **Dashboard** | AF có thông minh hơn không? Cứu build phải tăng, tái diễn phải giảm. |
-| **Runs / Run detail** | Run vừa rồi đã xảy ra chuyện gì? (thay việc đọc `AI_DECISION_LOG.md` bằng mắt) |
+| **Runs / Run detail** | Run vừa rồi đã xảy ra chuyện gì? (thay việc đọc `AI_DECISION_LOG.md` bằng mắt). Kèm **blueprint** của app (spec, design_system, mockup; từ AF v3.19 thêm `product_audit.md` + `solution_eval.md` của mode họ Feature) — đội bảo trì đọc ở đây, app giao đi không chứa. |
 | **Bugs** | Lỗi này từng gặp chưa? Tra theo chữ ký lỗi. |
 | **Libraries** | Thư viện này có dùng được không? Tỉ lệ tính từ kết quả thật. |
 | **Tags** | Từ vựng có đang loạn không? Duyệt và gộp tag trùng nghĩa. |

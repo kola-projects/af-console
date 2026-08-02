@@ -58,6 +58,38 @@ export interface LessonDead {
   last_retrieved_at: string | null
 }
 
+/** Run rút gọn embed dưới một app (apps → runs, FK n→1 đảo chiều nên là MẢNG).
+ *  Con trỏ blueprint sống ở extra.blueprint_run — có nó nghĩa là run đã push blueprint. */
+export interface AppRunSummary {
+  id: number
+  run_name: string | null
+  job_kind: Run['job_kind']
+  status: Run['status']
+  af_version: string | null
+  started_at: string
+  finished_at: string | null
+  extra: Record<string, unknown> | null
+}
+
+/** Một dòng bảng apps + toàn bộ run của nó. "Last update" KHÔNG có cột riêng —
+ *  suy từ run mới nhất (started_at/finished_at), app chưa run nào thì lấy created_at. */
+export interface AppRow {
+  id: number
+  name: string
+  package_name: string | null
+  source_kind: 'request' | 'clone_android' | 'clone_ios'
+  created_at: string
+  runs: AppRunSummary[]
+}
+
+/** Lesson mới sinh từ MỘT run của app (observation first_seen, cần run_id để chỉ nguồn). */
+export interface AppNewLesson {
+  lesson_id: number
+  run_id: number | null
+  note: string | null
+  lessons: { slug: string; title: string; status: LessonStatus } | null
+}
+
 export interface Run {
   id: number
   job_kind: 'generate' | 'clone' | 'harvest' | 'research' | 'backfill' | 'legal' | 'ads'

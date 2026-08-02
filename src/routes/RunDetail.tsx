@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { run, runBugs, runDecisions, runLearning, runNewLessons, runPhases } from '../lib/queries'
 import type { Bug, Decision, Run, RunLearningRow, RunPhase } from '../lib/types'
 import { Badge, CategoryBadge, Empty, ErrorBox, Loading, Mono } from '../components/ui'
@@ -14,7 +14,12 @@ type Tab = 'timeline' | 'learning' | 'blueprint'
 export default function RunDetail() {
   const id = Number(useParams().id)
   const r = useQuery({ queryKey: ['run', id], queryFn: () => run(id) })
-  const [tab, setTab] = useState<Tab>('timeline')
+  // ?tab=blueprint → mở thẳng tab đó (trang Apps link tới blueprint của run).
+  const [params] = useSearchParams()
+  const initialTab = params.get('tab')
+  const [tab, setTab] = useState<Tab>(
+    initialTab === 'blueprint' || initialTab === 'learning' ? initialTab : 'timeline',
+  )
 
   if (r.isLoading) return <Loading />
   if (r.error) return <ErrorBox error={r.error} />
