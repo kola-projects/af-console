@@ -60,7 +60,7 @@ export interface LessonDead {
 
 export interface Run {
   id: number
-  job_kind: 'generate' | 'clone' | 'harvest' | 'research' | 'backfill'
+  job_kind: 'generate' | 'clone' | 'harvest' | 'research' | 'backfill' | 'legal' | 'ads'
   app_id: number | null
   run_name: string | null
   af_version: string | null
@@ -74,6 +74,151 @@ export interface Run {
    *  extra.blueprint_run = <run_name> (run đã push blueprint), extra.blueprint_table = 'blueprint_files'. */
   extra: Record<string, unknown> | null
   apps?: { name: string } | null
+}
+
+/** Snapshot tóm tắt scenario (catalog hoặc lúc ghi usage). Khớp summary jsonb ở 0012. */
+export interface AdsScenarioSummary {
+  placement_count?: number
+  screen_count?: number
+  flow_count?: number
+  verify_count?: number
+  globals?: Record<string, unknown>
+  screens?: string[]
+  screens_detail?: Array<{
+    id?: string
+    optional?: boolean
+    slot_ids?: string[]
+    slot_count?: number
+  }>
+  doc_path?: string
+  [key: string]: unknown
+}
+
+/** Bản chiếu scenario.json lưu ở ads_scenario_versions.definition (0013). */
+export interface AdsScenarioDefinition {
+  meta?: {
+    id?: string
+    version?: number
+    status?: string
+    description?: string
+    requires_capabilities?: string[]
+  }
+  globals?: Record<string, unknown>
+  gates?: Array<Record<string, unknown>>
+  placements?: Array<Record<string, unknown>>
+  screens?: Array<{
+    id?: string
+    optional?: boolean
+    slots?: Array<Record<string, unknown>>
+  }>
+  flow?: Array<{
+    id?: string
+    screen?: string
+    trigger?: Record<string, unknown>
+    actions?: Array<Record<string, unknown>>
+  }>
+  verify?: Array<Record<string, unknown>>
+  [key: string]: unknown
+}
+
+/** Catalog một bản scenario@version — bảng ads_scenario_versions (0012/0013). */
+export interface AdsScenarioVersion {
+  scenario_id: string
+  scenario_version: number
+  status: 'draft' | 'active' | 'frozen' | 'deprecated'
+  description: string | null
+  requires_capabilities: string[]
+  content_sha: string
+  summary: AdsScenarioSummary
+  definition: AdsScenarioDefinition
+  source_path: string
+  verified_at: string
+  notes: string | null
+  updated_at: string
+}
+
+/** App đã từng gắn scenario — view v_ads_scenario_by_app. */
+export interface AdsScenarioByApp {
+  app: string
+  usage_count: number
+  scenario_versions_used: number
+  profiles_used: number
+  last_used_at: string
+  latest_scenario_id: string | null
+  latest_scenario_version: number | null
+  latest_profile_id: string | null
+  latest_lib_version: string | null
+  latest_outcome: string | null
+  latest_run_id: number | null
+}
+
+/** Một lần dùng scenario trên app — view v_ads_scenario_usage_history. */
+export interface AdsScenarioUsageHistory {
+  id: number
+  run_id: number
+  app: string
+  scenario_id: string
+  scenario_version: number
+  scenario_ref: string
+  profile_id: string
+  lib_version: string | null
+  af_version: string | null
+  code_base_version: string | null
+  scenario_content_sha: string | null
+  scenario_summary: AdsScenarioSummary
+  deltas: unknown
+  outcome: 'works' | 'works_with_gotcha' | 'failed' | 'replaced'
+  notes: string | null
+  created_at: string
+  run_name: string | null
+  job_kind: string | null
+  run_status: string | null
+  run_started_at: string | null
+  run_finished_at: string | null
+  effective_af_version: string | null
+  effective_code_base_version: string | null
+  ui_stack: string | null
+  lane_branch: string | null
+  gma_artifact: string | null
+  gma_version: string | null
+  native_render_api: string | null
+  compile_sdk: number | null
+  lifecycle_pin: string | null
+  profile_capabilities: string[] | null
+  profile_status: string | null
+  profile_doc_path: string | null
+  scenario_status: string | null
+  scenario_description: string | null
+  scenario_requires_capabilities: string[] | null
+  catalog_content_sha: string | null
+  catalog_summary: AdsScenarioSummary | null
+  catalog_definition: AdsScenarioDefinition | null
+  scenario_source_path: string | null
+}
+
+/** Profile × lib version — view v_ads_profile_matrix. */
+export interface AdsProfileMatrixRow {
+  version: string
+  lib_branch: string | null
+  verified_at: string | null
+  evidence: string | null
+  version_notes: string | null
+  profile_id: string
+  lane_branch: string | null
+  ui_stack: string | null
+  gma_artifact: string | null
+  gma_version: string | null
+  native_render_api: string | null
+  compile_sdk: number | null
+  lifecycle_pin: string | null
+  host_excludes: string[] | null
+  banned_symbols: string[] | null
+  doc_path: string | null
+  reference_host: string | null
+  status: string | null
+  profile_notes: string | null
+  capabilities: string[] | null
+  updated_at: string | null
 }
 
 /** Một file blueprint = một dòng bảng blueprint_files (migration 0005), lưu base64.

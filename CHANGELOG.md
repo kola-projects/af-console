@@ -3,6 +3,23 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.22.0 — 2026-08-02 (đi cùng AF v3.22 · DB schema_version=13)
+
+**Ads scenario definition:** catalog lưu `definition` jsonb (scenario.json đầy đủ). Trang
+`/ads/scenarios/:id/:version` và `/ads/apps/:app` render screens/slots/flow/placements/gates/verify —
+không còn chỉ counts. Usage history query lọc server-side theo app/scenario.
+
+## 3.21.0 — 2026-08-02 (đi cùng AF v3.21 · DB schema_version=12)
+
+**Tab Ads** (`/ads`, `/ads/apps/:app`, `/ads/scenarios/:id/:version`):
+- Danh sách app đã gắn kịch bản (view `v_ads_scenario_by_app`) — scenario/profile/lib/outcome mới nhất.
+- Lịch sử usage theo app (`v_ads_scenario_usage_history`) kèm pin AF / code_base / lib / content_sha,
+  snapshot summary lúc ghi, so catalog hiện tại, deltas/notes.
+- Catalog scenario@version (`ads_scenario_versions`) + profile matrix (`v_ads_profile_matrix`).
+- `Run.job_kind` bổ sung `legal` | `ads`.
+
+Chi tiết phía framework: `app-factory/RELEASE.md` § v3.21.
+
 ## 3.8.0 — 2026-07-26 (đi cùng AF v3.8 · Learning Loop v0 · DB schema_version=6)
 
 **Tab "Learning" trong RunDetail** (`/runs/:id`) — hậu kiểm vòng học của từng run:

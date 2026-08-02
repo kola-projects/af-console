@@ -1,5 +1,9 @@
 import { supabase } from './supabase'
 import type {
+  AdsProfileMatrixRow,
+  AdsScenarioByApp,
+  AdsScenarioUsageHistory,
+  AdsScenarioVersion,
   AppSettings,
   AppUser,
   BlueprintFileContent,
@@ -272,3 +276,63 @@ export async function changePassword(newPassword: string) {
   const { error } = await supabase.auth.updateUser({ password: newPassword })
   if (error) throw new Error(error.message)
 }
+
+// ─── Ads scenarios (migration 0012) — console CHỈ đọc ──────────────────────
+// Definition scenario sống ở git; DB giữ catalog snapshot + lịch sử usage theo app.
+
+/** App nào đã gắn scenario (gom từ usages). */
+export const adsScenarioByApp = async () =>
+  unwrap<AdsScenarioByApp[]>(
+    await supabase
+      .from('v_ads_scenario_by_app')
+      .select('*')
+      .order('last_used_at', { ascending: false }),
+  )
+
+/** Lịch sử usage — lọc theo app / scenario. */
+export const adsScenarioUsageHistory = async (opts?: {
+  app?: string
+  scenarioId?: string
+  scenarioVersion?: number
+}) => {
+  let q = supabase
+    .from('v_ads_scenario_usage_history')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(200)
+  if (opts?.app) q = q.eq('app', opts.app)
+  if (opts?.scenarioId) q = q.eq('scenario_id', opts.scenarioId)
+  if (opts?.scenarioVersion != null) q = q.eq('scenario_version', opts.scenarioVersion)
+  return unwrap<AdsScenarioUsageHistory[]>(await q)
+}
+
+/** Catalog scenario@version (bảng registry — giống tags: đọc thẳng catalog). */
+export const adsScenarioVersions = async () =>
+  unwrap<AdsScenarioVersion[]>(
+    await supabase
+      .from('ads_scenario_versions')
+      .select('*')
+      .order('scenario_id')
+      .order('scenario_version', { ascending: false }),
+  )
+
+export const adsScenarioVersion = async (scenarioId: string, version: number) => {
+  const res = await supabase
+    .from('ads_scenario_versions')
+    .select('*')
+    .eq('scenario_id', scenarioId)
+    .eq('scenario_version', version)
+    .single()
+  if (res.error) throw new Error(res.error.message)
+  return res.data as AdsScenarioVersion
+}
+
+/** Profile × lib version matrix. */
+export const adsProfileMatrix = async () =>
+  unwrap<AdsProfileMatrixRow[]>(
+    await supabase
+      .from('v_ads_profile_matrix')
+      .select('*')
+      .order('profile_id')
+      .order('version', { ascending: false }),
+  )

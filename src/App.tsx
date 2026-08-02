@@ -13,6 +13,9 @@ import Bugs from './routes/Bugs'
 import Libraries from './routes/Libraries'
 import Tags from './routes/Tags'
 import Users from './routes/Users'
+import Ads from './routes/Ads'
+import AdsAppDetail from './routes/AdsAppDetail'
+import AdsScenarioDetail from './routes/AdsScenarioDetail'
 
 const qc = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 } },
@@ -47,6 +50,9 @@ export default function App() {
             <Route path="runs/:id" element={<RunDetail />} />
             <Route path="bugs" element={<Bugs />} />
             <Route path="libraries" element={<Libraries />} />
+            <Route path="ads" element={<Ads />} />
+            <Route path="ads/apps/:app" element={<AdsAppDetail />} />
+            <Route path="ads/scenarios/:id/:version" element={<AdsScenarioDetail />} />
             <Route path="tags" element={<Tags />} />
             <Route path="users" element={<Users />} />
             <Route path="*" element={<Navigate to="/" replace />} />
