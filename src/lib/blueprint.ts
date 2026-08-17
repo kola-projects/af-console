@@ -11,6 +11,17 @@ export function b64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
   return bytes
 }
 
+/** bytes → base64. Dùng khi tải object từ Storage (0017) rồi trả về shape content_b64
+ *  cũ cho mọi viewer. Chunk 0x8000 tránh tràn stack của String.fromCharCode(...spread). */
+export function bytesToB64(bytes: Uint8Array): string {
+  let bin = ''
+  const chunk = 0x8000
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  }
+  return btoa(bin)
+}
+
 /** base64 → chuỗi UTF-8. KHÔNG dùng atob() trực tiếp làm chuỗi: atob trả Latin-1,
  *  làm hỏng ký tự đa byte (tiếng Việt, Ả-Rập/RTL…). Phải qua TextDecoder. */
 export function b64ToText(b64: string): string {

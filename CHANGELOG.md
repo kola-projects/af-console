@@ -3,6 +3,18 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.23.1 — 2026-08-17 (đi cùng AF v4.7.0 · DB schema_version=17)
+
+**Blueprint đọc từ Storage (AF v4.7.0):** bytes blueprint đã dời sang Supabase Storage (bucket `blueprints`),
+`blueprint_files` chỉ còn metadata. `queries.resolveContent()` chuẩn hoá mọi row về shape `{path,content_type,
+content_b64}` — content_b64 lấy từ DB (row cũ) hoặc **tải Storage qua signed URL** (`createSignedUrl` 120s) rồi
+encode base64 (`blueprint.bytesToB64`). Mọi viewer (BlueprintTab/HtmlMockup/appIcon/detectPackageName) KHÔNG đổi.
+
+**App code trên UI (AF v4.6.0):** trang Apps + AppDetail hiện **mã app 3 ký tự** (`appCodeOf`) — badge cạnh tên,
+tìm kiếm + sắp xếp theo `code`.
+
+**Docs:** thêm `docs/ROADMAP.md` — bản thiết kế bền cho nâng cấp AFC đa người dùng (RBAC + Storage + Requests).
+
 ## 3.22.0 — 2026-08-02 (đi cùng AF v3.22 · DB schema_version=13)
 
 **Ads scenario definition:** catalog lưu `definition` jsonb (scenario.json đầy đủ). Trang

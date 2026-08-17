@@ -79,8 +79,17 @@ export interface AppRow {
   package_name: string | null
   source_kind: 'request' | 'clone_android' | 'clone_ios'
   created_at: string
+  /** [v4.4.0] Mã app YYMMDDXs — tên gọi ổn định thay cho appName (đổi theo ASO).
+   *  Cột thật sau migration 0015; trước đó nằm tạm trong `extra` nên đọc cả hai. */
+  app_code?: string | null
+  app_codes?: string[] | null
+  extra?: { app_code?: string; app_codes?: string[] } | null
   runs: AppRunSummary[]
 }
+
+/** Mã app hiệu lực: ưu tiên cột thật, fallback extra (giai đoạn trước migration 0015). */
+export const appCodeOf = (a: Pick<AppRow, 'app_code' | 'extra'>): string | null =>
+  a.app_code ?? a.extra?.app_code ?? null
 
 /** Lesson mới sinh từ MỘT run của app (observation first_seen, cần run_id để chỉ nguồn). */
 export interface AppNewLesson {
@@ -253,7 +262,8 @@ export interface AdsProfileMatrixRow {
   updated_at: string | null
 }
 
-/** Một file blueprint = một dòng bảng blueprint_files (migration 0005), lưu base64.
+/** Một file blueprint = một dòng bảng blueprint_files. Từ 0017 bytes ở Storage
+ *  (storage_key), row cũ còn content_b64; queries.resolveContent() gộp về CÙNG shape.
  *  Meta (không kèm content) để dựng cây file; content lấy lazy khi mở. */
 export interface BlueprintFileMeta {
   path: string

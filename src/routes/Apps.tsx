@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { appsWithRuns } from '../lib/queries'
+import { appCodeOf } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 import { AppIcon, PackageName, appLastUpdate, blueprintRuns } from '../components/appMeta'
 
-type SortKey = 'last_update' | 'created' | 'name'
+type SortKey = 'last_update' | 'created' | 'name' | 'code'
 
 /** Trang Apps — lối vào theo APP thay vì theo run: một app sinh nhiều lần thì
  *  người tìm blueprint không phải mò trong danh sách run dài. */
@@ -20,9 +21,11 @@ export default function Apps() {
       (a) =>
         !needle ||
         a.name.toLowerCase().includes(needle) ||
+        (appCodeOf(a) ?? '').toLowerCase().includes(needle) ||
         (a.package_name ?? '').toLowerCase().includes(needle),
     )
     return [...filtered].sort((a, b) => {
+      if (sort === 'code') return (appCodeOf(b) ?? '').localeCompare(appCodeOf(a) ?? '')
       if (sort === 'name') return a.name.localeCompare(b.name)
       if (sort === 'created') return b.created_at.localeCompare(a.created_at)
       return appLastUpdate(b).localeCompare(appLastUpdate(a))
@@ -44,7 +47,7 @@ export default function Apps() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm theo tên / package…"
+          placeholder="Tìm theo mã / tên / package…"
           className="w-64 rounded border border-neutral-300 bg-transparent px-2.5 py-1.5 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:focus:border-neutral-400"
         />
         <select
@@ -55,6 +58,7 @@ export default function Apps() {
           <option value="last_update">Sắp xếp: last update ↓</option>
           <option value="created">Sắp xếp: tạo mới nhất ↓</option>
           <option value="name">Sắp xếp: tên A→Z</option>
+          <option value="code">Sắp xếp: app code ↓</option>
         </select>
         <span className="text-xs text-neutral-500">
           {rows.length}/{q.data?.length ?? 0} app
@@ -65,11 +69,18 @@ export default function Apps() {
         {!rows.length ? (
           <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào được ghi.'}</Empty>
         ) : (
-          <Table head={['App', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update']}>
+          <Table head={['Code', 'App', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update']}>
             {rows.map((a) => {
               const bp = blueprintRuns(a).length
               return (
                 <Row key={a.id}>
+                  <Cell>
+                    {appCodeOf(a) ? (
+                      <Mono className="font-semibold">{appCodeOf(a)}</Mono>
+                    ) : (
+                      <span className="text-neutral-400">—</span>
+                    )}
+                  </Cell>
                   <Cell>
                     <Link
                       to={`/apps/${a.id}`}

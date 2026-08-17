@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { b64ToText } from './blueprint'
+import { b64ToText, bytesToB64 } from './blueprint'
 import type {
   AdsProfileMatrixRow,
   AdsScenarioByApp,
@@ -77,7 +77,7 @@ export const appsWithRuns = async () =>
   unwrap<AppRow[]>(
     await supabase
       .from('apps')
-      .select('id,name,package_name,source_kind,created_at,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
+      .select('id,name,package_name,source_kind,created_at,extra,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
       .order('created_at', { ascending: false })
       .order('started_at', { referencedTable: 'runs', ascending: false }),
   )
@@ -85,12 +85,39 @@ export const appsWithRuns = async () =>
 export const appDetail = async (id: number) => {
   const res = await supabase
     .from('apps')
-    .select('id,name,package_name,source_kind,created_at,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
+    .select('id,name,package_name,source_kind,created_at,extra,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
     .eq('id', id)
     .order('started_at', { referencedTable: 'runs', ascending: false })
     .single()
   if (res.error) throw new Error(res.error.message)
   return res.data as unknown as AppRow
+}
+
+// ─── Blueprint content resolver (0017) ────────────────────────────────────
+// Từ 0017 bytes blueprint sống ở Storage (bucket 'blueprints', key = storage_key);
+// row cũ chưa backfill vẫn còn content_b64. resolveContent() chuẩn hoá về CÙNG shape
+// { path, content_type, content_b64 } cho mọi viewer — content_b64 lấy từ DB (cũ)
+// hoặc tải từ Storage qua signed URL rồi encode base64 (không đổi viewer).
+const BLUEPRINT_BUCKET = 'blueprints'
+
+type RawBlueprintRow = {
+  path: string
+  content_type: string
+  content_b64: string | null
+  storage_key?: string | null
+}
+
+async function contentFromStorage(storageKey: string): Promise<string> {
+  const signed = await supabase.storage.from(BLUEPRINT_BUCKET).createSignedUrl(storageKey, 120)
+  if (signed.error || !signed.data) throw new Error(signed.error?.message ?? 'không tạo được signed URL')
+  const resp = await fetch(signed.data.signedUrl)
+  if (!resp.ok) throw new Error(`tải Storage lỗi HTTP ${resp.status}`)
+  return bytesToB64(new Uint8Array(await resp.arrayBuffer()))
+}
+
+async function resolveContent(row: RawBlueprintRow): Promise<BlueprintFileContent> {
+  const content_b64 = row.content_b64 ?? (row.storage_key ? await contentFromStorage(row.storage_key) : '')
+  return { path: row.path, content_type: row.content_type, content_b64 }
 }
 
 /** Icon đại diện của một run blueprint — MỘT request cho đúng MỘT file:
@@ -99,13 +126,14 @@ export const appDetail = async (id: number) => {
 export const appIcon = async (runName: string) => {
   const res = await supabase
     .from('blueprint_files')
-    .select('path,content_b64,content_type')
+    .select('path,content_b64,content_type,storage_key')
     .eq('run_name', runName)
     .in('path', ['aso/icon_512.png', 'design_previews/app_icon.svg'])
     .order('path')
     .limit(1)
   if (res.error) throw new Error(res.error.message)
-  return (res.data?.[0] ?? null) as BlueprintFileContent | null
+  const row = res.data?.[0] as RawBlueprintRow | undefined
+  return row ? await resolveContent(row) : null
 }
 
 /** Package name DETECT từ lịch sử build khi apps.package_name trống:
@@ -114,13 +142,14 @@ export const appIcon = async (runName: string) => {
 export const detectPackageName = async (runName: string) => {
   const res = await supabase
     .from('blueprint_files')
-    .select('content_b64')
+    .select('path,content_b64,content_type,storage_key')
     .eq('run_name', runName)
     .eq('path', 'task.md')
     .maybeSingle()
   if (res.error) throw new Error(res.error.message)
   if (!res.data) return null
-  const m = b64ToText(res.data.content_b64).match(/^packageName:\s*([A-Za-z][\w.]*)/m)
+  const { content_b64 } = await resolveContent(res.data as RawBlueprintRow)
+  const m = b64ToText(content_b64).match(/^packageName:\s*([A-Za-z][\w.]*)/m)
   return m?.[1] ?? null
 }
 
@@ -167,10 +196,11 @@ export const runPhases = async (runId: number) =>
     await supabase.from('run_phases').select('*').eq('run_id', runId).order('started_at'),
   )
 
-// ─── Blueprint (bảng blueprint_files, migration 0005 — không Storage) ──────
-// Lọc theo run_name (cột được index cho việc này). RLS `authenticated` đã bật ở 0005.
+// ─── Blueprint (bảng blueprint_files — metadata; bytes ở Storage từ 0017) ──
+// Lọc theo run_name (cột được index cho việc này). RLS `authenticated` bật ở 0005;
+// bucket 'blueprints' đọc cho `authenticated` ở 0017. content lấy qua resolveContent().
 
-/** Cây file: KHÔNG kéo content_b64 (mỗi ảnh/JSON ~1.5MB base64). */
+/** Cây file: KHÔNG kéo content (mỗi ảnh/JSON lớn) — chỉ meta để dựng sidebar. */
 export const blueprintFiles = async (runName: string) =>
   unwrap<BlueprintFileMeta[]>(
     await supabase
@@ -184,25 +214,26 @@ export const blueprintFiles = async (runName: string) =>
 export const blueprintFile = async (runName: string, path: string) => {
   const res = await supabase
     .from('blueprint_files')
-    .select('path,content_b64,content_type')
+    .select('path,content_b64,content_type,storage_key')
     .eq('run_name', runName)
     .eq('path', path)
     .single()
   if (res.error) throw new Error(res.error.message)
-  return res.data as BlueprintFileContent
+  return await resolveContent(res.data as RawBlueprintRow)
 }
 
 /** Mọi file dưới một prefix (vd 'design_previews/') — để mockup HTML dựng map link
- *  tương đối rồi mới render. Kéo content vì các file này nhỏ (html/svg/icon). */
-export const blueprintDir = async (runName: string, prefix: string) =>
-  unwrap<BlueprintFileContent[]>(
-    await supabase
-      .from('blueprint_files')
-      .select('path,content_b64,content_type')
-      .eq('run_name', runName)
-      .like('path', `${prefix}%`)
-      .order('path'),
-  )
+ *  tương đối rồi mới render. Tải content song song (các file này nhỏ: html/svg/icon). */
+export const blueprintDir = async (runName: string, prefix: string) => {
+  const res = await supabase
+    .from('blueprint_files')
+    .select('path,content_b64,content_type,storage_key')
+    .eq('run_name', runName)
+    .like('path', `${prefix}%`)
+    .order('path')
+  if (res.error) throw new Error(res.error.message)
+  return await Promise.all((res.data as RawBlueprintRow[]).map(resolveContent))
+}
 
 export const runDecisions = async (runId: number) =>
   unwrap<Decision[]>(await supabase.from('decisions').select('*').eq('run_id', runId).order('id'))

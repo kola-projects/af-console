@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { appDetail, appLearning, appNewLessons } from '../lib/queries'
+import { appCodeOf } from '../lib/types'
 import type { AppRow, RunLearningRow } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 import { AppIcon, PackageName, appLastUpdate, blueprintRuns as blueprintRunsOf } from '../components/appMeta'
@@ -45,7 +46,14 @@ function Detail({ app }: { app: AppRow }) {
       <div className="mt-2 flex items-center gap-3">
         <AppIcon app={app} size={48} />
         <div>
-          <h1 className="text-lg">{app.name}</h1>
+          <h1 className="flex items-center gap-2 text-lg">
+            {appCodeOf(app) && (
+              <Mono className="rounded bg-neutral-200 px-1.5 py-0.5 text-sm font-semibold dark:bg-neutral-800">
+                {appCodeOf(app)}
+              </Mono>
+            )}
+            {app.name}
+          </h1>
           <div className="flex flex-wrap gap-2 text-sm text-neutral-500">
             <PackageName app={app} />
             <span>·</span>
