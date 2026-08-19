@@ -106,6 +106,7 @@ export const GROUP_LABEL: Record<Group, string> = {
 export const GROUP_ORDER: Group[] = ['docs', 'aso', 'mockups', 'screenshots', 'data']
 
 const DOC_PRIORITY = [
+  'order.md',
   'task.md',
   'implementation_spec.md',
   'design_system.md',

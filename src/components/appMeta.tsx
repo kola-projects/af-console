@@ -60,7 +60,7 @@ export function AppIcon({ app, size = 32 }: { app: AppRow; size?: number }) {
   )
 }
 
-/** Package name: cột apps.package_name nếu có; trống thì DETECT từ task.md của
+/** Package name: cột apps.package_name nếu có; trống thì DETECT từ order.md (cũ: task.md) của
  *  blueprint mới nhất (chấm vàng = giá trị detect, không phải sổ cái). */
 export function PackageName({ app }: { app: AppRow }) {
   const runName = latestBlueprintRun(app)
@@ -73,7 +73,7 @@ export function PackageName({ app }: { app: AppRow }) {
   if (app.package_name) return <Mono className="text-neutral-500">{app.package_name}</Mono>
   if (q.data)
     return (
-      <span title="Detect từ task.md trong blueprint — apps.package_name đang trống">
+      <span title="Detect từ order.md/task.md trong blueprint — apps.package_name đang trống">
         <Mono className="text-neutral-500">{q.data}</Mono>
         <span className="ml-1 align-middle text-[10px] text-amber-600 dark:text-amber-400">●</span>
       </span>

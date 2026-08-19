@@ -137,14 +137,16 @@ export const appIcon = async (runName: string) => {
 }
 
 /** Package name DETECT từ lịch sử build khi apps.package_name trống:
- *  dòng `packageName:` trong task.md của blueprint (template bắt buộc có).
+ *  dòng `packageName:` trong order.md (tên cũ task.md — app lịch sử) của blueprint.
  *  Chỉ hiển thị — không ghi ngược vào bảng apps (sổ cái do CLI ghi). */
 export const detectPackageName = async (runName: string) => {
   const res = await supabase
     .from('blueprint_files')
     .select('path,content_b64,content_type,storage_key')
     .eq('run_name', runName)
-    .eq('path', 'task.md')
+    .in('path', ['order.md', 'task.md'])
+    .order('path')
+    .limit(1)
     .maybeSingle()
   if (res.error) throw new Error(res.error.message)
   if (!res.data) return null
