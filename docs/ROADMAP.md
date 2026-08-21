@@ -26,11 +26,68 @@ ra Storage** + **cơ chế đặt yêu cầu cho admin**. Ba mặt phẳng + m�
 ## Trình tự phase (migration)
 ```
 0017  blueprint → Storage ...................... ✅ XONG (v4.7.0, 2026-08-17)
-0018  RBAC foundation + RLS retrofit ............ ⏳ NEXT (phase nặng nhất)
+0020  role mở rộng + af_versions + requests ..... ✅ XONG (2026-08-20) — xem "Đã triển khai" bên dưới
+0021  bucket request-uploads (đính kèm) ......... ✅ XONG (2026-08-20)
+0022  Discord notify order mới (pg_net+Vault) ... ✅ XONG (2026-08-20) — KHÔNG cần Edge Function
+──    RBAC per-capability (permissions N-N) ..... ⏳ sau — v1 dùng RBAC COARSE (đọc/admin-ghi)
 ──    drop content_b64 + VACUUM ................. ⏳ sau khi AFC đọc-Storage chạy ổn (user chốt thời điểm)
-0019+ Requests queue ........................... ⏳ sau RBAC
+──    worker chạy đơn theo request_code ......... ⏳ chưa (AF map payload→CLI)
 ```
-Ràng buộc: RBAC (0018) phải xong **trước khi mở tài khoản non-admin thật** (nếu không họ toàn quyền CRUD).
+Ràng buộc gốc "không mở non-admin trước khi siết RLS" đã được GIẢI QUYẾT ở 0020 bằng **RBAC coarse**:
+non-admin (dev/ua/aso) chỉ ĐỌC business tables + đặt đơn; GHI = admin + service_role (CLI).
+
+## Đã triển khai — session 2026-08-20 (migration 0020 + 0021, af-console)
+**Quyết định chốt cùng user (không bàn lại):**
+- Admin **tạo user trực tiếp** (email+mật khẩu+role) qua `pending_invites` + client tạm signUp (không cần
+  service_role, không văng session admin). Role v1: `dev`/`ua`/`aso`/`admin`, **mọi non-admin quyền GIỐNG NHAU**
+  (đọc + đặt đơn). RBAC per-capability để phase sau.
+- **RBAC coarse** (0020 §5): business tables đổi `is_active_user (for all)` → `select=is_active_user` +
+  `write=is_admin`. CLI service_role bypass nên pipeline không đổi.
+- **af_versions** (admin lock/unlock; default = bản mở khoá mới nhất). Seed v5.3.0 (mở), v5.1.1/v5.1.0/v5.0.0 (khoá).
+- **requests + request_events** + RPC `create_request`/`cancel_request`/`set_request_status` (SECURITY DEFINER).
+  Mã `request_code = rNNNNN` tuần tự (AF chạy theo mã). State: submitted→accepted→in_progress→done|rejected|failed;
+  user huỷ (→cancelled) khi chưa in_progress; admin đổi trạng thái + reject.
+- **3 form đặt đơn** (af-console `/requests`, mọi role):
+  - **Make app**: mode (bỏ `generate`; changeFeatureExtremeAuto ép src store/appstore) · `-v` default 3 · src ·
+    link tham khảo · appName · **Team (Auto/Titan, tuỳ chọn — lọc app sau)** · **ASO BẮT BUỘC** (store+package+appName,
+    biến thể Layout1×Style1 auto) · **google-services.json BẮT BUỘC** · **KHÔNG ads, KHÔNG mockup** (luôn --ads=false).
+  - **Ads integration**: appCode · ads full/off · variant · pages · survey.
+  - **ASO**: appCode → picker Layout×Style độc lập (load từ blueprint, không có thì nhập tay) · store · appName ·
+    onPhoneName (default appName) · packageName · appVersion (1.0.0) · releaseNote · Legal chạy trước.
+  - Mọi form: **upload ảnh/file tự do** (bucket `request-uploads`, path `<uid>/<draftId>/<file>`).
+- **Trang Users**: khối "Tạo người dùng" (admin) + ô chọn 4 role thay nút gạt; giữ chốt "không hạ/khoá admin cuối".
+
+**Contract cho AF nâng cấp sau — `blueprint/appearance/variants.json`** (AFC chỉ LOAD, không có thì nhập tay):
+```json
+{ "schema": 1, "design_variants": 3,
+  "layouts": [{ "ordinal": 0, "id": "ORIGINAL", "label": "Original", "preview": "appearance/layout_0.png" }],
+  "styles":  [{ "ordinal": 0, "id": "CLASSIC_ORANGE", "label": "Classic Orange", "preview": "appearance/style_0.png" }] }
+```
+Lý do (khảo sát 2026-08-20): dev mode render preview LIVE trong app, blueprint KHÔNG có ảnh preview per-variant
+chuẩn hoá và KHÔNG có manifest. AFC hiện suy N từ `task.md: design_variants`, hoặc cho nhập tay. Khi AF sinh
+manifest trên vào blueprint (kèm ảnh `appearance/*.png`), AFC tự render picker có preview — KHÔNG cần đổi AFC.
+
+**Phạm vi non-admin + tách trang App (0023) — ĐÃ LÀM:**
+- Non-admin blueprint CHỈ `aso/`+`design_previews/`+`legal/` (RLS bảng + Storage bucket). Bảng nội bộ
+  (runs/lessons/bugs/libraries/tags/ads) khoá đọc về admin; view nội bộ `security_invoker=on`; view an toàn
+  `v_app_blueprints` cho non-admin lấy blueprint run mà không mở bảng runs (đã lọc app ẩn).
+- `apps.is_hidden` + admin ẩn/hiện. Non-admin không thấy app ẩn (RLS).
+- **2 trang App tách biệt:** `/apps` = DANH MỤC SẢN PHẨM (mọi user) — trang detail THÂN THIỆN kiểu listing
+  (hero+feature graphic+icon, screenshots, mô tả ngắn/đầy đủ, có gì mới, design preview, legal, chỗ dành sẵn
+  Tải APK); `/manage-apps` = QUẢN LÝ (admin) — list đầy đủ + ẩn/hiện + detail file-browser blueprint như cũ.
+- Nav non-admin chỉ Apps + Yêu cầu; route nội bộ có `RequireAdmin` đá về /apps.
+- **make_app done → trả appCode:** admin bấm Done nhập appCode → `requests.result.app_code`; user thấy ở "Yêu
+  cầu của tôi", admin thấy `→ code`.
+
+**Discord notify (0022) — ĐÃ LÀM, thay Edge Function bằng pg_net+Vault:** trigger AFTER INSERT trên `requests`
+→ `net.http_post` (pg_net) → Discord. Webhook URL trong **Supabase Vault** (secret `discord_requests_webhook`),
+nạp OUT-OF-BAND (không trong migration, không commit, không lộ browser). Function đọc secret lúc chạy; chưa cấu
+hình → bỏ qua êm. Portable: logic+secret ở DB dùng chung, mọi máy như nhau. **Đổi/nạp webhook trên máy khác:**
+`select vault.create_secret('<url>','discord_requests_webhook')` (hoặc `vault.update_secret(id,…)` nếu đã có) —
+KHÔNG viết URL vào git. Đã verify: net response status 204.
+
+**Còn để phase sau:** RBAC per-capability (JWT hook + authz.has) · worker map request_code→CLI ·
+đọc/duyệt chi tiết payload+file đính kèm phía AF · timeline request_events trên UI.
 
 ## Phase ✅ — blueprint → Storage (v4.7.0)
 Bytes blueprint sống ở bucket private `blueprints` (key `<run_name>/<path>`); `blueprint_files` chỉ giữ

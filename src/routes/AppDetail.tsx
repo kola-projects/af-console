@@ -1,24 +1,221 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { appDetail, appLearning, appNewLessons } from '../lib/queries'
+import { appDetail, appDetailPublic, appLearning, appNewLessons, productAppAssets } from '../lib/queries'
 import { appCodeOf } from '../lib/types'
 import type { AppRow, RunLearningRow } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
-import { AppIcon, PackageName, appLastUpdate, blueprintRuns as blueprintRunsOf } from '../components/appMeta'
+import {
+  AppIcon,
+  PackageName,
+  appLastUpdate,
+  blueprintRuns as blueprintRunsOf,
+  latestBlueprintRun,
+} from '../components/appMeta'
+import HtmlMockupView from './blueprint/HtmlMockupView'
 
-/** Hồ sơ MỘT app: mọi run, blueprint của từng run, lessons quá khứ đã áp vào
- *  (prefetch + phán quyết, gom cross-run) và lessons app này sinh ra mới.
- *  Toàn bộ đọc từ bảng/view sẵn có — trang này không cần schema mới. */
-export default function AppDetail() {
+const btnCls =
+  'inline-flex items-center gap-1.5 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm no-underline dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+
+/** /apps/:id — DANH MỤC SẢN PHẨM (mọi user): bản CURATED, chỉ ASO / Design preview
+ *  / Legal (RLS 0023 lọc blueprint về whitelist). KHÔNG lộ run/lessons/spec. */
+export default function ProductAppDetail() {
   const id = Number(useParams().id)
-  const q = useQuery({ queryKey: ['app', id], queryFn: () => appDetail(id) })
-
+  const q = useQuery({ queryKey: ['app-product', id], queryFn: () => appDetailPublic(id) })
   if (q.isLoading) return <Loading />
   if (q.error) return <ErrorBox error={q.error} />
   if (!q.data) return <Empty>Không thấy app này.</Empty>
+  return <CuratedDetail app={q.data} />
+}
 
+/** /manage-apps/:id — QUẢN LÝ (admin): đầy đủ run/blueprint/lessons. */
+export function ManageAppDetail() {
+  const id = Number(useParams().id)
+  const q = useQuery({ queryKey: ['app-manage', id], queryFn: () => appDetail(id) })
+  if (q.isLoading) return <Loading />
+  if (q.error) return <ErrorBox error={q.error} />
+  if (!q.data) return <Empty>Không thấy app này.</Empty>
   return <Detail app={q.data} />
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="mb-3 text-sm font-semibold">{children}</h2>
+}
+
+/** Bản sản phẩm (curated) — trang thân thiện kiểu listing: hero + screenshots +
+ *  mô tả + có gì mới + design preview + legal. Đọc asset từ blueprint whitelisted. */
+function CuratedDetail({ app }: { app: AppRow }) {
+  const runName = latestBlueprintRun(app)
+  const assets = useQuery({
+    queryKey: ['product-assets', runName],
+    queryFn: () => productAppAssets(runName!),
+    enabled: !!runName,
+    staleTime: 5 * 60_000,
+  })
+  const [showMockup, setShowMockup] = useState(false)
+  const a = assets.data
+  const title = a?.title || app.name
+
+  return (
+    <div className="max-w-4xl">
+      <Link to="/apps" className="text-sm text-neutral-500 underline underline-offset-2">
+        ← Apps
+      </Link>
+
+      {/* Hero */}
+      <div className="mt-3 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800">
+        {a?.featureGraphic ? (
+          <img src={a.featureGraphic} alt="" className="h-40 w-full object-cover" />
+        ) : (
+          <div className="h-20 bg-gradient-to-br from-neutral-200 to-neutral-100 dark:from-neutral-800 dark:to-neutral-950" />
+        )}
+        <div className="flex gap-4 p-4">
+          <div className="-mt-12 flex-none">
+            {a?.icon ? (
+              <img
+                src={a.icon}
+                alt=""
+                className="h-20 w-20 rounded-2xl border-4 border-white object-cover dark:border-neutral-900"
+              />
+            ) : (
+              <AppIcon app={app} size={72} />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            {appCodeOf(app) && (
+              <Mono className="rounded bg-neutral-200 px-1.5 py-0.5 text-xs font-semibold dark:bg-neutral-800">
+                {appCodeOf(app)}
+              </Mono>
+            )}
+            <h1 className="mt-1 text-xl font-semibold">{title}</h1>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-neutral-500">
+              <PackageName app={app} />
+              <span>·</span>
+              <span>tạo {localTime(app.created_at)}</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {a?.legal.privacyUrl && (
+                <a href={a.legal.privacyUrl} target="_blank" rel="noreferrer" className={btnCls}>
+                  🔒 Privacy Policy
+                  {a.legal.verdict && <Badge tone="good">{a.legal.verdict}</Badge>}
+                </a>
+              )}
+              {a?.legal.termsUrl && (
+                <a href={a.legal.termsUrl} target="_blank" rel="noreferrer" className={btnCls}>
+                  📄 Terms
+                </a>
+              )}
+              <span
+                className={`${btnCls} cursor-not-allowed opacity-40`}
+                title="Sắp có ở bản tích hợp CI/CD"
+              >
+                ⬇️ Tải APK (sắp có)
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {!runName && (
+        <div className="mt-6">
+          <Empty>App này chưa có tài nguyên để xem (chưa push blueprint).</Empty>
+        </div>
+      )}
+      {assets.isLoading && <div className="mt-6"><Loading /></div>}
+      {assets.error && <div className="mt-6"><ErrorBox error={assets.error} /></div>}
+
+      {a && (
+        <>
+          {a.screenshots.length > 0 && (
+            <section className="mt-8">
+              <SectionTitle>Ảnh chụp màn hình</SectionTitle>
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {a.screenshots.map((s, i) => (
+                  <img
+                    key={i}
+                    src={s}
+                    alt=""
+                    className="h-72 flex-none rounded-xl border border-neutral-200 dark:border-neutral-800"
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {a.shortDesc && (
+            <section className="mt-8">
+              <SectionTitle>Mô tả ngắn</SectionTitle>
+              <div className="rounded-r-lg border-l-2 border-blue-500 bg-neutral-50 px-4 py-3 text-sm dark:bg-neutral-900">
+                {a.shortDesc}
+              </div>
+            </section>
+          )}
+
+          {a.fullDesc && (
+            <section className="mt-8">
+              <SectionTitle>Mô tả đầy đủ</SectionTitle>
+              <div className="whitespace-pre-line text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+                {a.fullDesc}
+              </div>
+            </section>
+          )}
+
+          {a.releaseNotes && (
+            <section className="mt-8">
+              <SectionTitle>Có gì mới</SectionTitle>
+              <div className="whitespace-pre-line rounded-lg border border-neutral-200 px-4 py-3 text-sm dark:border-neutral-800">
+                {a.releaseNotes}
+              </div>
+            </section>
+          )}
+
+          {(a.designImages.length > 0 || a.hasDesignIndex) && (
+            <section className="mt-8">
+              <SectionTitle>Design preview</SectionTitle>
+              {a.designImages.length > 0 && (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {a.designImages.map((d) => (
+                    <div
+                      key={d.path}
+                      className="overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800"
+                    >
+                      <img
+                        src={d.dataUri}
+                        alt=""
+                        className="h-32 w-full bg-neutral-50 object-contain dark:bg-neutral-900"
+                      />
+                      <div className="truncate px-2 py-1 text-[11px] text-neutral-500">
+                        {d.path.split('/').pop()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {a.hasDesignIndex && runName && (
+                <div className="mt-3">
+                  <button onClick={() => setShowMockup((v) => !v)} className={btnCls}>
+                    {showMockup ? 'Ẩn' : 'Xem'} mockup đầy đủ
+                  </button>
+                  {showMockup && (
+                    <div className="mt-3 h-[70vh] overflow-y-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+                      <HtmlMockupView runName={runName} path="design_previews/index.html" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+        </>
+      )}
+
+      <section className="mt-8">
+        <SectionTitle>Tải bản build</SectionTitle>
+        <div className="rounded-lg border border-dashed border-neutral-300 px-4 py-4 text-sm text-neutral-500 dark:border-neutral-700">
+          ⬇️ Debug / Release APK — <b>sắp có</b> (tích hợp CI/CD ở session sau).
+        </div>
+      </section>
+    </div>
+  )
 }
 
 function Detail({ app }: { app: AppRow }) {
@@ -40,8 +237,8 @@ function Detail({ app }: { app: AppRow }) {
 
   return (
     <div>
-      <Link to="/apps" className="text-sm text-neutral-500 underline underline-offset-2">
-        ← Apps
+      <Link to="/manage-apps" className="text-sm text-neutral-500 underline underline-offset-2">
+        ← Quản lý app
       </Link>
       <div className="mt-2 flex items-center gap-3">
         <AppIcon app={app} size={48} />

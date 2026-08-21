@@ -19,31 +19,46 @@ import { ImageView, JsonView, TextView } from './viewers'
 
 /** Tab Blueprint: sidebar nhóm theo loại (Docs/Mockups/Screenshots/Data) + pane render.
  *  Danh sách file nhẹ; content chỉ tải khi mở từng file (lazy). */
-export default function BlueprintTab({ runName }: { runName: string }) {
+export default function BlueprintTab({
+  runName,
+  allowGroups,
+}: {
+  runName: string
+  /** Giới hạn nhóm hiển thị (vd trang sản phẩm: chỉ aso/mockups/legal). Bỏ trống = tất cả.
+   *  Đây chỉ là dọn giao diện; chặn THẬT do RLS 0023 (non-admin không đọc được nhóm khác). */
+  allowGroups?: Group[]
+}) {
   const files = useQuery({
     queryKey: ['blueprint', runName],
     queryFn: () => blueprintFiles(runName),
   })
   const [selected, setSelected] = useState<string | null>(null)
+  const order = useMemo(
+    () => (allowGroups ? GROUP_ORDER.filter((g) => allowGroups.includes(g)) : GROUP_ORDER),
+    [allowGroups],
+  )
 
   // Nhóm + sắp xếp một lần khi có danh sách.
   const groups = useMemo(() => {
-    const map: Record<Group, BlueprintFileMeta[]> = { docs: [], aso: [], mockups: [], screenshots: [], data: [] }
-    for (const f of files.data ?? []) map[groupOf(f.path)].push(f)
-    for (const g of GROUP_ORDER) {
-      const order = sortInGroup(map[g].map((f) => f.path), g)
-      map[g].sort((a, b) => order.indexOf(a.path) - order.indexOf(b.path))
+    const map: Record<Group, BlueprintFileMeta[]> = { docs: [], aso: [], mockups: [], legal: [], screenshots: [], data: [] }
+    for (const f of files.data ?? []) {
+      const g = groupOf(f.path)
+      if (!allowGroups || allowGroups.includes(g)) map[g].push(f)
+    }
+    for (const g of order) {
+      const s = sortInGroup(map[g].map((f) => f.path), g)
+      map[g].sort((a, b) => s.indexOf(a.path) - s.indexOf(b.path))
     }
     return map
-  }, [files.data])
+  }, [files.data, allowGroups, order])
 
-  // Mặc định mở file đầu tiên (thường task.md) khi vào tab.
+  // Mặc định mở file đầu tiên khi vào tab.
   useEffect(() => {
     if (!selected && files.data?.length) {
-      const first = GROUP_ORDER.flatMap((g) => groups[g])[0]
+      const first = order.flatMap((g) => groups[g])[0]
       if (first) setSelected(first.path)
     }
-  }, [files.data, groups, selected])
+  }, [files.data, groups, order, selected])
 
   if (files.isLoading) return <Loading />
   if (files.error) return <ErrorBox error={files.error} />
@@ -53,7 +68,7 @@ export default function BlueprintTab({ runName }: { runName: string }) {
     // Hai cột cao cố định theo viewport, mỗi cột tự cuộn — sidebar luôn thấy khi đọc doc dài.
     <div className="flex h-[calc(100dvh-11rem)] gap-5">
       <aside className="w-60 flex-none overflow-y-auto pr-1">
-        {GROUP_ORDER.map((g) =>
+        {order.map((g) =>
           groups[g].length ? (
             <div key={g} className="mb-4">
               <div className="mb-1 px-1 text-[11px] tracking-wide text-neutral-400 uppercase">

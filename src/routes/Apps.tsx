@@ -1,19 +1,20 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { appsWithRuns } from '../lib/queries'
+import { appsPublic } from '../lib/queries'
 import { appCodeOf } from '../lib/types'
-import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
-import { AppIcon, PackageName, appLastUpdate, blueprintRuns } from '../components/appMeta'
+import { Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
+import { AppIcon, PackageName } from '../components/appMeta'
 
-type SortKey = 'last_update' | 'created' | 'name' | 'code'
+type SortKey = 'created' | 'name' | 'code'
 
-/** Trang Apps — lối vào theo APP thay vì theo run: một app sinh nhiều lần thì
- *  người tìm blueprint không phải mò trong danh sách run dài. */
+/** /apps — DANH MỤC SẢN PHẨM (mọi user). Bản curated: mỗi app xem được ASO /
+ *  design preview / legal (RLS 0023). App ẩn (admin đặt) không hiện với non-admin.
+ *  Quản lý nội bộ (runs/blueprint/ẩn) ở trang riêng /manage-apps (chỉ admin). */
 export default function Apps() {
-  const q = useQuery({ queryKey: ['apps'], queryFn: appsWithRuns })
+  const q = useQuery({ queryKey: ['apps-product'], queryFn: appsPublic })
   const [search, setSearch] = useState('')
-  const [sort, setSort] = useState<SortKey>('last_update')
+  const [sort, setSort] = useState<SortKey>('created')
 
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase()
@@ -27,8 +28,7 @@ export default function Apps() {
     return [...filtered].sort((a, b) => {
       if (sort === 'code') return (appCodeOf(b) ?? '').localeCompare(appCodeOf(a) ?? '')
       if (sort === 'name') return a.name.localeCompare(b.name)
-      if (sort === 'created') return b.created_at.localeCompare(a.created_at)
-      return appLastUpdate(b).localeCompare(appLastUpdate(a))
+      return b.created_at.localeCompare(a.created_at)
     })
   }, [q.data, search, sort])
 
@@ -39,8 +39,7 @@ export default function Apps() {
     <div>
       <h1 className="text-lg">Apps</h1>
       <p className="mt-1 text-sm text-neutral-500">
-        Mỗi dòng là MỘT app (xuyên nhiều lần sinh lại). Bấm vào để xem run, blueprint và
-        lessons của app đó.
+        Danh mục sản phẩm. Bấm vào một app để xem ASO, design preview và legal.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -55,7 +54,6 @@ export default function Apps() {
           onChange={(e) => setSort(e.target.value as SortKey)}
           className="rounded border border-neutral-300 bg-transparent px-2 py-1.5 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-950"
         >
-          <option value="last_update">Sắp xếp: last update ↓</option>
           <option value="created">Sắp xếp: tạo mới nhất ↓</option>
           <option value="name">Sắp xếp: tên A→Z</option>
           <option value="code">Sắp xếp: app code ↓</option>
@@ -67,42 +65,33 @@ export default function Apps() {
 
       <div className="mt-4">
         {!rows.length ? (
-          <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào được ghi.'}</Empty>
+          <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào.'}</Empty>
         ) : (
-          <Table head={['Code', 'App', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update']}>
-            {rows.map((a) => {
-              const bp = blueprintRuns(a).length
-              return (
-                <Row key={a.id}>
-                  <Cell>
-                    {appCodeOf(a) ? (
-                      <Mono className="font-semibold">{appCodeOf(a)}</Mono>
-                    ) : (
-                      <span className="text-neutral-400">—</span>
-                    )}
-                  </Cell>
-                  <Cell>
-                    <Link
-                      to={`/apps/${a.id}`}
-                      className="flex items-center gap-2.5 underline underline-offset-2"
-                    >
-                      <AppIcon app={a} size={32} />
-                      {a.name}
-                    </Link>
-                  </Cell>
-                  <Cell>
-                    <PackageName app={a} />
-                  </Cell>
-                  <Cell>
-                    <Mono className="text-neutral-500">{a.source_kind}</Mono>
-                  </Cell>
-                  <Cell>{a.runs.length}</Cell>
-                  <Cell>{bp > 0 ? <Badge tone="good">{bp}</Badge> : <span className="text-neutral-400">0</span>}</Cell>
-                  <Cell className="text-neutral-500">{localTime(a.created_at)}</Cell>
-                  <Cell className="text-neutral-500">{localTime(appLastUpdate(a))}</Cell>
-                </Row>
-              )
-            })}
+          <Table head={['Code', 'App', 'Package', 'Tạo lúc']}>
+            {rows.map((a) => (
+              <Row key={a.id}>
+                <Cell>
+                  {appCodeOf(a) ? (
+                    <Mono className="font-semibold">{appCodeOf(a)}</Mono>
+                  ) : (
+                    <span className="text-neutral-400">—</span>
+                  )}
+                </Cell>
+                <Cell>
+                  <Link
+                    to={`/apps/${a.id}`}
+                    className="flex items-center gap-2.5 underline underline-offset-2"
+                  >
+                    <AppIcon app={a} size={32} />
+                    {a.name}
+                  </Link>
+                </Cell>
+                <Cell>
+                  <PackageName app={a} />
+                </Cell>
+                <Cell className="text-neutral-500">{localTime(a.created_at)}</Cell>
+              </Row>
+            ))}
           </Table>
         )}
       </div>

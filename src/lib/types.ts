@@ -83,6 +83,8 @@ export interface AppRow {
    *  Cột thật sau migration 0015; trước đó nằm tạm trong `extra` nên đọc cả hai. */
   app_code?: string | null
   app_codes?: string[] | null
+  /** [0023] admin ẩn app khỏi non-admin. */
+  is_hidden?: boolean
   extra?: { app_code?: string; app_codes?: string[] } | null
   runs: AppRunSummary[]
 }
@@ -377,7 +379,12 @@ export const GRADUATION_TARGETS = [
   'instructions/workflow/MEMORY_PROTOCOL.md',
 ] as const
 
-export type UserRole = 'admin' | 'member'
+/** 0020: role nghiệp vụ. 'member' giữ cho tài khoản cũ; v1 mọi role non-admin
+ *  quyền giống nhau (đọc + đặt yêu cầu). */
+export type UserRole = 'admin' | 'member' | 'dev' | 'ua' | 'aso'
+
+/** Role admin cấp được khi tạo user (không cấp 'member' — tên cũ, tránh lẫn). */
+export const ASSIGNABLE_ROLES: UserRole[] = ['dev', 'ua', 'aso', 'admin']
 
 export interface AppUser {
   id: string
@@ -385,6 +392,109 @@ export interface AppUser {
   role: UserRole
   is_active: boolean
   created_at: string
+}
+
+// ─── af_versions (0020) — bản AF cho người đặt đơn chọn ────────────────
+export interface AfVersion {
+  version: string
+  is_selectable: boolean
+  sort_rank: number
+  notes: string | null
+  created_at: string
+}
+
+/** File đính kèm yêu cầu (bucket request-uploads, 0021). Lưu key + meta trong payload. */
+export interface UploadedFile {
+  key: string
+  name: string
+  size: number
+  type: string
+}
+
+// ─── Requests queue (0020) ────────────────────────────────────────────
+export type RequestType = 'make_app' | 'add_ads' | 'update_aso'
+export type RequestStatus =
+  | 'submitted'
+  | 'accepted'
+  | 'in_progress'
+  | 'done'
+  | 'rejected'
+  | 'failed'
+  | 'cancelled'
+
+export interface AppRequest {
+  id: number
+  request_code: string
+  type: RequestType
+  requester: string
+  requester_email: string | null
+  af_version: string | null
+  payload: Record<string, unknown>
+  status: RequestStatus
+  target_app_code: string | null
+  run_id: number | null
+  result: Record<string, unknown> | null
+  note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface RequestEvent {
+  id: number
+  request_id: number
+  actor: string | null
+  from_status: string | null
+  to_status: string | null
+  message: string | null
+  created_at: string
+}
+
+/** Nhãn tiếng Việt cho loại yêu cầu (dùng ở bảng + form). */
+export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
+  make_app: 'Make app',
+  add_ads: 'Ads integration',
+  update_aso: 'ASO',
+}
+
+/** Asset trang sản phẩm (/apps/:id) đọc từ blueprint whitelisted (aso/design/legal). */
+export interface ProductAssets {
+  title: string | null
+  shortDesc: string | null
+  fullDesc: string | null
+  releaseNotes: string | null
+  icon: string | null
+  featureGraphic: string | null
+  screenshots: string[]
+  legal: { privacyUrl: string | null; termsUrl: string | null; verdict: string | null }
+  designImages: { path: string; dataUri: string }[]
+  hasDesignIndex: boolean
+}
+
+// ─── Appearance variants (contract cho form ASO) ──────────────────────
+// AF (nâng cấp sau) sẽ sinh manifest này vào blueprint lúc make; AFC chỉ LOAD.
+// Không có → form cho nhập tay (không bắt buộc).
+export interface AppearanceVariant {
+  ordinal: number
+  id?: string
+  label?: string
+  /** đường dẫn blueprint-tương-đối tới ảnh preview (vd 'appearance/style_0.png'). */
+  preview?: string
+}
+export interface AppearanceManifest {
+  schema?: number
+  design_variants?: number
+  layouts: AppearanceVariant[]
+  styles: AppearanceVariant[]
+}
+/** Kết quả suy biến thể của một app cho form ASO.
+ *  source: 'manifest' = đọc appearance/variants.json · 'count' = chỉ suy được N
+ *  từ task.md · 'none' = không biết gì → nhập tay. */
+export interface AppearanceInfo {
+  source: 'manifest' | 'count' | 'none'
+  runName: string | null
+  n: number | null
+  layouts: AppearanceVariant[]
+  styles: AppearanceVariant[]
 }
 
 export interface AppSettings {

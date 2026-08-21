@@ -3,6 +3,29 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.0 — 2026-08-21 (đi cùng AF v5.4.0 · DB schema_version=23)
+
+**Cổng nhiều người dùng: tạo user + hàng đợi yêu cầu + phạm vi non-admin.** (AF migrations 0020–0023.)
+
+- **Tạo người dùng (admin):** trang Users thêm form tạo user trực tiếp (email+mật khẩu+role) không cần
+  service_role — qua `pending_invites` + client tạm `signUp` (không văng session admin). Role mới
+  `dev`/`ua`/`aso` (ngoài admin); v1 mọi role non-admin quyền giống nhau (đọc + đặt yêu cầu). Ô chọn 4 role
+  thay nút gạt, giữ chốt "không hạ/khoá admin cuối".
+- **Đặt yêu cầu (`/requests`, mọi role):** 3 loại — Make app / Ads integration / ASO. Chọn bản AF (admin
+  lock/unlock qua bảng `af_versions`, default = bản mở mới nhất). Make app: mode (bỏ generate), `-v`=3,
+  changeFeature ép store/appstore, Team (Auto/Titan), **ASO bắt buộc**, **google-services.json bắt buộc**,
+  upload ảnh/file tự do (bucket `request-uploads`). Ads: appCode + funnel/ads. ASO: appCode → picker Layout×Style
+  độc lập (đọc `appearance/variants.json` nếu có, không thì nhập tay) + store/appVersion/releaseNote/onPhoneName.
+  Mã đơn `rNNNNN` (AF chạy theo mã). User xem/huỷ (khi chưa in_progress); admin xem tất cả + đổi trạng thái + reject;
+  make_app done → trả `appCode`.
+- **Báo Discord order mới:** trigger DB `pg_net` → Discord, webhook trong Supabase Vault (không lộ browser).
+- **RBAC coarse:** non-admin chỉ ĐỌC business tables + đặt đơn; ghi = admin. Bảng nội bộ (runs/lessons/bugs/
+  libraries/tags/ads) khoá đọc về admin; view nội bộ `security_invoker`.
+- **Tách 2 trang App:** `/apps` = **danh mục sản phẩm** (mọi user) với trang detail **thân thiện** (hero+feature
+  graphic+icon, screenshots, mô tả, "có gì mới", design preview, legal, chỗ dành sẵn Tải APK) — chỉ đọc blueprint
+  whitelisted (`aso/`+`design_previews/`+`legal/`). `/manage-apps` = **quản lý** (admin) với detail file-browser
+  blueprint đầy đủ + **ẩn/hiện app** (`apps.is_hidden`). Nav non-admin chỉ Apps + Yêu cầu.
+
 ## 3.23.1 — 2026-08-17 (đi cùng AF v4.7.0 · DB schema_version=17)
 
 **Blueprint đọc từ Storage (AF v4.7.0):** bytes blueprint đã dời sang Supabase Storage (bucket `blueprints`),

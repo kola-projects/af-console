@@ -29,3 +29,12 @@ if (key.startsWith('sb_secret_') || key.includes('service_role')) {
 }
 
 export const supabase = createClient(url, key)
+
+/** Client TẠM, KHÔNG lưu session — dùng khi admin tạo user (signUp làm client
+ *  gọi tự đăng nhập user mới; nếu dùng `supabase` sẽ VĂNG session admin). Với
+ *  persistSession:false, phiên user mới không ghi vào localStorage → admin giữ nguyên. */
+export function createEphemeralClient() {
+  return createClient(url as string, key as string, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}

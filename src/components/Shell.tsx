@@ -5,27 +5,35 @@ import { supabase } from '../lib/supabase'
 import { APP_VERSION, fetchLatestVersion } from '../lib/appVersion'
 import { myProfile, promotionCandidates, tags } from '../lib/queries'
 
-const NAV = [
+// Nav ADMIN: toàn bộ trang nội bộ. Nav NON-ADMIN: chỉ Apps + Yêu cầu (0023) —
+// Runs/Lessons/Bugs… bị chặn ở RLS, ẩn khỏi nav để giao diện gọn.
+type NavItem = { to: string; label: string; end?: boolean }
+const ADMIN_NAV: NavItem[] = [
   { to: '/lessons', label: 'Lessons' },
   { to: '/', label: 'Dashboard', end: true },
   { to: '/apps', label: 'Apps' },
+  { to: '/manage-apps', label: 'Quản lý app' },
   { to: '/runs', label: 'Runs' },
   { to: '/bugs', label: 'Bugs' },
   { to: '/libraries', label: 'Libraries' },
   { to: '/ads', label: 'Ads' },
   { to: '/tags', label: 'Tags' },
+  { to: '/requests', label: 'Yêu cầu' },
+  { to: '/users', label: 'Users' },
+]
+const MEMBER_NAV: NavItem[] = [
+  { to: '/apps', label: 'Apps' },
+  { to: '/requests', label: 'Yêu cầu' },
 ]
 
 export default function Shell({ email }: { email: string }) {
-  // Hai con số duy nhất được phép hiện ở nav: chúng là HÀNG ĐỢI VIỆC PHẢI LÀM,
-  // không phải số liệu trang trí.
-  const pending = useQuery({ queryKey: ['promotion'], queryFn: promotionCandidates })
-  const newTags = useQuery({ queryKey: ['tags'], queryFn: tags })
-  const newTagCount = newTags.data?.filter((t) => t.status === 'new').length ?? 0
-  // Chỉ admin thấy mục Users. Đây thuần tuý là dọn giao diện — quyền THẬT do RLS
-  // ở DB thực thi, member có gõ thẳng /users cũng không sửa được gì.
   const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
-  const nav = me.data?.role === 'admin' ? [...NAV, { to: '/users', label: 'Users' }] : NAV
+  const isAdmin = me.data?.role === 'admin'
+  // Badge nav (promotion/tags) là bảng nội bộ — chỉ admin đọc được (RLS), chỉ gọi khi admin.
+  const pending = useQuery({ queryKey: ['promotion'], queryFn: promotionCandidates, enabled: isAdmin })
+  const newTags = useQuery({ queryKey: ['tags'], queryFn: tags, enabled: isAdmin })
+  const newTagCount = newTags.data?.filter((t) => t.status === 'new').length ?? 0
+  const nav = isAdmin ? ADMIN_NAV : MEMBER_NAV
 
   const appVersion = APP_VERSION
   const [latestVersion, setLatestVersion] = useState<string>('')
