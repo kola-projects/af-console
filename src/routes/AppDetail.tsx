@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { appDetail, appDetailPublic, appLearning, appNewLessons, productAppAssets } from '../lib/queries'
+import {
+  appDetail,
+  appDetailPublic,
+  appLearning,
+  appNewLessons,
+  asoZipBytes,
+  productAppAssets,
+} from '../lib/queries'
 import { appCodeOf } from '../lib/types'
 import type { AppRow, RunLearningRow } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
@@ -53,8 +60,33 @@ function CuratedDetail({ app }: { app: AppRow }) {
     staleTime: 5 * 60_000,
   })
   const [showMockup, setShowMockup] = useState(false)
+  const [zipping, setZipping] = useState(false)
+  const [zipErr, setZipErr] = useState<string | null>(null)
   const a = assets.data
   const title = a?.title || app.name
+  const hasAso = !!(a && (a.title || a.icon || a.featureGraphic || a.screenshots.length || a.fullDesc))
+
+  async function downloadAso() {
+    if (!runName) return
+    setZipping(true)
+    setZipErr(null)
+    try {
+      const bytes = await asoZipBytes(runName)
+      const blob = new Blob([bytes.slice()], { type: 'application/zip' })
+      const url = URL.createObjectURL(blob)
+      const el = document.createElement('a')
+      el.href = url
+      el.download = `${appCodeOf(app) || 'app'}-aso.zip`
+      document.body.appendChild(el)
+      el.click()
+      el.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setZipErr(e instanceof Error ? e.message : String(e))
+    } finally {
+      setZipping(false)
+    }
+  }
 
   return (
     <div className="max-w-4xl">
@@ -94,6 +126,11 @@ function CuratedDetail({ app }: { app: AppRow }) {
               <span>tạo {localTime(app.created_at)}</span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
+              {hasAso && (
+                <button onClick={downloadAso} disabled={zipping} className={`${btnCls} border-transparent bg-neutral-900 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900`}>
+                  📦 {zipping ? 'Đang nén…' : 'Tải aso.zip'}
+                </button>
+              )}
               {a?.legal.privacyUrl && (
                 <a href={a.legal.privacyUrl} target="_blank" rel="noreferrer" className={btnCls}>
                   🔒 Privacy Policy
@@ -112,6 +149,7 @@ function CuratedDetail({ app }: { app: AppRow }) {
                 ⬇️ Tải APK (sắp có)
               </span>
             </div>
+            {zipErr && <div className="mt-2 text-xs text-red-600 dark:text-red-400">{zipErr}</div>}
           </div>
         </div>
       </div>

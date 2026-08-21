@@ -1,5 +1,6 @@
+import { zipSync } from 'fflate'
 import { supabase, createEphemeralClient } from './supabase'
-import { b64ToDataURL, b64ToText, bytesToB64, mimeOf } from './blueprint'
+import { b64ToBytes, b64ToDataURL, b64ToText, bytesToB64, mimeOf } from './blueprint'
 import type {
   AfVersion,
   AppRequest,
@@ -682,6 +683,16 @@ export async function appearanceInfo(code: string): Promise<AppearanceInfo> {
     }
   }
   return { ...none, runName }
+}
+
+/** Gói toàn bộ aso/ (blueprint whitelisted) thành zip để nhân sự ASO submit lên store.
+ *  Trả bytes; component lo Blob + download. Path trong zip bỏ tiền tố 'aso/'. */
+export async function asoZipBytes(runName: string): Promise<Uint8Array> {
+  const files = await blueprintDir(runName, 'aso/')
+  if (!files.length) throw new Error('App này chưa có gói ASO (thư mục aso/ trống).')
+  const entries: Record<string, Uint8Array> = {}
+  for (const f of files) entries[f.path.replace(/^aso\//, '')] = b64ToBytes(f.content_b64)
+  return zipSync(entries, { level: 6 })
 }
 
 /** Store options cho form ASO/Make+ASO — đọc view an toàn v_stores (0014;

@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.3 — 2026-08-21 (đi cùng AF v5.3.1 · DB schema_version=24)
+
+**Tải aso.zip:** trang app detail `/apps/:id` thêm nút **📦 Tải aso.zip** — gói toàn bộ `blueprint/aso/`
+(icon 512, feature graphic, screenshots, title/short/full description, release notes, policy…) thành zip client-side
+(fflate) để nhân sự ASO submit lên store. Non-admin ASO tải được (aso/ trong whitelist RLS). Zip bỏ tiền tố `aso/`,
+tên file `<appCode>-aso.zip`.
+
 ## 3.24.2 — 2026-08-21 (đi cùng AF v5.3.1 · DB schema_version=24)
 
 **Fix:** trang Danh mục sản phẩm `/apps` giờ **lọc bỏ app đã ẩn cho MỌI người** (kể cả admin). Trước đó admin
