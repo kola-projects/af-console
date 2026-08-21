@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.4 — 2026-08-21 (đi cùng AF v5.3.1 · DB schema_version=24)
+
+**Fix deploy:** cập nhật `pnpm-lock.yaml` cho `fflate` (thêm ở 3.24.3 bằng npm nên pnpm-lock lệch → Vercel
+`pnpm install` fail, 3.24.3 KHÔNG lên production). 3.24.4 = 3.24.3 (nút Tải aso.zip) + lockfile khớp.
+
 ## 3.24.3 — 2026-08-21 (đi cùng AF v5.3.1 · DB schema_version=24)
 
 **Tải aso.zip:** trang app detail `/apps/:id` thêm nút **📦 Tải aso.zip** — gói toàn bộ `blueprint/aso/`
