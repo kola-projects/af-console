@@ -729,27 +729,31 @@ export async function productAppAssets(runName: string): Promise<ProductAssets> 
     .sort((a, b) => a.path.localeCompare(b.path))
     .map((f) => b64ToDataURL(f.content_b64, mimeOf(f.path, f.content_type)))
 
-  // legal: tìm json đầu tiên, trích url privacy/terms + verdict một cách nới lỏng.
+  // legal: URL live ở legal/URLS.json (shape { pages: {privacy,terms,support} });
+  // verdict ở aso/legal_urls.json (bản ASO verify). Đọc cả hai, nới lỏng key.
   let privacyUrl: string | null = null
   let termsUrl: string | null = null
   let verdict: string | null = null
-  const legalJson = legal.find((f) => f.path.endsWith('.json'))
+  const asStr = (v: unknown): string | null => (typeof v === 'string' && v ? v : null)
+  const legalJson = legal.find((f) => /urls?\.json$/i.test(f.path)) ?? legal.find((f) => f.path.endsWith('.json'))
   if (legalJson) {
     try {
       const j = JSON.parse(b64ToText(legalJson.content_b64)) as Record<string, unknown>
-      const pick = (...keys: string[]) => {
-        for (const k of keys) {
-          const v = j[k]
-          if (typeof v === 'string' && v) return v
-          if (v && typeof v === 'object' && typeof (v as Record<string, unknown>).url === 'string')
-            return (v as Record<string, string>).url
-        }
-        return null
-      }
-      privacyUrl = pick('privacy_url', 'privacyUrl', 'privacy', 'privacy_policy', 'privacy_policy_url')
-      termsUrl = pick('terms_url', 'termsUrl', 'terms', 'terms_of_service', 'tos_url')
-      const vd = pick('verdict', 'privacy_verdict', 'status')
-      verdict = vd
+      const pages = (j.pages && typeof j.pages === 'object' ? j.pages : {}) as Record<string, unknown>
+      privacyUrl = asStr(pages.privacy) ?? asStr(j.privacy_url) ?? asStr(j.privacy)
+      termsUrl = asStr(pages.terms) ?? asStr(j.terms_url) ?? asStr(j.terms)
+    } catch {
+      /* json hỏng → bỏ qua */
+    }
+  }
+  const asoLegal = aso.find((f) => base(f.path) === 'legal_urls.json')
+  if (asoLegal) {
+    try {
+      const j = JSON.parse(b64ToText(asoLegal.content_b64)) as Record<string, unknown>
+      const pages = (j.pages && typeof j.pages === 'object' ? j.pages : {}) as Record<string, unknown>
+      verdict = asStr(j.verdict) ?? asStr(j.status)
+      privacyUrl = privacyUrl ?? asStr(pages.privacy) ?? asStr(j.privacy_url) ?? asStr(j.privacy)
+      termsUrl = termsUrl ?? asStr(pages.terms) ?? asStr(j.terms_url) ?? asStr(j.terms)
     } catch {
       /* json hỏng → bỏ qua */
     }

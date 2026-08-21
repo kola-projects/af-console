@@ -3,6 +3,14 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.1 — 2026-08-21 (đi cùng AF v5.4.0 · DB schema_version=24)
+
+**Align legal + whitelist appearance (AF migration 0024).**
+- Trang sản phẩm đọc legal đúng shape thật: URL Privacy/Terms từ `legal/URLS.json` (`pages.privacy`/`pages.terms`),
+  verdict từ `aso/legal_urls.json`.
+- Form ASO đọc `blueprint/appearance/variants.json` (manifest biến thể AF v5.4.0) để dựng picker Layout×Style;
+  RLS 0024 mở `appearance/` cho non-admin nên picker chạy cho cả role dev/ua/aso.
+
 ## 3.24.0 — 2026-08-21 (đi cùng AF v5.4.0 · DB schema_version=23)
 
 **Cổng nhiều người dùng: tạo user + hàng đợi yêu cầu + phạm vi non-admin.** (AF migrations 0020–0023.)
