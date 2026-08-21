@@ -18,7 +18,11 @@ export default function Apps() {
 
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase()
+    // Danh mục sản phẩm KHÔNG hiện app đã ẩn — với MỌI người (kể cả admin; RLS cho
+    // admin thấy hết, nên lọc client-side ở đây). App ẩn quản ở /manage-apps.
     const filtered = (q.data ?? []).filter(
+      (a) => !a.is_hidden,
+    ).filter(
       (a) =>
         !needle ||
         a.name.toLowerCase().includes(needle) ||

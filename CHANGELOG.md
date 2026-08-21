@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.2 — 2026-08-21 (đi cùng AF v5.3.1 · DB schema_version=24)
+
+**Fix:** trang Danh mục sản phẩm `/apps` giờ **lọc bỏ app đã ẩn cho MỌI người** (kể cả admin). Trước đó admin
+vẫn thấy app ẩn ở `/apps` vì RLS cho admin đọc hết — nay lọc client-side. App ẩn chỉ còn ở `/manage-apps` (có
+badge "ẩn" + nút Hiện). (Non-admin vốn đã không thấy do RLS.)
+
 ## 3.24.1 — 2026-08-21 (đi cùng AF v5.4.0 · DB schema_version=24)
 
 **Align legal + whitelist appearance (AF migration 0024).**
