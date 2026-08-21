@@ -39,3 +39,9 @@ của script thì sửa nguyên nhân, đừng lách bằng tag tay.
 ## Chạy local
 `npm run dev --prefix af-console` từ repo AF (launch.json cổng 5273), env ở `.env.local`.
 Build check: `npm run build` (tsc + vite) · lint: `npm run lint` (oxlint).
+
+## ⚠️ Thêm dependency → PHẢI cập nhật `pnpm-lock.yaml`
+Vercel deploy chạy **`pnpm install`** (frozen). Máy này thiếu pnpm nên hay `npm install` — nhưng chỉ npm thì
+`pnpm-lock.yaml` lệch với `package.json` ⇒ deploy FAIL (`Command "pnpm install" exited with 1`), build local vẫn
+xanh nên không thấy. Sau mỗi lần thêm/gỡ dep: chạy **`npx pnpm@9 install --lockfile-only`** rồi commit CẢ
+`package-lock.json` LẪN `pnpm-lock.yaml`. (Đã dính ở v3.24.3 khi thêm `fflate`.)
