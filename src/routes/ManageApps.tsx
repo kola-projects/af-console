@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { appsWithRuns, setAppHidden } from '../lib/queries'
-import { appCodeOf } from '../lib/types'
+import { appsWithRuns, setAppHidden, setAppTeam } from '../lib/queries'
+import { appCodeOf, TEAMS } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 import { AppIcon, PackageName, appLastUpdate, blueprintRuns } from '../components/appMeta'
 
@@ -15,30 +15,38 @@ export default function ManageApps() {
   const q = useQuery({ queryKey: ['apps-manage'], queryFn: appsWithRuns })
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortKey>('last_update')
+  const [teamFilter, setTeamFilter] = useState('')
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['apps-manage'] })
+    qc.invalidateQueries({ queryKey: ['apps-product'] })
+  }
   const hide = useMutation({
     mutationFn: ({ id, hidden }: { id: number; hidden: boolean }) => setAppHidden(id, hidden),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['apps-manage'] })
-      qc.invalidateQueries({ queryKey: ['apps-product'] })
-    },
+    onSuccess: invalidate,
+  })
+  const team = useMutation({
+    mutationFn: ({ id, team }: { id: number; team: string }) => setAppTeam(id, team),
+    onSuccess: invalidate,
   })
 
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase()
-    const filtered = (q.data ?? []).filter(
-      (a) =>
-        !needle ||
-        a.name.toLowerCase().includes(needle) ||
-        (appCodeOf(a) ?? '').toLowerCase().includes(needle) ||
-        (a.package_name ?? '').toLowerCase().includes(needle),
-    )
+    const filtered = (q.data ?? [])
+      .filter((a) => !teamFilter || (teamFilter === '__none__' ? !a.team : a.team === teamFilter))
+      .filter(
+        (a) =>
+          !needle ||
+          a.name.toLowerCase().includes(needle) ||
+          (appCodeOf(a) ?? '').toLowerCase().includes(needle) ||
+          (a.package_name ?? '').toLowerCase().includes(needle),
+      )
     return [...filtered].sort((a, b) => {
       if (sort === 'code') return (appCodeOf(b) ?? '').localeCompare(appCodeOf(a) ?? '')
       if (sort === 'name') return a.name.localeCompare(b.name)
       if (sort === 'created') return b.created_at.localeCompare(a.created_at)
       return appLastUpdate(b).localeCompare(appLastUpdate(a))
     })
-  }, [q.data, search, sort])
+  }, [q.data, search, sort, teamFilter])
 
   if (q.isLoading) return <Loading />
   if (q.error) return <ErrorBox error={q.error} />
@@ -67,14 +75,27 @@ export default function ManageApps() {
           <option value="name">Sắp xếp: tên A→Z</option>
           <option value="code">Sắp xếp: app code ↓</option>
         </select>
+        <select
+          value={teamFilter}
+          onChange={(e) => setTeamFilter(e.target.value)}
+          className="rounded border border-neutral-300 bg-transparent px-2 py-1.5 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-950"
+        >
+          <option value="">Team: tất cả</option>
+          {TEAMS.map((t) => (
+            <option key={t} value={t}>
+              Team: {t}
+            </option>
+          ))}
+          <option value="__none__">Team: (chưa gán)</option>
+        </select>
         <span className="text-xs text-neutral-500">
           {rows.length}/{q.data?.length ?? 0} app
         </span>
       </div>
 
-      {hide.error && (
+      {(hide.error || team.error) && (
         <div className="mt-3">
-          <ErrorBox error={hide.error} />
+          <ErrorBox error={hide.error || team.error} />
         </div>
       )}
 
@@ -83,7 +104,7 @@ export default function ManageApps() {
           <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào.'}</Empty>
         ) : (
           <Table
-            head={['Code', 'App', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update', 'Ẩn']}
+            head={['Code', 'App', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update', 'Ẩn']}
           >
             {rows.map((a) => {
               const bp = blueprintRuns(a).length
@@ -105,6 +126,21 @@ export default function ManageApps() {
                       {a.name}
                       {a.is_hidden && <Badge tone="warn">ẩn</Badge>}
                     </Link>
+                  </Cell>
+                  <Cell>
+                    <select
+                      value={a.team ?? ''}
+                      disabled={team.isPending}
+                      onChange={(e) => team.mutate({ id: a.id, team: e.target.value })}
+                      className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900"
+                    >
+                      <option value="">—</option>
+                      {TEAMS.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
                   </Cell>
                   <Cell>
                     <PackageName app={a} />

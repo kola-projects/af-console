@@ -85,6 +85,8 @@ export interface AppRow {
   app_codes?: string[] | null
   /** [0023] admin ẩn app khỏi non-admin. */
   is_hidden?: boolean
+  /** [0027] nhãn team (Auto/Titan) — thống kê/lọc, admin sửa. */
+  team?: string | null
   extra?: { app_code?: string; app_codes?: string[] } | null
   runs: AppRunSummary[]
 }
@@ -385,6 +387,9 @@ export type UserRole = 'admin' | 'member' | 'dev' | 'ua' | 'aso'
 
 /** Role admin cấp được khi tạo user (không cấp 'member' — tên cũ, tránh lẫn). */
 export const ASSIGNABLE_ROLES: UserRole[] = ['dev', 'ua', 'aso', 'admin']
+
+/** Team (nhãn thống kê app, khớp GitHub team af-products auto/titan). */
+export const TEAMS = ['Auto', 'Titan'] as const
 
 export interface AppUser {
   id: string

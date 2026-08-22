@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.6 — 2026-08-21 (đi cùng AF v5.3.3 · DB schema_version=27)
+
+**Team app** (AF migration 0027 `apps.team`): 
+- `/manage-apps`: cột **Team** với ô chọn (admin gán Auto/Titan/—) + bộ lọc theo team.
+- `/apps` (danh mục sản phẩm): cột Team (badge, read-only) + bộ lọc theo team.
+- Chỉ là nhãn thống kê — KHÔNG đụng GitHub (AF lo cấp quyền GitHub team lúc auto-push; xem AF v5.3.3).
+
 ## 3.24.5 — 2026-08-21 (đi cùng AF v5.3.2 · DB schema_version=26)
 
 - **Admin đổi mật khẩu user:** trang Users thêm nút "Đổi MK" cho user khác → modal đặt mật khẩu mới (RPC

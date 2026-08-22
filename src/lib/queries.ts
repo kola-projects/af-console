@@ -88,7 +88,7 @@ export const appsWithRuns = async () =>
   unwrap<AppRow[]>(
     await supabase
       .from('apps')
-      .select('id,name,package_name,source_kind,created_at,extra,is_hidden,app_code,app_codes,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
+      .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
       .order('created_at', { ascending: false })
       .order('started_at', { referencedTable: 'runs', ascending: false }),
   )
@@ -100,13 +100,24 @@ export async function setAppHidden(id: number, is_hidden: boolean) {
   if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
 }
 
+/** [0027] Admin gán team cho app (nhãn thống kê; '' = bỏ team). RLS chỉ admin ghi. */
+export async function setAppTeam(id: number, team: string) {
+  const { data, error } = await supabase
+    .from('apps')
+    .update({ team: team || null })
+    .eq('id', id)
+    .select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
+}
+
 /** [0023] Danh sách app cho NON-ADMIN: apps (RLS đã lọc app ẩn) + con trỏ blueprint
  *  từ view an toàn v_app_blueprints (KHÔNG mở bảng runs). Dựng runs synth chỉ chứa
  *  con trỏ blueprint để AppIcon/PackageName dùng lại không đổi. */
 export const appsPublic = async (): Promise<AppRow[]> => {
   const appsRes = await supabase
     .from('apps')
-    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,app_code,app_codes')
+    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes')
     .order('created_at', { ascending: false })
   if (appsRes.error) throw new Error(appsRes.error.message)
   const bpRes = await supabase.from('v_app_blueprints').select('app_id,run_name,started_at')
@@ -138,7 +149,7 @@ export const appsPublic = async (): Promise<AppRow[]> => {
 export const appDetailPublic = async (id: number): Promise<AppRow | null> => {
   const appRes = await supabase
     .from('apps')
-    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,app_code,app_codes')
+    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes')
     .eq('id', id)
     .maybeSingle()
   if (appRes.error) throw new Error(appRes.error.message)
