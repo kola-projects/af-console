@@ -475,6 +475,15 @@ export async function changePassword(newPassword: string) {
   if (error) throw new Error(error.message)
 }
 
+/** Admin đổi mật khẩu của user KHÁC (RPC SECURITY DEFINER — 0025). */
+export async function adminSetUserPassword(userId: string, newPassword: string) {
+  const { error } = await supabase.rpc('admin_set_user_password', {
+    p_user: userId,
+    p_password: newPassword,
+  })
+  if (error) throw new Error(error.message)
+}
+
 /** Admin tạo user trực tiếp (email+mật khẩu+role) mà KHÔNG cần service_role:
  *  1. ghi pending_invites (RLS chỉ admin) — allowlist + role đích;
  *  2. signUp bằng client TẠM (không văng session admin);

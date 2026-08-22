@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   adminCreateUser,
+  adminSetUserPassword,
   appSettings,
   appUsers,
   myProfile,
@@ -103,9 +104,97 @@ function CreateUser({ onDone }: { onDone: () => void }) {
   )
 }
 
+/** Admin đặt mật khẩu mới cho user khác (modal). */
+function SetUserPassword({
+  user,
+  onClose,
+}: {
+  user: { id: string; email: string | null }
+  onClose: () => void
+}) {
+  const [pw, setPw] = useState('')
+  const [pw2, setPw2] = useState('')
+  const [err, setErr] = useState<string | null>(null)
+  const [ok, setOk] = useState(false)
+  const m = useMutation({
+    mutationFn: () => adminSetUserPassword(user.id, pw),
+    onSuccess: () => {
+      setOk(true)
+      setTimeout(onClose, 1500)
+    },
+  })
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setErr(null)
+    if (pw.length < 6) return setErr('Mật khẩu tối thiểu 6 ký tự')
+    if (pw !== pw2) return setErr('Mật khẩu xác nhận không khớp')
+    m.mutate()
+  }
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-sm rounded-lg bg-white p-6 dark:bg-neutral-900">
+        <h2 className="text-lg font-medium">Đổi mật khẩu user</h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          Đặt mật khẩu mới cho <Mono>{user.email ?? user.id}</Mono>.
+        </p>
+        {(err || m.error) && (
+          <div className="mt-3">
+            <ErrorBox error={err || m.error} />
+          </div>
+        )}
+        {ok && (
+          <div className="mt-3 rounded bg-green-50 px-3 py-2 text-sm text-green-800 dark:bg-green-950 dark:text-green-200">
+            Đã đổi mật khẩu. Đang đóng…
+          </div>
+        )}
+        <form onSubmit={submit} className="mt-4 space-y-3">
+          <input
+            type="password"
+            required
+            minLength={6}
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            placeholder="Mật khẩu mới (≥6 ký tự)"
+            autoComplete="new-password"
+            className="w-full rounded border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+          />
+          <input
+            type="password"
+            required
+            minLength={6}
+            value={pw2}
+            onChange={(e) => setPw2(e.target.value)}
+            placeholder="Nhập lại mật khẩu"
+            autoComplete="new-password"
+            className="w-full rounded border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+          />
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={m.isPending}
+              className="flex-1 rounded border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-neutral-700"
+            >
+              Huỷ
+            </button>
+            <button
+              type="submit"
+              disabled={m.isPending}
+              className="flex-1 rounded bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-900"
+            >
+              {m.isPending ? 'Đang đổi…' : 'Đổi mật khẩu'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function Users() {
   const qc = useQueryClient()
   const [showChangePassword, setShowChangePassword] = useState(false)
+  const [pwUser, setPwUser] = useState<{ id: string; email: string | null } | null>(null)
   const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
   const users = useQuery({ queryKey: ['app-users'], queryFn: appUsers })
   const settings = useQuery({ queryKey: ['app-settings'], queryFn: appSettings })
@@ -230,6 +319,14 @@ export default function Users() {
                         Đổi mật khẩu
                       </button>
                     )}
+                    {isAdmin && !isMe && (
+                      <button
+                        onClick={() => setPwUser({ id: u.id, email: u.email })}
+                        className="rounded border border-neutral-300 px-2 py-1 text-xs dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                      >
+                        Đổi MK
+                      </button>
+                    )}
                     {isAdmin && (
                       <button
                         disabled={lastAdmin || isMe || changeActive.isPending}
@@ -255,6 +352,7 @@ export default function Users() {
       </div>
 
       {showChangePassword && <ChangePassword onClose={() => setShowChangePassword(false)} />}
+      {pwUser && <SetUserPassword user={pwUser} onClose={() => setPwUser(null)} />}
     </div>
   )
 }

@@ -3,6 +3,16 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.5 — 2026-08-21 (đi cùng AF v5.3.2 · DB schema_version=26)
+
+- **Admin đổi mật khẩu user:** trang Users thêm nút "Đổi MK" cho user khác → modal đặt mật khẩu mới (RPC
+  `admin_set_user_password`, SECURITY DEFINER + pgcrypto — AF migration 0025; không cần service_role).
+- **Make app — bỏ 2 mode** `changeColorSystemAuto`/`changeStyleAuto` (không còn dùng); còn `changeLayoutAuto` +
+  `changeFeatureExtremeAuto`.
+- **Make app — tự nhận diện nguồn từ link:** bỏ dropdown src; nhập link → hiện nguồn (Google Play / App Store /
+  GitHub / Figma). changeFeatureExtremeAuto chặn nếu link không phải Play/App Store.
+- **Discord** (AF migration 0026): tin báo order mới kèm **full payload** (jsonb_pretty, cắt <2000).
+
 ## 3.24.4 — 2026-08-21 (đi cùng AF v5.3.1 · DB schema_version=24)
 
 **Fix deploy:** cập nhật `pnpm-lock.yaml` cho `fflate` (thêm ở 3.24.3 bằng npm nên pnpm-lock lệch → Vercel

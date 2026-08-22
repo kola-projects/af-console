@@ -30,14 +30,20 @@ import { Badge, Cell, ErrorBox, Loading, Mono, Row, Table, localTime } from '../
 
 const inputCls =
   'w-full rounded border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900'
-const MAKE_MODES = [
-  'changeColorSystemAuto',
-  'changeStyleAuto',
-  'changeLayoutAuto',
-  'changeFeatureExtremeAuto',
-] as const
-const MAKE_SRC = ['store', 'appstore', 'app', 'video', 'figma'] as const
+const MAKE_MODES = ['changeLayoutAuto', 'changeFeatureExtremeAuto'] as const
 const TEAMS = ['Auto', 'Titan'] as const
+
+/** Tự nhận diện nguồn từ link (tập hữu hạn: Google Play / App Store / GitHub / Figma). */
+function detectSource(url: string): { kind: string; label: string } | null {
+  const u = url.trim().toLowerCase()
+  if (!u) return null
+  if (u.includes('play.google.com')) return { kind: 'store', label: 'Google Play' }
+  if (u.includes('apps.apple.com') || u.includes('itunes.apple.com'))
+    return { kind: 'appstore', label: 'App Store' }
+  if (u.includes('github.com') || u.endsWith('.git')) return { kind: 'github', label: 'GitHub' }
+  if (u.includes('figma.com')) return { kind: 'figma', label: 'Figma' }
+  return null
+}
 
 function Label({ children, req }: { children: React.ReactNode; req?: boolean }) {
   return (
@@ -230,7 +236,6 @@ function MakeAppForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [af, setAf] = useState('')
   const [mode, setMode] = useState<string>(MAKE_MODES[0])
   const [variants, setVariants] = useState('3')
-  const [src, setSrc] = useState<string>('store')
   const [sourceRef, setSourceRef] = useState('')
   const [appName, setAppName] = useState('')
   const [team, setTeam] = useState('')
@@ -242,17 +247,14 @@ function MakeAppForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [warn, setWarn] = useState<string | null>(null)
 
   const isFeature = mode === 'changeFeatureExtremeAuto'
-  const srcOptions = isFeature ? (['store', 'appstore'] as const) : MAKE_SRC
-  useEffect(() => {
-    if (isFeature && src !== 'store' && src !== 'appstore') setSrc('store')
-  }, [isFeature, src])
+  const detected = detectSource(sourceRef)
 
   const mut = useMutation({
     mutationFn: () =>
       createRequest('make_app', af, {
         mode,
         variants: Number(variants) || 1,
-        src,
+        src: detected?.kind ?? null,
         source_ref: sourceRef.trim(),
         app_name: appName.trim(),
         team: team || null,
@@ -268,6 +270,14 @@ function MakeAppForm({ onSubmitted }: { onSubmitted: () => void }) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!detected) {
+      setWarn('Link không nhận diện được nguồn (chỉ hỗ trợ Google Play / App Store / GitHub / Figma).')
+      return
+    }
+    if (isFeature && detected.kind !== 'store' && detected.kind !== 'appstore') {
+      setWarn('changeFeatureExtremeAuto cần link Google Play hoặc App Store.')
+      return
+    }
     if (!gs.length) {
       setWarn('Bắt buộc upload google-services.json (bản PRODUCTION của store).')
       return
@@ -302,23 +312,26 @@ function MakeAppForm({ onSubmitted }: { onSubmitted: () => void }) {
           />
         </div>
       </div>
-      <Label req>Nguồn (src)</Label>
-      <select value={src} onChange={(e) => setSrc(e.target.value)} className={inputCls}>
-        {srcOptions.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
-      {isFeature && <Hint>changeFeatureExtremeAuto bắt buộc tham khảo app trên Google/Apple store.</Hint>}
-      <Label req>Link / app tham khảo</Label>
+      <Label req>Link nguồn (tự nhận diện)</Label>
       <input
         required
         value={sourceRef}
         onChange={(e) => setSourceRef(e.target.value)}
-        placeholder="https://play.google.com/… hoặc https://apps.apple.com/…"
+        placeholder="Google Play / App Store / GitHub / Figma URL"
         className={inputCls}
       />
+      {sourceRef.trim() && (
+        detected ? (
+          <div className="mt-1 text-xs text-green-700 dark:text-green-300">
+            → Nguồn: <b>{detected.label}</b>
+          </div>
+        ) : (
+          <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+            Chưa nhận diện được — chỉ hỗ trợ Google Play / App Store / GitHub / Figma.
+          </div>
+        )
+      )}
+      {isFeature && <Hint>changeFeatureExtremeAuto cần link Google Play hoặc App Store.</Hint>}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label req>Tên app (appName)</Label>
