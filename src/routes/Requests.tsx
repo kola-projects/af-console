@@ -1001,7 +1001,7 @@ export default function Requests() {
       <div>
         <h1 className="text-lg">Yêu cầu</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          Đặt yêu cầu Make app / Ads integration / ASO. Mỗi yêu cầu có mã <Mono>rNNNNN</Mono> để AF chạy
+          Đặt yêu cầu Make app / Ads integration / ASO. Mỗi yêu cầu có mã 4 ký tự (<Mono>m/a/s</Mono>+3) để AF chạy
           theo mã.
         </p>
       </div>

@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.7 — 2026-08-21 (đi cùng AF v5.3.4 · DB schema_version=28)
+
+**Mã request 4 ký tự** (AF migration 0028): mã đơn giờ `<m|a|s>+3 base36` (vd `m003`) thay cho `rNNNNN`.
+AFC hiển thị mã do RPC trả về (không cần đổi logic); chỉ sửa chú thích. Tin Discord kèm dòng
+`Chạy trên AF: ./order.sh <mã>`.
+
 ## 3.24.6 — 2026-08-21 (đi cùng AF v5.3.3 · DB schema_version=27)
 
 **Team app** (AF migration 0027 `apps.team`): 
