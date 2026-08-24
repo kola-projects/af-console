@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { appsWithRuns, setAppHidden, setAppTeam } from '../lib/queries'
 import { appCodeOf, TEAMS } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
@@ -11,6 +11,7 @@ type SortKey = 'last_update' | 'created' | 'name' | 'code'
 /** /manage-apps — QUẢN LÝ APP (admin). Đầy đủ nội bộ: runs, blueprint, last update,
  *  và ẩn/hiện app khỏi danh mục sản phẩm của user thường. */
 export default function ManageApps() {
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const q = useQuery({ queryKey: ['apps-manage'], queryFn: appsWithRuns })
   const [search, setSearch] = useState('')
@@ -109,7 +110,7 @@ export default function ManageApps() {
             {rows.map((a) => {
               const bp = blueprintRuns(a).length
               return (
-                <Row key={a.id}>
+                <Row key={a.id} onClick={() => navigate(`/manage-apps/${a.id}`)}>
                   <Cell>
                     {appCodeOf(a) ? (
                       <Mono className="font-semibold">{appCodeOf(a)}</Mono>
@@ -118,19 +119,17 @@ export default function ManageApps() {
                     )}
                   </Cell>
                   <Cell>
-                    <Link
-                      to={`/manage-apps/${a.id}`}
-                      className="flex items-center gap-2.5 underline underline-offset-2"
-                    >
+                    <span className="flex items-center gap-2.5 underline underline-offset-2">
                       <AppIcon app={a} size={32} />
                       {a.name}
                       {a.is_hidden && <Badge tone="warn">ẩn</Badge>}
-                    </Link>
+                    </span>
                   </Cell>
                   <Cell>
                     <select
                       value={a.team ?? ''}
                       disabled={team.isPending}
+                      onClick={(e) => e.stopPropagation()}
                       onChange={(e) => team.mutate({ id: a.id, team: e.target.value })}
                       className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900"
                     >
@@ -157,7 +156,10 @@ export default function ManageApps() {
                   <Cell>
                     <button
                       disabled={hide.isPending}
-                      onClick={() => hide.mutate({ id: a.id, hidden: !a.is_hidden })}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        hide.mutate({ id: a.id, hidden: !a.is_hidden })
+                      }}
                       className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
                     >
                       {a.is_hidden ? 'Hiện' : 'Ẩn'}

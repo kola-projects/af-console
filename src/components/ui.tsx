@@ -129,9 +129,36 @@ export function Table({ head, children }: { head: string[]; children: ReactNode 
   )
 }
 
-export function Row({ children }: { children: ReactNode }) {
+export function Row({
+  children,
+  onClick,
+  className = '',
+}: {
+  children: ReactNode
+  /** Cho phép click cả hàng (vd mở trang chi tiết). Control con muốn chặn điều hướng thì gọi e.stopPropagation(). */
+  onClick?: () => void
+  className?: string
+}) {
+  const clickable = !!onClick
   return (
-    <tr className="border-b border-neutral-100 align-top hover:bg-neutral-50 dark:border-neutral-900 dark:hover:bg-neutral-900">
+    <tr
+      className={`border-b border-neutral-100 align-top hover:bg-neutral-50 dark:border-neutral-900 dark:hover:bg-neutral-900${
+        clickable ? ' cursor-pointer' : ''
+      } ${className}`}
+      onClick={onClick}
+      role={clickable ? 'link' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onClick()
+              }
+            }
+          : undefined
+      }
+    >
       {children}
     </tr>
   )

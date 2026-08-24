@@ -3,6 +3,17 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.8 — 2026-08-24 (đi cùng AF v5.4.1)
+
+**Click cả HÀNG mở trang chi tiết app** (đỡ phải tìm trong AFC) — cho mọi user (admin lẫn non-admin):
+- `/apps`: click hàng → `/apps/:id` (trang danh mục sản phẩm của app).
+- `/manage-apps` (admin): click hàng → `/manage-apps/:id`; control con (ô chọn Team, nút Ẩn/Hiện) `stopPropagation` để không điều hướng nhầm.
+- `/requests` (Yêu cầu — cả "Đơn của tôi" lẫn admin): click hàng đơn hàng → trang chi tiết app tương ứng
+  (`/apps/:id`), map `target_app_code`/`result.app_code` → app id qua danh mục app (`app_code` + `app_codes[]` cũ);
+  đơn chưa có app thì hàng không click. Nút Huỷ/Hành động `stopPropagation`.
+- `ui.Row` thêm prop `onClick`/`className` (cursor-pointer + role=link + phím Enter/Space) — tương thích ngược.
+- PATCH, không đổi API/DB.
+
 ## 3.24.7 — 2026-08-21 (đi cùng AF v5.3.4 · DB schema_version=28)
 
 **Mã request 4 ký tự** (AF migration 0028): mã đơn giờ `<m|a|s>+3 base36` (vd `m003`) thay cho `rNNNNN`.

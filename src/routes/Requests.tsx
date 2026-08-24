@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   addAfVersion,
   afVersions,
   allRequests,
   appCodes,
+  appsPublic,
   appearanceInfo,
   blueprintImageDataUri,
   cancelRequest,
@@ -737,8 +739,37 @@ function AsoForm({ onSubmitted }: { onSubmitted: () => void }) {
 }
 
 // ─── Danh sách "Yêu cầu của tôi" ────────────────────────────────────────
+/** Map app_code (mã hiện + mã cũ trong app_codes[]) → app id, để click đơn hàng mở trang chi tiết app. */
+function useAppIdByCode(): (code: string | null | undefined) => number | null {
+  const q = useQuery({ queryKey: ['apps-product'], queryFn: appsPublic })
+  const map = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const a of q.data ?? []) {
+      for (const c of [
+        a.app_code,
+        ...(a.app_codes ?? []),
+        a.extra?.app_code,
+        ...(a.extra?.app_codes ?? []),
+      ]) {
+        if (c) m.set(c, a.id)
+      }
+    }
+    return m
+  }, [q.data])
+  return (code) => (code ? (map.get(code) ?? null) : null)
+}
+
+/** app_code liên quan của một đơn: đích (nếu có) hoặc kết quả make_app. */
+function requestAppCode(r: AppRequest): string | null {
+  if (r.target_app_code) return r.target_app_code
+  if (typeof r.result?.app_code === 'string') return r.result.app_code
+  return null
+}
+
 function MyRequests() {
   const qc = useQueryClient()
+  const navigate = useNavigate()
+  const appIdByCode = useAppIdByCode()
   const q = useQuery({ queryKey: ['my-requests'], queryFn: myRequests })
   const cancel = useMutation({
     mutationFn: cancelRequest,
@@ -754,8 +785,10 @@ function MyRequests() {
     <>
       {cancel.error && <ErrorBox error={cancel.error} />}
       <Table head={['Mã', 'Loại', 'AF', 'Đích', 'Ngày giờ', 'Trạng thái', '']}>
-        {q.data.map((r) => (
-          <Row key={r.id}>
+        {q.data.map((r) => {
+          const appId = appIdByCode(requestAppCode(r))
+          return (
+          <Row key={r.id} onClick={appId ? () => navigate(`/apps/${appId}`) : undefined}>
             <Cell>
               <Mono>{r.request_code}</Mono>
             </Cell>
@@ -777,7 +810,10 @@ function MyRequests() {
               {(r.status === 'submitted' || r.status === 'accepted') && (
                 <button
                   disabled={cancel.isPending}
-                  onClick={() => cancel.mutate(r.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    cancel.mutate(r.id)
+                  }}
                   className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
                 >
                   Huỷ
@@ -785,7 +821,8 @@ function MyRequests() {
               )}
             </Cell>
           </Row>
-        ))}
+          )
+        })}
       </Table>
     </>
   )
@@ -810,6 +847,8 @@ const NEXT_ACTIONS: Record<string, { to: RequestStatus; label: string; tone: 'go
 
 function AdminRequests() {
   const qc = useQueryClient()
+  const navigate = useNavigate()
+  const appIdByCode = useAppIdByCode()
   const q = useQuery({ queryKey: ['all-requests'], queryFn: allRequests })
   const upd = useMutation({
     mutationFn: ({
@@ -849,8 +888,10 @@ function AdminRequests() {
     <>
       {upd.error && <ErrorBox error={upd.error} />}
       <Table head={['Mã', 'Người yêu cầu', 'Loại', 'AF', 'Đích', 'Ngày giờ', 'Trạng thái', 'Hành động']}>
-        {q.data?.map((r) => (
-          <Row key={r.id}>
+        {q.data?.map((r) => {
+          const appId = appIdByCode(requestAppCode(r))
+          return (
+          <Row key={r.id} onClick={appId ? () => navigate(`/apps/${appId}`) : undefined}>
             <Cell>
               <Mono>{r.request_code}</Mono>
             </Cell>
@@ -872,7 +913,10 @@ function AdminRequests() {
                   <button
                     key={a.to}
                     disabled={upd.isPending}
-                    onClick={() => act(r, a.to)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      act(r, a.to)
+                    }}
                     className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
                   >
                     {a.label}
@@ -886,7 +930,8 @@ function AdminRequests() {
               </div>
             </Cell>
           </Row>
-        ))}
+          )
+        })}
       </Table>
       <details className="mt-4">
         <summary className="cursor-pointer text-xs text-neutral-500">Payload / kết quả (JSON)</summary>

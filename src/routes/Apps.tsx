@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { appsPublic } from '../lib/queries'
 import { appCodeOf, TEAMS } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
@@ -12,6 +12,7 @@ type SortKey = 'created' | 'name' | 'code'
  *  design preview / legal (RLS 0023). App ẩn (admin đặt) không hiện với non-admin.
  *  Quản lý nội bộ (runs/blueprint/ẩn) ở trang riêng /manage-apps (chỉ admin). */
 export default function Apps() {
+  const navigate = useNavigate()
   const q = useQuery({ queryKey: ['apps-product'], queryFn: appsPublic })
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortKey>('created')
@@ -88,7 +89,7 @@ export default function Apps() {
         ) : (
           <Table head={['Code', 'App', 'Team', 'Package', 'Tạo lúc']}>
             {rows.map((a) => (
-              <Row key={a.id}>
+              <Row key={a.id} onClick={() => navigate(`/apps/${a.id}`)}>
                 <Cell>
                   {appCodeOf(a) ? (
                     <Mono className="font-semibold">{appCodeOf(a)}</Mono>
@@ -97,13 +98,10 @@ export default function Apps() {
                   )}
                 </Cell>
                 <Cell>
-                  <Link
-                    to={`/apps/${a.id}`}
-                    className="flex items-center gap-2.5 underline underline-offset-2"
-                  >
+                  <span className="flex items-center gap-2.5 underline underline-offset-2">
                     <AppIcon app={a} size={32} />
                     {a.name}
-                  </Link>
+                  </span>
                 </Cell>
                 <Cell>{a.team ? <Badge>{a.team}</Badge> : <span className="text-neutral-400">—</span>}</Cell>
                 <Cell>
