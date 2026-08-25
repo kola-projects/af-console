@@ -47,6 +47,13 @@ function detectSource(url: string): { kind: string; label: string } | null {
   return null
 }
 
+/** Link ads-script = Google Sheet ad-contract (bảng khai ads đặt đâu / unit nào). */
+function isSheetLink(url: string): boolean {
+  const u = url.trim().toLowerCase()
+  if (!/^https?:\/\//.test(u)) return false
+  return u.includes('docs.google.com/spreadsheets') || u.includes('drive.google.com')
+}
+
 function Label({ children, req }: { children: React.ReactNode; req?: boolean }) {
   return (
     <label className="mt-3 block text-sm">
@@ -407,9 +414,13 @@ function AdsForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [variant, setVariant] = useState('auto')
   const [pages, setPages] = useState('')
   const [survey, setSurvey] = useState('')
+  const [adsScript, setAdsScript] = useState('')
   const [attachments, setAttachments] = useState<UploadedFile[]>([])
   const [note, setNote] = useState('')
+  const [warn, setWarn] = useState<string | null>(null)
   const datalist = useCodesDatalist()
+
+  const scriptOk = isSheetLink(adsScript)
 
   const mut = useMutation({
     mutationFn: () =>
@@ -422,6 +433,7 @@ function AdsForm({ onSubmitted }: { onSubmitted: () => void }) {
           variant,
           pages: pages !== '' ? Number(pages) : null,
           survey: survey !== '' ? Number(survey) : null,
+          ads_script: adsScript.trim(),
           upload_draft: draftId,
           attachments,
           note: note.trim() || null,
@@ -431,13 +443,22 @@ function AdsForm({ onSubmitted }: { onSubmitted: () => void }) {
     onSuccess: onSubmitted,
   })
 
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!adsScript.trim()) {
+      setWarn('Bắt buộc đính kèm link ads script (Google Sheet ad-contract) — không có thì dừng.')
+      return
+    }
+    if (!scriptOk) {
+      setWarn('Link ads script không hợp lệ — cần link Google Sheet (docs.google.com/spreadsheets) hoặc Drive.')
+      return
+    }
+    setWarn(null)
+    mut.mutate()
+  }
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        mut.mutate()
-      }}
-    >
+    <form onSubmit={submit}>
       {datalist}
       <AfVersionSelect value={af} onChange={setAf} />
       <Label req>Mã app (appCode)</Label>
@@ -492,10 +513,37 @@ function AdsForm({ onSubmitted }: { onSubmitted: () => void }) {
           />
         </div>
       </div>
+      {/* Link ads script BẮT BUỘC — ads.sh đọc Google-Sheet ad-contract để bơm units/placements */}
+      <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/40">
+        <Label req>Link ads script (Google Sheet ad-contract)</Label>
+        <input
+          required
+          type="url"
+          value={adsScript}
+          onChange={(e) => setAdsScript(e.target.value)}
+          placeholder="https://docs.google.com/spreadsheets/d/…"
+          className={inputCls}
+        />
+        {adsScript.trim() && (
+          scriptOk ? (
+            <div className="mt-1 text-xs text-green-700 dark:text-green-300">→ Nhận diện: Google Sheet / Drive</div>
+          ) : (
+            <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+              Chưa phải link Google Sheet — cần docs.google.com/spreadsheets hoặc drive.google.com.
+            </div>
+          )
+        )}
+        <div className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+          ⚠ Đặt link ở chế độ <b>“Anyone with the link · Viewer”</b> (Share ▸ General access ▸ Anyone with
+          the link ▸ Viewer). Lúc chạy, ads.sh sẽ tải CSV export của sheet — <b>không xem được thì đơn tự dừng</b>.
+        </div>
+      </div>
+
       <Label>Ảnh / file thông tin thêm</Label>
       <FilePicker draftId={draftId} files={attachments} setFiles={setAttachments} />
       <Label>Ghi chú</Label>
       <textarea value={note} onChange={(e) => setNote(e.target.value)} className={`${inputCls} min-h-16`} />
+      {warn && <div className="mt-2 text-sm text-red-600 dark:text-red-400">{warn}</div>}
       <SubmitBar pending={mut.isPending} code={mut.data?.request_code ?? null} error={mut.error} />
     </form>
   )

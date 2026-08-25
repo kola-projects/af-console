@@ -3,6 +3,15 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.9 — 2026-08-26
+
+**Đơn Ads integration: BẮT BUỘC đính kèm link ads script (Google Sheet ad-contract).**
+- Form `add_ads` thêm field **Link ads script** (bắt buộc) + **thông báo** phải đặt “Anyone with the link · Viewer”.
+- Chặn gửi (stop) nếu: thiếu link · link không phải Google Sheet/Drive.
+- Kiểm quyền xem THẬT ở lúc chạy: ads.sh tải CSV export của sheet — link private ⇒ không tải được ⇒ đơn **dừng**
+  (AF v5.8.0). AFC chỉ chặn định dạng + thông báo (trình duyệt không tự kiểm chứng quyền xem do CORS).
+- Payload đơn thêm `ads_script`. PATCH, không đổi DB (payload là jsonb tự do).
+
 ## 3.24.8 — 2026-08-24 (đi cùng AF v5.4.1)
 
 **Click cả HÀNG mở trang chi tiết app** (đỡ phải tìm trong AFC) — cho mọi user (admin lẫn non-admin):
