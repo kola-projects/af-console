@@ -3,6 +3,15 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.24.10 — 2026-08-26 (đi cùng AF v5.10.0)
+
+**Design preview → STORYBOARD đồng bộ.** Trang chi tiết app (`/apps/:id`) nâng section "Design preview":
+- **Màn hình (storyboard)**: ảnh THẬT từ `design_previews/screens/*` xếp theo THỨ TỰ (prefix số), tỉ lệ phone,
+  **click phóng to** (lightbox) — PM xem toàn bộ thiết kế app đã build, khỏi cài.
+- **Design assets** (icon/ornament) tách lưới riêng; nút "Xem mockup đầy đủ" (`index.html`) giữ nguyên.
+- Không đổi DB/query — đọc `designImages` sẵn có, tách theo path `/screens/`. Ăn cho MỌI app đã `blueprint-push`
+  (gồm 29 app cũ vừa backfill + clone source-modify).
+
 ## 3.24.9 — 2026-08-26
 
 **Đơn Ads integration: BẮT BUỘC đính kèm link ads script (Google Sheet ad-contract).**

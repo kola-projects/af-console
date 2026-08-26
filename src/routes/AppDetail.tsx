@@ -60,6 +60,7 @@ function CuratedDetail({ app }: { app: AppRow }) {
     staleTime: 5 * 60_000,
   })
   const [showMockup, setShowMockup] = useState(false)
+  const [zoom, setZoom] = useState<string | null>(null)
   const [zipping, setZipping] = useState(false)
   const [zipErr, setZipErr] = useState<string | null>(null)
   const a = assets.data
@@ -210,25 +211,69 @@ function CuratedDetail({ app }: { app: AppRow }) {
           {(a.designImages.length > 0 || a.hasDesignIndex) && (
             <section className="mt-8">
               <SectionTitle>Design preview</SectionTitle>
-              {a.designImages.length > 0 && (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {a.designImages.map((d) => (
-                    <div
-                      key={d.path}
-                      className="overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800"
-                    >
-                      <img
-                        src={d.dataUri}
-                        alt=""
-                        className="h-32 w-full bg-neutral-50 object-contain dark:bg-neutral-900"
-                      />
-                      <div className="truncate px-2 py-1 text-[11px] text-neutral-500">
-                        {d.path.split('/').pop()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {(() => {
+                const imgs = [...a.designImages].sort((x, y) => x.path.localeCompare(y.path))
+                const screens = imgs.filter((d) => d.path.includes('/screens/'))
+                const assets = imgs.filter((d) => !d.path.includes('/screens/'))
+                const label = (p: string) =>
+                  (p.split('/').pop() || p).replace(/\.[a-z]+$/i, '').replace(/^\d+[_-]?/, '').replace(/[_-]/g, ' ')
+                return (
+                  <>
+                    {screens.length > 0 && (
+                      <>
+                        <div className="mb-2 text-[11px] uppercase tracking-wide text-neutral-500">
+                          Màn hình ({screens.length}) — storyboard app đã build, khỏi cài
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+                          {screens.map((d) => (
+                            <button
+                              key={d.path}
+                              onClick={() => setZoom(d.dataUri)}
+                              className="group overflow-hidden rounded-xl border border-neutral-200 bg-black p-0 text-left dark:border-neutral-800"
+                              title={label(d.path)}
+                            >
+                              <img
+                                src={d.dataUri}
+                                alt={label(d.path)}
+                                className="aspect-[9/19] w-full object-cover object-top transition group-hover:opacity-90"
+                              />
+                              <div className="truncate bg-neutral-50 px-2 py-1 text-[11px] capitalize text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
+                                {label(d.path)}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    {assets.length > 0 && (
+                      <>
+                        <div className="mb-2 mt-6 text-[11px] uppercase tracking-wide text-neutral-500">
+                          Design assets ({assets.length})
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          {assets.map((d) => (
+                            <button
+                              key={d.path}
+                              onClick={() => setZoom(d.dataUri)}
+                              className="overflow-hidden rounded-lg border border-neutral-200 p-0 dark:border-neutral-800"
+                              title={label(d.path)}
+                            >
+                              <img
+                                src={d.dataUri}
+                                alt=""
+                                className="h-32 w-full bg-neutral-50 object-contain dark:bg-neutral-900"
+                              />
+                              <div className="truncate px-2 py-1 text-[11px] text-neutral-500">
+                                {d.path.split('/').pop()}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )
+              })()}
               {a.hasDesignIndex && runName && (
                 <div className="mt-3">
                   <button onClick={() => setShowMockup((v) => !v)} className={btnCls}>
@@ -252,6 +297,15 @@ function CuratedDetail({ app }: { app: AppRow }) {
           ⬇️ Debug / Release APK — <b>sắp có</b> (tích hợp CI/CD ở session sau).
         </div>
       </section>
+
+      {zoom && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          onClick={() => setZoom(null)}
+        >
+          <img src={zoom} alt="" className="max-h-full max-w-full rounded-lg object-contain" />
+        </div>
+      )}
     </div>
   )
 }
