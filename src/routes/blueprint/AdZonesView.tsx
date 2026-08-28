@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { blueprintDir } from '../../lib/queries'
-import { b64ToText } from '../../lib/blueprint'
+import { blueprintDir, blueprintFile } from '../../lib/queries'
+import { b64ToText, b64ToDataURL, mimeOf } from '../../lib/blueprint'
 import { Empty, ErrorBox, Loading } from '../../components/ui'
 
 /** AdZonesView — editor kéo-thả ads đọc từ blueprint/adzones/ (schema adzone/1).
@@ -25,6 +25,7 @@ type Zone = {
 type Touchable = { id: string; label: string; semantics: string; source?: string }
 export type Manifest = {
   schema: string; app: string; screen: string; layout: string
+  screenshot?: string | null   // ảnh màn thật (blueprint-relative) để render; null → mockup fallback
   zones: Zone[]; touchables: Touchable[]
   _existing?: { placements: string[]; events: string[] }
   _meta?: Record<string, unknown>
@@ -134,7 +135,7 @@ export default function AdZonesView({ runName }: { runName: string }) {
           {index.styles.find((s) => s.id === style)?.label} · {index.layouts.find((l) => l.id === layout)?.label} · {screen}
         </span>
       </div>
-      {manifest ? <Canvas key={file} manifest={manifest} /> : <Empty>Không thấy manifest {file}.</Empty>}
+      {manifest ? <Canvas key={file} manifest={manifest} runName={runName} /> : <Empty>Không thấy manifest {file}.</Empty>}
     </div>
   )
 }
@@ -159,15 +160,15 @@ function Chip({ on, onClick, title, children }: { on: boolean; onClick: () => vo
 }
 
 // ── canvas: phone-in-context cho một manifest (state cục bộ — dùng trong tab Blueprint) ──
-function Canvas({ manifest }: { manifest: Manifest }) {
+function Canvas({ manifest, runName }: { manifest: Manifest; runName?: string }) {
   const [placements, setPlacements] = useState<Record<string, Placement>>({})
   const [events, setEvents] = useState<Record<string, AdEvent>>({})
-  return <AdScreenEditor manifest={manifest} placements={placements} events={events} setPlacements={setPlacements} setEvents={setEvents} />
+  return <AdScreenEditor manifest={manifest} runName={runName} placements={placements} events={events} setPlacements={setPlacements} setEvents={setEvents} />
 }
 
 /** Editor một màn (phone-in-context) — CONTROLLED: dùng lại trong Ads Builder wizard. */
-export function AdScreenEditor({ manifest, placements, events, setPlacements, setEvents }: {
-  manifest: Manifest
+export function AdScreenEditor({ manifest, runName, placements, events, setPlacements, setEvents }: {
+  manifest: Manifest; runName?: string
   placements: Record<string, Placement>; events: Record<string, AdEvent>
   setPlacements: React.Dispatch<React.SetStateAction<Record<string, Placement>>>
   setEvents: React.Dispatch<React.SetStateAction<Record<string, AdEvent>>>
@@ -178,6 +179,15 @@ export function AdScreenEditor({ manifest, placements, events, setPlacements, se
   const zones = manifest.zones
   const T = Object.fromEntries(manifest.touchables.map((t) => [t.id, t]))
   const zoneByArch = (a: string) => zones.find((z) => z.archetype === a)
+
+  // ảnh MÀN THẬT (nếu manifest có screenshot + biết runName) → render thay mockup
+  const shot = manifest.screenshot
+  const shotQ = useQuery({
+    queryKey: ['adzone-shot', runName, shot],
+    queryFn: () => blueprintFile(runName!, shot!),
+    enabled: !!runName && !!shot,
+  })
+  const imgUrl = shotQ.data ? b64ToDataURL(shotQ.data.content_b64, mimeOf(shot!, shotQ.data.content_type)) : null
 
   const place = (zid: string, fmt?: string) => {
     const f = fmt || armed
@@ -256,7 +266,23 @@ export function AdScreenEditor({ manifest, placements, events, setPlacements, se
         </div>
         <p className="mb-3 text-center font-mono text-[11px] text-neutral-400">{armed ? `đã chọn ${armed} — bấm zone` : 'bấm chip rồi bấm zone (hoặc kéo-thả)'}</p>
 
-        {/* device frame */}
+        {/* IMAGE MODE — ảnh MÀN THẬT + phủ zone theo archetype */}
+        {imgUrl && (
+          <div className="relative w-[272px] rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
+            <div className="relative overflow-hidden rounded-[1.6rem]">
+              <img src={imgUrl} alt={manifest.screen} className="block w-full" />
+              {zones.map((z) => (
+                <div key={z.id} className="absolute right-2 left-2 z-10" style={archPos(z.archetype)}>
+                  <ZoneSlot z={z} p={placements[z.id]} armed={armed} onPlace={place} onRemove={removeZone} onField={setZoneField} />
+                </div>
+              ))}
+            </div>
+            <div className="pt-1 text-center font-mono text-[9px] text-neutral-400">ảnh thật · {manifest.screenshot?.split('/').pop()}</div>
+          </div>
+        )}
+
+        {/* MOCKUP FALLBACK — màn chưa có ảnh */}
+        {!imgUrl && (
         <div className="w-[272px] rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
           <div className="flex min-h-[540px] flex-col overflow-hidden rounded-[1.6rem] bg-neutral-50 dark:bg-neutral-950">
             <div className="flex flex-1 flex-col gap-2 p-3">
@@ -319,6 +345,7 @@ export function AdScreenEditor({ manifest, placements, events, setPlacements, se
             </div>
           </div>
         </div>
+        )}
 
         {/* touchables — chỗ gắn adsEvent tường minh (luôn hiện, kể cả khi phone không đủ tile) */}
         <div className="mt-4 w-[272px]">
@@ -367,6 +394,17 @@ export function AdScreenEditor({ manifest, placements, events, setPlacements, se
 }
 
 function cap(s: string) { return s ? s[0].toUpperCase() + s.slice(1) : s }
+
+/** vị trí phủ zone lên ảnh màn thật, theo archetype (không toạ-độ chính xác — neo dọc gần đúng). */
+function archPos(a: string): React.CSSProperties {
+  switch (a) {
+    case 'below-header': return { top: '9%' }
+    case 'content-flow': return { top: '46%' }
+    case 'in-feed': return { top: '64%' }
+    case 'scaffold-bottom-dock': return { bottom: '3%' }
+    default: return { top: '50%' }
+  }
+}
 
 function FeedRow({ amt, c }: { amt: string; c: string }) {
   return (

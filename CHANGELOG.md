@@ -3,6 +3,14 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.27.0 — 2026-08-28 (đi cùng AF v5.14.0)
+
+**AdZones editor: render ẢNH MÀN THẬT thay mockup cứng.** Trước đây mọi màn hiện chung một mockup Home (Settings vẫn
+ra balance card + feed → sai). Giờ editor đọc `manifest.screenshot` (adzones.py khớp ảnh trong blueprint:
+design_previews/screens → clone_shots → image_refs; home theo layout classic/midnight/paper) và **render đúng ảnh màn
+đó** (qua `blueprintFile`→data-URL), **phủ zone** lên theo archetype (below-header/content-flow/in-feed/scaffold-dock —
+neo dọc gần đúng). Màn chưa có ảnh → fallback mockup cũ. `AdScreenEditor` nhận thêm `runName` để tải ảnh.
+
 ## 3.26.1 — 2026-08-28
 
 **AdZones editor: mục "Touchables" tường minh.** Trước đây touchable chỉ hiện dạng tile trong phone → khó thấy/thiếu.

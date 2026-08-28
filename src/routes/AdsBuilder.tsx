@@ -210,7 +210,7 @@ function Wizard({ planId, onClose }: { planId?: number; onClose: () => void }) {
       {/* STEP 3 — Ads Home-onward */}
       {step === 3 && (
         !parsed.index || !layout ? <Empty>Chọn style + layout ở bước trước.</Empty> : (
-          <ScreensEditor index={parsed.index} manifests={parsed.manifests} layout={layout} screens={screens} setScreens={setScreens} />
+          <ScreensEditor index={parsed.index} manifests={parsed.manifests} layout={layout} runName={runName ?? undefined} screens={screens} setScreens={setScreens} />
         )
       )}
 
@@ -244,8 +244,8 @@ function Wizard({ planId, onClose }: { planId?: number; onClose: () => void }) {
 }
 
 // bước 3: chọn màn Home-onward + editor phone-in-context cho từng màn
-function ScreensEditor({ index, manifests, layout, screens, setScreens }: {
-  index: IndexFile; manifests: Record<string, Manifest>; layout: string
+function ScreensEditor({ index, manifests, layout, runName, screens, setScreens }: {
+  index: IndexFile; manifests: Record<string, Manifest>; layout: string; runName?: string
   screens: Record<string, ScreenState>; setScreens: React.Dispatch<React.SetStateAction<Record<string, ScreenState>>>
 }) {
   const list = index.screens.filter((s) => s.layouts.includes(layout) || s.layouts.includes('default'))
@@ -269,7 +269,7 @@ function ScreensEditor({ index, manifests, layout, screens, setScreens }: {
         ))}
       </div>
       {manifest
-        ? <AdScreenEditor key={sel} manifest={manifest} placements={screens[sel]?.placements ?? {}} events={screens[sel]?.events ?? {}} setPlacements={setP} setEvents={setE} />
+        ? <AdScreenEditor key={sel} manifest={manifest} runName={runName} placements={screens[sel]?.placements ?? {}} events={screens[sel]?.events ?? {}} setPlacements={setP} setEvents={setE} />
         : <Empty>Không thấy manifest cho màn “{sel}” ở layout {layout}.</Empty>}
     </div>
   )
