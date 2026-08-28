@@ -1,7 +1,7 @@
 {
   "name": "af-console",
   "private": true,
-  "version": "3.24.10",
+  "version": "3.25.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
