@@ -5,9 +5,9 @@ import { b64ToText } from '../../lib/blueprint'
 import { Empty, ErrorBox, Loading } from '../../components/ui'
 
 /** AdZonesView — editor kéo-thả ads đọc từ blueprint/adzones/ (schema adzone/1).
- *  Luồng: (1) chọn STYLE + LAYOUT → (2) canvas theo layout đó: đặt native/banner vào
- *  zone hữu hạn + gắn adsEvent inter/reward (kiểm policy) → xuất ad-plan.
- *  Xem instructions/adzones.md. Chỉ đọc + soạn plan client-side (chưa persist). */
+ *  Luồng: (1) chọn STYLE + LAYOUT → (2) phone-in-context: đặt native/banner vào
+ *  zone hữu hạn (chèn đúng vị trí ngữ cảnh) + gắn adsEvent inter/reward (kiểm policy)
+ *  → xuất ad-plan. Xem instructions/adzones.md. Chỉ đọc + soạn plan client-side. */
 
 type StyleV = { id: string; label: string }
 type LayoutV = { id: string; label: string; desc?: string }
@@ -34,7 +34,6 @@ type Placement = { format: string; name: string; template: string; refreshMs?: n
 type AdEvent = { type: 'interstitial' | 'rewarded'; name: string; capMs?: number; firstShow?: boolean; rewardItem?: string }
 type Msg = { level: 'err' | 'warn'; msg: string }
 
-// ── policy check (metadata → verdict) — gương của PoC ──
 function checkEvent(t: Touchable | undefined, ev: AdEvent | undefined): Msg[] {
   const out: Msg[] = []
   if (!t || !ev?.type) return out
@@ -87,7 +86,6 @@ export default function AdZonesView({ runName }: { runName: string }) {
   const index = parsed.index
   if (!index) return <Empty>Chưa có adzones/index.json (chạy `python3 tools/adzones.py scan &lt;app&gt;`).</Empty>
 
-  // ── Bước 1: chọn style + layout (bắt buộc trước canvas) ──
   const screensForLayout = layout
     ? index.screens.filter((s) => s.layouts.includes(layout) || s.layouts.includes('default'))
     : []
@@ -97,37 +95,27 @@ export default function AdZonesView({ runName }: { runName: string }) {
       <div className="max-w-2xl">
         <h3 className="mb-1 text-lg font-semibold">Ad zones · {index.app}</h3>
         <p className="mb-5 text-sm text-neutral-500">
-          Zone bám <b>layout</b> (không bám style). Chọn <b>style + layout</b> trước, rồi mở canvas kéo-thả của layout đó.
+          Zone bám <b>layout</b> (không bám style). Chọn <b>style + layout</b> trước, rồi mở phone kéo-thả của layout đó.
         </p>
-
         <PickRow label="Style (skin preview)">
           {index.styles.map((s) => (
             <Chip key={s.id} on={style === s.id} onClick={() => setStyle(s.id)}>{s.label}</Chip>
           ))}
         </PickRow>
-
         <PickRow label="Layout (quyết định zones)">
           {index.layouts.map((l) => (
-            <Chip key={l.id} on={layout === l.id} onClick={() => { setLayout(l.id); setScreen(null) }} title={l.desc}>
-              {l.label}
-            </Chip>
+            <Chip key={l.id} on={layout === l.id} onClick={() => { setLayout(l.id); setScreen(null) }} title={l.desc}>{l.label}</Chip>
           ))}
         </PickRow>
-
         {layout && (
           <PickRow label="Màn (Home-onward)">
             {screensForLayout.length
-              ? screensForLayout.map((s) => (
-                <Chip key={s.id} on={screen === s.id} onClick={() => setScreen(s.id)}>{s.id}</Chip>
-              ))
+              ? screensForLayout.map((s) => (<Chip key={s.id} on={screen === s.id} onClick={() => setScreen(s.id)}>{s.id}</Chip>))
               : <span className="text-sm text-neutral-400">layout này chưa có manifest màn nào</span>}
           </PickRow>
         )}
-
         {(!style || !layout || !screen) && (
-          <p className="mt-4 text-xs text-neutral-400">
-            {!style ? 'Chọn style…' : !layout ? 'Chọn layout…' : 'Chọn màn để mở canvas.'}
-          </p>
+          <p className="mt-4 text-xs text-neutral-400">{!style ? 'Chọn style…' : !layout ? 'Chọn layout…' : 'Chọn màn để mở canvas.'}</p>
         )}
       </div>
     )
@@ -135,8 +123,7 @@ export default function AdZonesView({ runName }: { runName: string }) {
 
   const file = `${screen}.${layout}.json`
   const manifest =
-    parsed.manifests[file] ||
-    parsed.manifests[`${screen}.default.json`] ||
+    parsed.manifests[file] || parsed.manifests[`${screen}.default.json`] ||
     Object.values(parsed.manifests).find((m) => m.screen === screen)
 
   return (
@@ -162,19 +149,16 @@ function PickRow({ label, children }: { label: string; children: React.ReactNode
 }
 function Chip({ on, onClick, title, children }: { on: boolean; onClick: () => void; title?: string; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      title={title}
+    <button onClick={onClick} title={title}
       className={`rounded-lg border px-3 py-1.5 text-sm ${on
         ? 'border-teal-500 bg-teal-50 font-medium text-teal-800 dark:bg-teal-950 dark:text-teal-200'
-        : 'border-neutral-300 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-400'}`}
-    >
+        : 'border-neutral-300 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-400'}`}>
       {children}
     </button>
   )
 }
 
-// ── canvas kéo-thả cho một manifest (1 màn × 1 layout) ──
+// ── canvas: phone-in-context cho một manifest ──
 function Canvas({ manifest }: { manifest: Manifest }) {
   const [placements, setPlacements] = useState<Record<string, Placement>>({})
   const [events, setEvents] = useState<Record<string, AdEvent>>({})
@@ -183,6 +167,7 @@ function Canvas({ manifest }: { manifest: Manifest }) {
 
   const zones = manifest.zones
   const T = Object.fromEntries(manifest.touchables.map((t) => [t.id, t]))
+  const zoneByArch = (a: string) => zones.find((z) => z.archetype === a)
 
   const place = (zid: string, fmt?: string) => {
     const f = fmt || armed
@@ -207,43 +192,32 @@ function Canvas({ manifest }: { manifest: Manifest }) {
       const n = { ...e }
       if (type === 'none') delete n[tid]
       else {
-        const cur = e[tid]
-        const t = T[tid]
-        n[tid] = {
-          type,
-          name: cur?.name || (type === 'rewarded' ? 'reward_unlock' : (t?.semantics === 'navigation' ? 'inter_home' : `inter_${tid}`)),
-          capMs: cur?.capMs ?? 30000, firstShow: cur?.firstShow ?? true, rewardItem: cur?.rewardItem || '',
-        }
+        const cur = e[tid]; const t = T[tid]
+        n[tid] = { type, name: cur?.name || (type === 'rewarded' ? 'reward_unlock' : (t?.semantics === 'navigation' ? 'inter_home' : `inter_${tid}`)),
+          capMs: cur?.capMs ?? 30000, firstShow: cur?.firstShow ?? true, rewardItem: cur?.rewardItem || '' }
       }
       return n
     })
   }
   const setEventField = (tid: string, k: keyof AdEvent, v: string | boolean) =>
     setEvents((e) => ({ ...e, [tid]: { ...e[tid], [k]: k === 'capMs' ? Number(v) : v } as AdEvent }))
-
   const eventBad = (tid: string) => checkEvent(T[tid], events[tid]).some((m) => m.level === 'err')
 
   const plan = useMemo(() => ({
     app: manifest.app, screen: manifest.screen, layout: manifest.layout,
     placements: Object.entries(placements).map(([zid, p]) => {
       const z = zones.find((x) => x.id === zid)!
-      return {
-        zone: zid, archetype: z.archetype, format: p.format, name: p.name, template: p.template,
-        ...(z.archetype === 'in-feed' ? { everyN: Number(p.everyN) || null } : { refreshMs: Number(p.refreshMs) || 0 }),
-      }
+      return { zone: zid, archetype: z.archetype, format: p.format, name: p.name, template: p.template,
+        ...(z.archetype === 'in-feed' ? { everyN: Number(p.everyN) || null } : { refreshMs: Number(p.refreshMs) || 0 }) }
     }),
-    events: Object.entries(events).map(([tid, e]) => ({
-      touchable: tid, trigger: 'onClick', type: e.type, name: e.name,
-      ...(e.type === 'interstitial' ? { capMs: Number(e.capMs) || 0, firstShow: !!e.firstShow } : { rewardItem: e.rewardItem || null }),
-    })),
+    events: Object.entries(events).map(([tid, e]) => ({ touchable: tid, trigger: 'onClick', type: e.type, name: e.name,
+      ...(e.type === 'interstitial' ? { capMs: Number(e.capMs) || 0, firstShow: !!e.firstShow } : { rewardItem: e.rewardItem || null }) })),
   }), [placements, events, manifest, zones])
 
   const issues = useMemo(() => {
-    const out: Msg[] = []
-    const names: Record<string, number> = {}
+    const out: Msg[] = []; const names: Record<string, number> = {}
     for (const [zid, p] of Object.entries(placements)) {
-      if (!p.name) out.push({ level: 'err', msg: `Zone ${zid}: thiếu tên.` })
-      else names[p.name] = (names[p.name] || 0) + 1
+      if (!p.name) out.push({ level: 'err', msg: `Zone ${zid}: thiếu tên.` }); else names[p.name] = (names[p.name] || 0) + 1
       const z = zones.find((x) => x.id === zid)!
       if (z.archetype === 'in-feed' && !(Number(p.everyN) >= 2)) out.push({ level: 'err', msg: `Zone ${zid} (in-feed): everyN ≥ 2.` })
     }
@@ -255,64 +229,84 @@ function Canvas({ manifest }: { manifest: Manifest }) {
     return out
   }, [placements, events, zones, T])
 
+  const slotProps = { placements, armed, onPlace: place, onRemove: removeZone, onField: setZoneField }
+  const tiles = manifest.touchables.slice(0, 6)
+
   return (
-    <div className="flex flex-col gap-5 lg:flex-row">
-      {/* trái: screen structural + zones */}
-      <div className="lg:w-80">
-        <div className="mb-2 flex gap-2">
+    <div className="flex flex-col gap-6 lg:flex-row">
+      {/* trái: palette + PHONE */}
+      <div className="flex flex-col items-center lg:w-[300px]">
+        <div className="mb-2 flex w-[272px] gap-2">
           {['native', 'banner'].map((f) => (
-            <button
-              key={f}
-              draggable
-              onDragStart={() => setArmed(f)}
-              onClick={() => setArmed(armed === f ? null : f)}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm ${armed === f
-                ? 'border-teal-500 bg-teal-50 dark:bg-teal-950'
-                : 'border-neutral-300 dark:border-neutral-700'}`}
-            >
-              <span className="font-medium capitalize">{f}</span>
+            <button key={f} draggable onDragStart={() => setArmed(f)} onClick={() => setArmed(armed === f ? null : f)}
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm capitalize ${armed === f ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 dark:border-neutral-700'}`}>
+              <span className="mr-1 opacity-60">{f === 'native' ? '▭' : '▬'}</span>{f}
             </button>
           ))}
         </div>
-        <p className="mb-3 text-center font-mono text-[11px] text-neutral-400">
-          {armed ? `đã chọn ${armed} — bấm zone` : 'bấm chip rồi bấm zone (hoặc kéo-thả)'}
-        </p>
+        <p className="mb-3 text-center font-mono text-[11px] text-neutral-400">{armed ? `đã chọn ${armed} — bấm zone` : 'bấm chip rồi bấm zone (hoặc kéo-thả)'}</p>
 
-        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-950">
-          <div className="mb-2 text-center font-mono text-[11px] text-neutral-400">{manifest.screen} · {manifest.layout}</div>
-          {zones.filter((z) => z.scope !== 'shared').map((z) => (
-            <ZoneSlot key={z.id} z={z} p={placements[z.id]} armed={armed} onPlace={place} onRemove={removeZone} onField={setZoneField} />
-          ))}
-          {zones.filter((z) => z.scope === 'shared').map((z) => (
-            <div key={z.id} className="mt-2 border-t border-dashed border-neutral-300 pt-2 dark:border-neutral-700">
-              <div className="mb-1 text-center font-mono text-[10px] text-neutral-400">— scaffold (dùng chung mọi biến thể) —</div>
-              <ZoneSlot z={z} p={placements[z.id]} armed={armed} onPlace={place} onRemove={removeZone} onField={setZoneField} />
+        {/* device frame */}
+        <div className="w-[272px] rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
+          <div className="flex min-h-[540px] flex-col overflow-hidden rounded-[1.6rem] bg-neutral-50 dark:bg-neutral-950">
+            <div className="flex flex-1 flex-col gap-2 p-3">
+              {/* header */}
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="text-[15px] font-bold">{cap(manifest.app.replace(/^\d+-\d+-/, ''))} 💰</span>
+                <span className="font-mono text-[11px] text-neutral-400">Aug ▾</span>
+              </div>
+
+              <ZoneOrGap z={zoneByArch('below-header')} {...slotProps} />
+
+              {/* hero card (trang trí) */}
+              <div className="rounded-2xl p-3 text-white" style={{ backgroundImage: 'linear-gradient(135deg,#5B8DD9,#7C6FE0)' }}>
+                <div className="text-[11px] opacity-90">Total balance</div>
+                <div className="text-xl font-bold">$4,820</div>
+                <div className="mt-2 flex justify-between border-t border-dashed border-white/40 pt-1.5 text-[10.5px] opacity-90">
+                  <span>Total expenditure</span><span>−$1,240</span>
+                </div>
+              </div>
+
+              {/* actions = touchables (clickable, gắn event) */}
+              {tiles.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {tiles.map((t) => {
+                    const ev = events[t.id]; const bad = ev && eventBad(t.id)
+                    return (
+                      <button key={t.id} onClick={() => setSelTouch(t.id)} title={t.semantics}
+                        className={`relative flex-1 basis-[28%] rounded-xl border px-1 py-2.5 text-center text-[10px] font-medium ${selTouch === t.id ? 'ring-2 ring-teal-400 ' : ''}${bad ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-950'
+                          : ev ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-400'}`}>
+                        <span className="block truncate">{t.label}</span>
+                        {ev && <span className={`absolute -top-1.5 left-1/2 -translate-x-1/2 rounded-full px-1.5 py-px font-mono text-[7px] text-white ${bad ? 'bg-red-500' : ev.type === 'rewarded' ? 'bg-violet-500' : 'bg-teal-600'}`}>{ev.type === 'rewarded' ? 'RW' : 'INT'}</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              <ZoneOrGap z={zoneByArch('content-flow')} {...slotProps} />
+
+              {/* feed + in-feed zone chèn giữa các row */}
+              <div>
+                <div className="pb-1 text-[10px] font-bold text-neutral-400">TODAY</div>
+                <FeedRow amt="−$18" c="text-red-500" />
+                <ZoneOrGap z={zoneByArch('in-feed')} {...slotProps} inline />
+                <FeedRow amt="+$900" c="text-emerald-500" />
+              </div>
             </div>
-          ))}
-        </div>
 
-        {/* touchables */}
-        <div className="mt-3">
-          <div className="mb-1.5 text-[11px] tracking-wide text-neutral-400 uppercase">Touchables · adsEvent</div>
-          <div className="flex flex-wrap gap-1.5">
-            {manifest.touchables.map((t) => {
-              const ev = events[t.id]
-              const bad = ev && eventBad(t.id)
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setSelTouch(t.id)}
-                  title={t.semantics}
-                  className={`rounded-md border px-2 py-1 text-xs ${selTouch === t.id ? 'ring-2 ring-teal-400 ' : ''
-                    }${bad ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-950'
-                      : ev ? 'border-teal-500 bg-teal-50 dark:bg-teal-950'
-                        : 'border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-400'}`}
-                >
-                  {t.label}{ev ? ` · ${ev.type === 'rewarded' ? 'RW' : 'INT'}` : ''}
-                </button>
-              )
-            })}
-            {!manifest.touchables.length && <span className="text-xs text-neutral-400">matcher chưa dò được touchable</span>}
+            {/* dock: scaffold zone trên nav bar */}
+            <div className="mt-auto">
+              <div className="px-2 pb-1">
+                <ZoneOrGap z={zoneByArch('scaffold-bottom-dock')} {...slotProps} sharedLabel />
+              </div>
+              <div className="flex items-center justify-around border-t border-neutral-200 bg-white px-2 pt-2 pb-3 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="grid h-8 w-8 -translate-y-1 place-items-center rounded-full bg-teal-500 text-lg text-white">＋</div>
+                {['⌂ Home', '◔ Stats', '◈ Budget', '⚙ Set'].map((n) => (
+                  <span key={n} className="flex-1 text-center text-[9px] text-neutral-400">{n.split(' ')[0]}<br />{n.split(' ')[1]}</span>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -320,79 +314,83 @@ function Canvas({ manifest }: { manifest: Manifest }) {
       {/* phải: event editor + output */}
       <div className="min-w-0 flex-1 space-y-4">
         {selTouch && (
-          <EventEditor
-            t={T[selTouch]}
-            ev={events[selTouch]}
-            onSet={(ty) => setEvent(selTouch, ty)}
-            onField={(k, v) => setEventField(selTouch, k, v)}
-            onClose={() => setSelTouch(null)}
-          />
+          <EventEditor t={T[selTouch]} ev={events[selTouch]}
+            onSet={(ty) => setEvent(selTouch, ty)} onField={(k, v) => setEventField(selTouch, k, v)} onClose={() => setSelTouch(null)} />
         )}
-
         <div className="rounded-xl border border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-2 dark:border-neutral-900">
             <h4 className="text-sm font-semibold">ad-plan (output)</h4>
             <span className="font-mono text-xs text-neutral-400">{plan.placements.length} placement · {plan.events.length} event</span>
           </div>
-          <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-relaxed text-neutral-700 dark:text-neutral-300">
-            {JSON.stringify(plan, null, 2)}
-          </pre>
+          <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-relaxed text-neutral-700 dark:text-neutral-300">{JSON.stringify(plan, null, 2)}</pre>
           <div className="space-y-1.5 px-4 pb-4">
             {issues.length
-              ? issues.map((m, i) => (
-                <div key={i} className={`rounded-md px-3 py-1.5 text-xs ${m.level === 'err' ? 'bg-red-50 text-red-700 dark:bg-red-950' : 'bg-amber-50 text-amber-700 dark:bg-amber-950'}`}>
-                  {m.level === 'err' ? '✕' : '!'} {m.msg}
-                </div>
-              ))
+              ? issues.map((m, i) => (<div key={i} className={`rounded-md px-3 py-1.5 text-xs ${m.level === 'err' ? 'bg-red-50 text-red-700 dark:bg-red-950' : 'bg-amber-50 text-amber-700 dark:bg-amber-950'}`}>{m.level === 'err' ? '✕' : '!'} {m.msg}</div>))
               : <div className="rounded-md bg-teal-50 px-3 py-1.5 text-xs text-teal-700 dark:bg-teal-950 dark:text-teal-200">✓ ad-plan hợp lệ.</div>}
           </div>
         </div>
+        {!manifest.touchables.length && <p className="text-xs text-neutral-400">matcher chưa dò được touchable cho màn này.</p>}
       </div>
+    </div>
+  )
+}
+
+function cap(s: string) { return s ? s[0].toUpperCase() + s.slice(1) : s }
+
+function FeedRow({ amt, c }: { amt: string; c: string }) {
+  return (
+    <div className="flex items-center gap-2 py-1.5">
+      <span className="h-6 w-6 flex-none rounded-lg bg-neutral-200 dark:bg-neutral-800" />
+      <span className="flex-1"><span className="block h-2 w-3/5 rounded bg-neutral-300 dark:bg-neutral-700" /><span className="mt-1 block h-1.5 w-2/5 rounded bg-neutral-200 dark:bg-neutral-800" /></span>
+      <span className={`text-[11px] font-bold ${c}`}>{amt}</span>
+    </div>
+  )
+}
+
+type SlotShared = {
+  placements: Record<string, Placement>; armed: string | null
+  onPlace: (zid: string, fmt?: string) => void; onRemove: (zid: string) => void; onField: (zid: string, k: keyof Placement, v: string) => void
+}
+/** zone tại một vị trí ngữ cảnh trong phone — không có zone thì không render gì. */
+function ZoneOrGap({ z, inline, sharedLabel, ...s }: { z?: Zone; inline?: boolean; sharedLabel?: boolean } & SlotShared) {
+  if (!z) return null
+  return (
+    <div className={inline ? 'my-1' : ''}>
+      {sharedLabel && <div className="pb-0.5 text-center font-mono text-[9px] text-neutral-400">— scaffold · dùng chung mọi biến thể —</div>}
+      <ZoneSlot z={z} p={s.placements[z.id]} armed={s.armed} onPlace={s.onPlace} onRemove={s.onRemove} onField={s.onField} />
     </div>
   )
 }
 
 function ZoneSlot({ z, p, armed, onPlace, onRemove, onField }: {
   z: Zone; p?: Placement; armed: string | null
-  onPlace: (zid: string, fmt?: string) => void
-  onRemove: (zid: string) => void
-  onField: (zid: string, k: keyof Placement, v: string) => void
+  onPlace: (zid: string, fmt?: string) => void; onRemove: (zid: string) => void; onField: (zid: string, k: keyof Placement, v: string) => void
 }) {
   if (!p) {
     const canDrop = armed && z.accepts.includes(armed)
     return (
-      <div
-        onClick={() => armed && onPlace(z.id)}
-        onDragOver={(e) => { if (canDrop) e.preventDefault() }}
-        onDrop={() => armed && onPlace(z.id, armed)}
-        title={z.evidence}
-        className={`my-1 cursor-pointer rounded-lg border-[1.5px] border-dashed p-2 text-center text-[10px] ${canDrop ? 'border-teal-500 bg-teal-50 text-teal-700 dark:bg-teal-950'
-          : 'border-neutral-300 text-neutral-400 dark:border-neutral-700'}`}
-      >
-        <span className="font-mono font-semibold">{z.id}</span> · {z.archetype} — {z.accepts.join('/')}
+      <div onClick={() => armed && onPlace(z.id)} onDragOver={(e) => { if (canDrop) e.preventDefault() }} onDrop={() => armed && onPlace(z.id, armed)} title={z.evidence}
+        className={`cursor-pointer rounded-lg border-[1.5px] border-dashed p-2 text-center text-[9.5px] ${canDrop ? 'border-teal-500 bg-teal-50 text-teal-700 dark:bg-teal-950' : 'border-neutral-300 text-neutral-400 dark:border-neutral-700'}`}>
+        <span className="font-mono font-semibold">{z.id}</span> · {z.archetype} — kéo/thả {z.accepts.join('/')}
       </div>
     )
   }
   const bad = z.archetype === 'in-feed' && !(Number(p.everyN) >= 2)
   return (
-    <div className={`my-1 rounded-lg border-[1.5px] p-2 ${bad ? 'border-red-500 bg-red-50 dark:bg-red-950' : 'border-teal-500 bg-teal-50 dark:bg-teal-950'}`}>
+    <div className={`rounded-lg border-[1.5px] p-1.5 ${bad ? 'border-red-500 bg-red-50 dark:bg-red-950' : 'border-teal-500 bg-teal-50 dark:bg-teal-950'}`}>
       <div className="flex items-center gap-1.5">
-        <span className={`grid h-4 w-4 place-items-center rounded font-mono text-[10px] text-white ${bad ? 'bg-red-500' : 'bg-teal-600'}`}>{z.id}</span>
-        <span className={`flex-1 truncate font-mono text-[10px] font-semibold ${bad ? 'text-red-600' : 'text-teal-700 dark:text-teal-300'}`}>{p.format}:{p.name}</span>
+        <span className={`grid h-4 w-4 place-items-center rounded font-mono text-[9px] text-white ${bad ? 'bg-red-500' : 'bg-teal-600'}`}>{z.id}</span>
+        <span className={`flex-1 truncate font-mono text-[9.5px] font-semibold ${bad ? 'text-red-600' : 'text-teal-700 dark:text-teal-300'}`}>{p.format}:{p.name}</span>
         <button onClick={() => onRemove(z.id)} className="px-1 text-neutral-400 hover:text-red-500">✕</button>
       </div>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
-        <input value={p.name} onChange={(e) => onField(z.id, 'name', e.target.value)}
-          className="w-28 rounded border border-neutral-300 px-1.5 py-0.5 font-mono text-[10px] dark:border-neutral-700 dark:bg-neutral-900" />
-        <select value={p.template} onChange={(e) => onField(z.id, 'template', e.target.value)}
-          className="rounded border border-neutral-300 px-1 py-0.5 font-mono text-[10px] dark:border-neutral-700 dark:bg-neutral-900">
+      <div className="mt-1 flex flex-wrap gap-1">
+        <input value={p.name} onChange={(e) => onField(z.id, 'name', e.target.value)} className="w-24 rounded border border-neutral-300 px-1 py-0.5 font-mono text-[9.5px] dark:border-neutral-700 dark:bg-neutral-900" />
+        <select value={p.template} onChange={(e) => onField(z.id, 'template', e.target.value)} className="rounded border border-neutral-300 px-0.5 py-0.5 font-mono text-[9.5px] dark:border-neutral-700 dark:bg-neutral-900">
           <option>small</option><option>full</option><option>adaptive</option>
         </select>
         {z.archetype === 'in-feed'
-          ? <input type="number" min={2} value={p.everyN ?? ''} onChange={(e) => onField(z.id, 'everyN', e.target.value)}
-            title="everyN" className="w-14 rounded border border-neutral-300 px-1 py-0.5 font-mono text-[10px] dark:border-neutral-700 dark:bg-neutral-900" />
-          : <input type="number" min={0} step={1000} value={p.refreshMs ?? 0} onChange={(e) => onField(z.id, 'refreshMs', e.target.value)}
-            title="refreshMs" className="w-16 rounded border border-neutral-300 px-1 py-0.5 font-mono text-[10px] dark:border-neutral-700 dark:bg-neutral-900" />}
+          ? <input type="number" min={2} value={p.everyN ?? ''} onChange={(e) => onField(z.id, 'everyN', e.target.value)} title="everyN" className="w-12 rounded border border-neutral-300 px-1 py-0.5 font-mono text-[9.5px] dark:border-neutral-700 dark:bg-neutral-900" />
+          : <input type="number" min={0} step={1000} value={p.refreshMs ?? 0} onChange={(e) => onField(z.id, 'refreshMs', e.target.value)} title="refreshMs" className="w-14 rounded border border-neutral-300 px-1 py-0.5 font-mono text-[9.5px] dark:border-neutral-700 dark:bg-neutral-900" />}
       </div>
     </div>
   )
@@ -400,9 +398,7 @@ function ZoneSlot({ z, p, armed, onPlace, onRemove, onField }: {
 
 function EventEditor({ t, ev, onSet, onField, onClose }: {
   t?: Touchable; ev?: AdEvent
-  onSet: (ty: 'interstitial' | 'rewarded' | 'none') => void
-  onField: (k: keyof AdEvent, v: string | boolean) => void
-  onClose: () => void
+  onSet: (ty: 'interstitial' | 'rewarded' | 'none') => void; onField: (k: keyof AdEvent, v: string | boolean) => void; onClose: () => void
 }) {
   if (!t) return null
   const msgs = checkEvent(t, ev)
@@ -416,9 +412,7 @@ function EventEditor({ t, ev, onSet, onField, onClose }: {
       <div className="mb-3 flex gap-2">
         {(['interstitial', 'rewarded', 'none'] as const).map((ty) => (
           <button key={ty} onClick={() => onSet(ty)}
-            className={`flex-1 rounded-lg border px-2 py-1.5 text-xs ${(ev?.type === ty) || (!ev && ty === 'none')
-              ? 'border-teal-500 bg-teal-50 font-medium text-teal-800 dark:bg-teal-950 dark:text-teal-200'
-              : 'border-neutral-300 text-neutral-500 dark:border-neutral-700'}`}>
+            className={`flex-1 rounded-lg border px-2 py-1.5 text-xs ${(ev?.type === ty) || (!ev && ty === 'none') ? 'border-teal-500 bg-teal-50 font-medium text-teal-800 dark:bg-teal-950 dark:text-teal-200' : 'border-neutral-300 text-neutral-500 dark:border-neutral-700'}`}>
             {ty === 'none' ? 'Không' : ty === 'interstitial' ? 'Interstitial' : 'Rewarded'}
           </button>
         ))}
@@ -427,35 +421,27 @@ function EventEditor({ t, ev, onSet, onField, onClose }: {
         <div className="flex flex-col gap-2">
           <label className="flex flex-col gap-1">
             <span className="font-mono text-[10px] tracking-wide text-neutral-400 uppercase">placement name</span>
-            <input value={ev.name} onChange={(e) => onField('name', e.target.value)}
-              className="rounded border border-neutral-300 px-2 py-1 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-900" />
+            <input value={ev.name} onChange={(e) => onField('name', e.target.value)} className="rounded border border-neutral-300 px-2 py-1 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-900" />
           </label>
           {ev.type === 'interstitial' ? (
             <>
               <label className="flex flex-col gap-1">
                 <span className="font-mono text-[10px] tracking-wide text-neutral-400 uppercase">frequency cap (ms)</span>
-                <input type="number" step={1000} value={ev.capMs ?? 30000} onChange={(e) => onField('capMs', e.target.value)}
-                  className="rounded border border-neutral-300 px-2 py-1 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-900" />
+                <input type="number" step={1000} value={ev.capMs ?? 30000} onChange={(e) => onField('capMs', e.target.value)} className="rounded border border-neutral-300 px-2 py-1 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-900" />
               </label>
               <label className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
-                <input type="checkbox" checked={!!ev.firstShow} onChange={(e) => onField('firstShow', e.target.checked)} />
-                show ngay lần click đầu
+                <input type="checkbox" checked={!!ev.firstShow} onChange={(e) => onField('firstShow', e.target.checked)} /> show ngay lần click đầu
               </label>
             </>
           ) : (
             <label className="flex flex-col gap-1">
               <span className="font-mono text-[10px] tracking-wide text-neutral-400 uppercase">reward item (bắt buộc)</span>
-              <input value={ev.rewardItem ?? ''} placeholder="vd: unlock_theme / +5_budget" onChange={(e) => onField('rewardItem', e.target.value)}
-                className="rounded border border-neutral-300 px-2 py-1 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-900" />
+              <input value={ev.rewardItem ?? ''} placeholder="vd: unlock_theme / +5_budget" onChange={(e) => onField('rewardItem', e.target.value)} className="rounded border border-neutral-300 px-2 py-1 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
           )}
           <div className="mt-1 space-y-1">
             {msgs.length
-              ? msgs.map((m, i) => (
-                <div key={i} className={`rounded-md px-2.5 py-1.5 text-xs ${m.level === 'err' ? 'bg-red-50 text-red-700 dark:bg-red-950' : 'bg-amber-50 text-amber-700 dark:bg-amber-950'}`}>
-                  {m.level === 'err' ? '✕' : '!'} {m.msg}
-                </div>
-              ))
+              ? msgs.map((m, i) => (<div key={i} className={`rounded-md px-2.5 py-1.5 text-xs ${m.level === 'err' ? 'bg-red-50 text-red-700 dark:bg-red-950' : 'bg-amber-50 text-amber-700 dark:bg-amber-950'}`}>{m.level === 'err' ? '✕' : '!'} {m.msg}</div>))
               : <div className="rounded-md bg-teal-50 px-2.5 py-1.5 text-xs text-teal-700 dark:bg-teal-950 dark:text-teal-200">✓ Hợp lệ.</div>}
           </div>
         </div>

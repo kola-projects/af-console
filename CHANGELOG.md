@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.25.1 — 2026-08-28
+
+**AdZones editor: phone-in-context.** Thay danh sách zone phẳng bằng **phone mockup thật** — zone chèn đúng vị trí
+ngữ cảnh (below-header dưới tiêu đề · content-flow trước feed · in-feed giữa các dòng giao dịch · scaffold-dock trên
+nav-bar), thẻ balance gradient + tiles (touchables) + nav-bar trang trí. Kéo-thả/gắn event/kiểm policy giữ nguyên;
+chỉ nâng diện mạo cho khớp bản PoC (không còn "đơn điệu"). `AdZonesView.tsx`.
+
 ## 3.25.0 — 2026-08-28 (đi cùng AF v5.12.0)
 
 **AdZones — editor kéo-thả ads trong tab Blueprint.** Đọc artifact mới `blueprint/adzones/` (schema `adzone/1`, do
