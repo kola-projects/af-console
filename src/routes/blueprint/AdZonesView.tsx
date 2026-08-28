@@ -266,18 +266,30 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
         </div>
         <p className="mb-3 text-center font-mono text-[11px] text-neutral-400">{armed ? `đã chọn ${armed} — bấm zone` : 'bấm chip rồi bấm zone (hoặc kéo-thả)'}</p>
 
-        {/* IMAGE MODE — ảnh MÀN THẬT + phủ zone theo archetype */}
+        {/* IMAGE MODE — ảnh MÀN THẬT (nguyên vẹn) + pin gợi-ý mép + zone drop-card bên dưới */}
         {imgUrl && (
-          <div className="relative w-[272px] rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
-            <div className="relative overflow-hidden rounded-[1.6rem]">
-              <img src={imgUrl} alt={manifest.screen} className="block w-full" />
-              {zones.map((z) => (
-                <div key={z.id} className="absolute right-2 left-2 z-10" style={archPos(z.archetype)}>
-                  <ZoneSlot z={z} p={placements[z.id]} armed={armed} onPlace={place} onRemove={removeZone} onField={setZoneField} />
-                </div>
-              ))}
+          <div className="w-[272px]">
+            <div className="relative rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
+              <div className="relative overflow-hidden rounded-[1.6rem]">
+                <img src={imgUrl} alt={manifest.screen} className="block w-full" />
+                {/* pin nhỏ ở mép trái — chỉ gợi ý vị trí dọc theo archetype (không che nội dung) */}
+                {zones.map((z) => (
+                  <span key={z.id} title={z.archetype}
+                    className={`absolute left-0 z-10 grid h-4 w-4 place-items-center rounded-r font-mono text-[9px] text-white ${placements[z.id] ? 'bg-teal-600' : 'bg-neutral-500/85'}`}
+                    style={archPos(z.archetype)}>{z.id}</span>
+                ))}
+              </div>
+              <div className="pt-1 text-center font-mono text-[9px] text-neutral-400">ảnh thật · {manifest.screenshot?.split('/').pop()}</div>
             </div>
-            <div className="pt-1 text-center font-mono text-[9px] text-neutral-400">ảnh thật · {manifest.screenshot?.split('/').pop()}</div>
+            {/* zone drop-cards — sạch, không che ảnh */}
+            <div className="mt-3">
+              <div className="mb-1.5 text-[11px] tracking-wide text-neutral-400 uppercase">Zones — kéo/thả ads vào vị trí</div>
+              <div className="space-y-1">
+                {zones.map((z) => (
+                  <ZoneSlot key={z.id} z={z} p={placements[z.id]} armed={armed} onPlace={place} onRemove={removeZone} onField={setZoneField} />
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.27.1 — 2026-08-28
+
+**AdZones image-mode: sạch, không che ảnh.** 3.27.0 phủ bar zone full-width lên ảnh ở vị trí đoán → che nội dung, xấu
+(manifest không có toạ-độ pixel nên không overlay chính xác được). Sửa: **ảnh màn thật để NGUYÊN VẸN**, chỉ có **pin nhỏ ở
+mép trái** gợi ý vị trí dọc theo archetype (không che), và **zone drop-cards** liệt kê gọn bên dưới ảnh để kéo/thả. `AdZonesView.tsx`.
+
 ## 3.27.0 — 2026-08-28 (đi cùng AF v5.14.0)
 
 **AdZones editor: render ẢNH MÀN THẬT thay mockup cứng.** Trước đây mọi màn hiện chung một mockup Home (Settings vẫn
