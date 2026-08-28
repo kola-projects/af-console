@@ -15,6 +15,7 @@ import type { BlueprintFileMeta } from '../../lib/types'
 import { Empty, ErrorBox, Loading } from '../../components/ui'
 import MarkdownView from './MarkdownView'
 import HtmlMockupView from './HtmlMockupView'
+import AdZonesView from './AdZonesView'
 import { ImageView, JsonView, TextView } from './viewers'
 
 /** Tab Blueprint: sidebar nhóm theo loại (Docs/Mockups/Screenshots/Data) + pane render.
@@ -40,7 +41,7 @@ export default function BlueprintTab({
 
   // Nhóm + sắp xếp một lần khi có danh sách.
   const groups = useMemo(() => {
-    const map: Record<Group, BlueprintFileMeta[]> = { docs: [], aso: [], mockups: [], legal: [], screenshots: [], data: [] }
+    const map: Record<Group, BlueprintFileMeta[]> = { docs: [], aso: [], mockups: [], adzones: [], legal: [], screenshots: [], data: [] }
     for (const f of files.data ?? []) {
       const g = groupOf(f.path)
       if (!allowGroups || allowGroups.includes(g)) map[g].push(f)
@@ -108,6 +109,9 @@ export default function BlueprintTab({
  *  loại khác fetch content lazy rồi đưa vào viewer tương ứng. */
 function FileView({ runName, path }: { runName: string; path: string }) {
   const kind = renderKindOf(path)
+
+  // adzones/* → editor kéo-thả (tự đọc cả thư mục adzones/); bỏ qua file JSON cụ thể được click.
+  if (path.startsWith('adzones/')) return <AdZonesView runName={runName} />
 
   // HtmlMockupView tự lo query thư mục — không fetch single file ở đây.
   if (kind === 'html') return <HtmlMockupView runName={runName} path={path} />

@@ -81,14 +81,16 @@ export function renderKindOf(path: string, contentType?: string): RenderKind {
   return 'text'
 }
 
-export type Group = 'docs' | 'aso' | 'mockups' | 'legal' | 'screenshots' | 'data'
+export type Group = 'docs' | 'aso' | 'mockups' | 'adzones' | 'legal' | 'screenshots' | 'data'
 
 /** Nhóm cho sidebar. Mockups = design_previews/* (html + icon svg),
+ *  adzones = adzones/* (data editor kéo-thả ads, xem instructions/adzones.md),
  *  legal = legal/*, screenshots = image_refs/*, data = local_data|api_specs/*,
  *  aso = aso/* (gói store listing Google Play), còn lại = docs (spec, md). */
 export function groupOf(path: string): Group {
   if (path.startsWith('aso/')) return 'aso'
   if (path.startsWith('design_previews/')) return 'mockups'
+  if (path.startsWith('adzones/')) return 'adzones'
   if (path.startsWith('legal/')) return 'legal'
   if (path.startsWith('image_refs/')) return 'screenshots'
   if (path.startsWith('local_data/') || path.startsWith('api_specs/')) return 'data'
@@ -99,13 +101,14 @@ export const GROUP_LABEL: Record<Group, string> = {
   docs: 'Docs',
   aso: 'ASO',
   mockups: 'Design preview',
+  adzones: 'Ad zones',
   legal: 'Legal',
   screenshots: 'Screenshots',
   data: 'Data',
 }
 
 /** Thứ tự nhóm hiển thị + thứ tự ưu tiên trong nhóm docs (theo HANDOFF §3). */
-export const GROUP_ORDER: Group[] = ['docs', 'aso', 'mockups', 'legal', 'screenshots', 'data']
+export const GROUP_ORDER: Group[] = ['docs', 'aso', 'mockups', 'adzones', 'legal', 'screenshots', 'data']
 
 /** Nhóm trang SẢN PHẨM cho non-admin (khớp whitelist RLS 0023: aso/design_previews/legal). */
 export const PRODUCT_GROUPS: Group[] = ['aso', 'mockups', 'legal']

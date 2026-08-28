@@ -3,6 +3,20 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.25.0 — 2026-08-28 (đi cùng AF v5.12.0)
+
+**AdZones — editor kéo-thả ads trong tab Blueprint.** Đọc artifact mới `blueprint/adzones/` (schema `adzone/1`, do
+`tools/adzones.py` sinh lúc build) và render editor thay cho JSON thô.
+
+- Group blueprint mới **`adzones/`** ("Ad zones") ở `src/lib/blueprint.ts` (`groupOf`/`GROUP_LABEL`/`GROUP_ORDER`);
+  admin-only (không vào `PRODUCT_GROUPS` → không cần nới RLS).
+- Viewer mới `src/routes/blueprint/AdZonesView.tsx`: **bước 1** bắt chọn **style + layout** (zone bám layout, không phục
+  vụ mọi biến thể trong một canvas) → **bước 2** canvas kéo-thả native/banner vào zone hữu hạn + gắn adsEvent
+  Interstitial/Rewarded lên touchable, **kiểm policy tại chỗ** (inter trên micro-interaction → chặn; rewarded thiếu
+  value-gate → chặn; cap<15s → cảnh báo; tên trùng → chặn), xuất `ad-plan` JSON + validation tổng.
+- `BlueprintTab.tsx`: route file `adzones/*` → `AdZonesView` (tự đọc cả thư mục qua `blueprintDir`).
+- Chỉ đọc + soạn plan client-side (chưa persist plan / chưa sinh code). Xem `instructions/adzones.md`.
+
 ## 3.24.10 — 2026-08-26 (đi cùng AF v5.10.0)
 
 **Design preview → STORYBOARD đồng bộ.** Trang chi tiết app (`/apps/:id`) nâng section "Design preview":
