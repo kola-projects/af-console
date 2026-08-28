@@ -514,3 +514,25 @@ export interface SignupStatus {
   enabled: boolean
   bootstrap: boolean
 }
+
+/** ad_plans (migration 0033) — ad-contract đầy đủ soạn bằng Ads Builder.
+ *  plan.body: funnel templates + style/layout + ads Home-onward. Xem AdsBuilder.tsx. */
+export interface AdPlanBody {
+  schema: string
+  app?: string
+  funnel?: Record<string, string>            // screenId -> templateCode (BF)
+  style?: string | null
+  layout?: string | null
+  screens?: Record<string, { placements: Record<string, unknown>; events: Record<string, unknown> }>
+}
+export interface AdPlan {
+  id: number
+  app_id: number | null
+  app_code: string | null
+  name: string
+  plan: AdPlanBody
+  status: 'draft' | 'ready' | 'archived'
+  created_at: string
+  updated_at: string
+  created_by: string | null
+}

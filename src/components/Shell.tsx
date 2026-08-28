@@ -17,6 +17,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/bugs', label: 'Bugs' },
   { to: '/libraries', label: 'Libraries' },
   { to: '/ads', label: 'Ads' },
+  { to: '/ads-builder', label: 'Ads Builder' },
   { to: '/tags', label: 'Tags' },
   { to: '/requests', label: 'Yêu cầu' },
   { to: '/users', label: 'Users' },

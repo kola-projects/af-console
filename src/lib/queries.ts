@@ -2,6 +2,8 @@ import { zipSync } from 'fflate'
 import { supabase, createEphemeralClient } from './supabase'
 import { b64ToBytes, b64ToDataURL, b64ToText, bytesToB64, mimeOf } from './blueprint'
 import type {
+  AdPlan,
+  AdPlanBody,
   AfVersion,
   AppRequest,
   AppearanceInfo,
@@ -896,3 +898,35 @@ export const adsProfileMatrix = async () =>
       .order('profile_id')
       .order('version', { ascending: false }),
   )
+
+// ─── ad_plans (migration 0033) — Ads Builder CRUD (admin-only qua RLS) ───────
+export const adPlans = async () =>
+  unwrap<AdPlan[]>(await supabase.from('ad_plans').select('*').order('updated_at', { ascending: false }))
+
+export const adPlan = async (id: number) => {
+  const res = await supabase.from('ad_plans').select('*').eq('id', id).single()
+  if (res.error) throw new Error(res.error.message)
+  return res.data as AdPlan
+}
+
+/** Tạo mới (id rỗng) hoặc cập nhật (có id). Trả bản ghi sau khi ghi. */
+export const saveAdPlan = async (row: {
+  id?: number; app_id: number | null; app_code: string | null
+  name: string; plan: AdPlanBody; status?: AdPlan['status']
+}) => {
+  const patch = {
+    app_id: row.app_id, app_code: row.app_code, name: row.name,
+    plan: row.plan, status: row.status ?? 'draft', updated_at: new Date().toISOString(),
+  }
+  const q = row.id
+    ? supabase.from('ad_plans').update(patch).eq('id', row.id).select('*').single()
+    : supabase.from('ad_plans').insert(patch).select('*').single()
+  const res = await q
+  if (res.error) throw new Error(res.error.message)
+  return res.data as AdPlan
+}
+
+export const deleteAdPlan = async (id: number) => {
+  const res = await supabase.from('ad_plans').delete().eq('id', id)
+  if (res.error) throw new Error(res.error.message)
+}

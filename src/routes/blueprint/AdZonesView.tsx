@@ -12,7 +12,7 @@ import { Empty, ErrorBox, Loading } from '../../components/ui'
 type StyleV = { id: string; label: string }
 type LayoutV = { id: string; label: string; desc?: string }
 type ScreenMeta = { id: string; composable: string; layouts: string[] }
-type IndexFile = {
+export type IndexFile = {
   schema: string; app: string
   styles: StyleV[]; layouts: LayoutV[]; screens: ScreenMeta[]
   manifests: { screen: string; layout: string; file: string; zones: number; touchables: number }[]
@@ -23,15 +23,15 @@ type Zone = {
   source?: string; evidence?: string
 }
 type Touchable = { id: string; label: string; semantics: string; source?: string }
-type Manifest = {
+export type Manifest = {
   schema: string; app: string; screen: string; layout: string
   zones: Zone[]; touchables: Touchable[]
   _existing?: { placements: string[]; events: string[] }
   _meta?: Record<string, unknown>
 }
 
-type Placement = { format: string; name: string; template: string; refreshMs?: number; everyN?: number }
-type AdEvent = { type: 'interstitial' | 'rewarded'; name: string; capMs?: number; firstShow?: boolean; rewardItem?: string }
+export type Placement = { format: string; name: string; template: string; refreshMs?: number; everyN?: number }
+export type AdEvent = { type: 'interstitial' | 'rewarded'; name: string; capMs?: number; firstShow?: boolean; rewardItem?: string }
 type Msg = { level: 'err' | 'warn'; msg: string }
 
 function checkEvent(t: Touchable | undefined, ev: AdEvent | undefined): Msg[] {
@@ -158,10 +158,20 @@ function Chip({ on, onClick, title, children }: { on: boolean; onClick: () => vo
   )
 }
 
-// ── canvas: phone-in-context cho một manifest ──
+// ── canvas: phone-in-context cho một manifest (state cục bộ — dùng trong tab Blueprint) ──
 function Canvas({ manifest }: { manifest: Manifest }) {
   const [placements, setPlacements] = useState<Record<string, Placement>>({})
   const [events, setEvents] = useState<Record<string, AdEvent>>({})
+  return <AdScreenEditor manifest={manifest} placements={placements} events={events} setPlacements={setPlacements} setEvents={setEvents} />
+}
+
+/** Editor một màn (phone-in-context) — CONTROLLED: dùng lại trong Ads Builder wizard. */
+export function AdScreenEditor({ manifest, placements, events, setPlacements, setEvents }: {
+  manifest: Manifest
+  placements: Record<string, Placement>; events: Record<string, AdEvent>
+  setPlacements: React.Dispatch<React.SetStateAction<Record<string, Placement>>>
+  setEvents: React.Dispatch<React.SetStateAction<Record<string, AdEvent>>>
+}) {
   const [armed, setArmed] = useState<string | null>(null)
   const [selTouch, setSelTouch] = useState<string | null>(null)
 

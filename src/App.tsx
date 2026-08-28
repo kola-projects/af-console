@@ -20,6 +20,7 @@ import Tags from './routes/Tags'
 import Users from './routes/Users'
 import Requests from './routes/Requests'
 import Ads from './routes/Ads'
+import AdsBuilder from './routes/AdsBuilder'
 import AdsAppDetail from './routes/AdsAppDetail'
 import AdsScenarioDetail from './routes/AdsScenarioDetail'
 
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="bugs" element={<RequireAdmin><Bugs /></RequireAdmin>} />
             <Route path="libraries" element={<RequireAdmin><Libraries /></RequireAdmin>} />
             <Route path="ads" element={<RequireAdmin><Ads /></RequireAdmin>} />
+            <Route path="ads-builder" element={<RequireAdmin><AdsBuilder /></RequireAdmin>} />
             <Route path="ads/apps/:app" element={<RequireAdmin><AdsAppDetail /></RequireAdmin>} />
             <Route
               path="ads/scenarios/:id/:version"

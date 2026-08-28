@@ -3,6 +3,17 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.26.0 — 2026-08-28 (đi cùng AF v5.13.0)
+
+**Ads Builder — menu riêng, wizard soạn ad-contract đầy đủ.** Không chỉ editor trong tab blueprint nữa.
+
+- Menu trái mới **"Ads Builder"** (admin) · route `/ads-builder` · `AdsBuilder.tsx`.
+- Landing = **list plan đã lưu** (bảng `ad_plans`, migration 0033) — mở/sửa/xoá.
+- Wizard **5 bước**: App → template funnel BF (seed `bfTemplates.ts`) → style/layout → ads Home-onward
+  (editor phone-in-context per màn) → Lưu (nháp | sẵn-sàng) + xem trước JSON.
+- `AdZonesView`: tách **`AdScreenEditor`** (controlled) để wizard dùng lại chung editor một màn.
+- queries `adPlans/adPlan/saveAdPlan/deleteAdPlan` + type `AdPlan/AdPlanBody`. RLS admin-only.
+
 ## 3.25.1 — 2026-08-28
 
 **AdZones editor: phone-in-context.** Thay danh sách zone phẳng bằng **phone mockup thật** — zone chèn đúng vị trí
