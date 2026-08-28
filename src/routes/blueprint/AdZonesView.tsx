@@ -319,6 +319,27 @@ export function AdScreenEditor({ manifest, placements, events, setPlacements, se
             </div>
           </div>
         </div>
+
+        {/* touchables — chỗ gắn adsEvent tường minh (luôn hiện, kể cả khi phone không đủ tile) */}
+        <div className="mt-4 w-[272px]">
+          <div className="mb-1.5 text-[11px] tracking-wide text-neutral-400 uppercase">Touchables · bấm để gắn adsEvent</div>
+          {manifest.touchables.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {manifest.touchables.map((t) => {
+                const ev = events[t.id]; const bad = ev && eventBad(t.id)
+                return (
+                  <button key={t.id} onClick={() => setSelTouch(t.id)} title={t.semantics}
+                    className={`rounded-md border px-2 py-1 text-xs ${selTouch === t.id ? 'ring-2 ring-teal-400 ' : ''}${bad ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-950'
+                      : ev ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-400'}`}>
+                    {t.label}{ev ? ` · ${ev.type === 'rewarded' ? 'RW' : 'INT'}` : ''}
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-neutral-400">Matcher chưa dò được touchable cho màn này.</p>
+          )}
+        </div>
       </div>
 
       {/* phải: event editor + output */}

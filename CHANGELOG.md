@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.26.1 — 2026-08-28
+
+**AdZones editor: mục "Touchables" tường minh.** Trước đây touchable chỉ hiện dạng tile trong phone → khó thấy/thiếu.
+Thêm section **"Touchables · bấm để gắn adsEvent"** dưới phone, liệt kê MỌI touchable của màn (chip rõ ràng, badge
+INT/RW, empty-state khi matcher chưa dò được). Đi cùng AF v5.13.1 (adzones.py: màn không-đổi-theo-layout gán
+`layout=default` → hiện ở mọi layout; dò touchable mạnh hơn — bắt cả `onClick={}`). `AdZonesView.tsx`.
+
 ## 3.26.0 — 2026-08-28 (đi cùng AF v5.13.0)
 
 **Ads Builder — menu riêng, wizard soạn ad-contract đầy đủ.** Không chỉ editor trong tab blueprint nữa.
