@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.27.2 — 2026-08-28
+
+**AdZones editor: về tương tác zone-inline (theo ý người dùng) + Back touchable.**
+- **Sơ đồ zone tương tác là MẶC ĐỊNH** lại (zone inline theo luồng màn, click-to-add hoặc kéo-thả) — thay vì ảnh-thật-với-drop-cards. Ảnh màn thật chuyển thành **nút toggle "🖼 xem ảnh màn thật"** (chỉ xem, tham khảo).
+- **Danh sách Touchables luôn hiện** + thêm mục **synthetic "⬅ Back (thoát màn)"** cho mọi màn → gate được interstitial khi back (mẫu ad phổ biến). `AdZonesView.tsx`.
+
 ## 3.27.1 — 2026-08-28
 
 **AdZones image-mode: sạch, không che ảnh.** 3.27.0 phủ bar zone full-width lên ảnh ở vị trí đoán → che nội dung, xấu

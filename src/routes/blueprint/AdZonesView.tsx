@@ -175,9 +175,13 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
 }) {
   const [armed, setArmed] = useState<string | null>(null)
   const [selTouch, setSelTouch] = useState<string | null>(null)
+  const [showReal, setShowReal] = useState(false)
 
   const zones = manifest.zones
-  const T = Object.fromEntries(manifest.touchables.map((t) => [t.id, t]))
+  // touchable dò được + synthetic BACK (mọi màn có nút/gesture back → gate được inter khi thoát màn)
+  const backTouch: Touchable = { id: `${manifest.screen}_back`, label: '⬅ Back (thoát màn)', semantics: 'navigation', source: 'synthetic' }
+  const allTouch = [...manifest.touchables, backTouch]
+  const T = Object.fromEntries(allTouch.map((t) => [t.id, t]))
   const zoneByArch = (a: string) => zones.find((z) => z.archetype === a)
 
   // ảnh MÀN THẬT (nếu manifest có screenshot + biết runName) → render thay mockup
@@ -266,35 +270,24 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
         </div>
         <p className="mb-3 text-center font-mono text-[11px] text-neutral-400">{armed ? `đã chọn ${armed} — bấm zone` : 'bấm chip rồi bấm zone (hoặc kéo-thả)'}</p>
 
-        {/* IMAGE MODE — ảnh MÀN THẬT (nguyên vẹn) + pin gợi-ý mép + zone drop-card bên dưới */}
+        {/* toggle: mặc định SƠ ĐỒ ZONE tương tác; bấm để xem ẢNH MÀN THẬT (tham khảo) */}
         {imgUrl && (
-          <div className="w-[272px]">
-            <div className="relative rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
-              <div className="relative overflow-hidden rounded-[1.6rem]">
-                <img src={imgUrl} alt={manifest.screen} className="block w-full" />
-                {/* pin nhỏ ở mép trái — chỉ gợi ý vị trí dọc theo archetype (không che nội dung) */}
-                {zones.map((z) => (
-                  <span key={z.id} title={z.archetype}
-                    className={`absolute left-0 z-10 grid h-4 w-4 place-items-center rounded-r font-mono text-[9px] text-white ${placements[z.id] ? 'bg-teal-600' : 'bg-neutral-500/85'}`}
-                    style={archPos(z.archetype)}>{z.id}</span>
-                ))}
-              </div>
-              <div className="pt-1 text-center font-mono text-[9px] text-neutral-400">ảnh thật · {manifest.screenshot?.split('/').pop()}</div>
-            </div>
-            {/* zone drop-cards — sạch, không che ảnh */}
-            <div className="mt-3">
-              <div className="mb-1.5 text-[11px] tracking-wide text-neutral-400 uppercase">Zones — kéo/thả ads vào vị trí</div>
-              <div className="space-y-1">
-                {zones.map((z) => (
-                  <ZoneSlot key={z.id} z={z} p={placements[z.id]} armed={armed} onPlace={place} onRemove={removeZone} onField={setZoneField} />
-                ))}
-              </div>
-            </div>
+          <button onClick={() => setShowReal((v) => !v)}
+            className="mb-2 rounded-full border border-neutral-300 px-3 py-1 text-xs text-neutral-500 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900">
+            {showReal ? '◱ về sơ đồ zone (sửa)' : '🖼 xem ảnh màn thật'}
+          </button>
+        )}
+
+        {/* VIEW ẢNH THẬT — chỉ xem, không sửa */}
+        {showReal && imgUrl && (
+          <div className="w-[272px] rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
+            <img src={imgUrl} alt={manifest.screen} className="block w-full rounded-[1.6rem]" />
+            <div className="pt-1 text-center font-mono text-[9px] text-neutral-400">ảnh thật · {manifest.screenshot?.split('/').pop()}</div>
           </div>
         )}
 
-        {/* MOCKUP FALLBACK — màn chưa có ảnh */}
-        {!imgUrl && (
+        {/* SƠ ĐỒ ZONE (tương tác) — mặc định. Zone inline theo luồng màn; click-to-add hoặc kéo-thả. */}
+        {!(showReal && imgUrl) && (
         <div className="w-[272px] rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
           <div className="flex min-h-[540px] flex-col overflow-hidden rounded-[1.6rem] bg-neutral-50 dark:bg-neutral-950">
             <div className="flex flex-1 flex-col gap-2 p-3">
@@ -362,22 +355,22 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
         {/* touchables — chỗ gắn adsEvent tường minh (luôn hiện, kể cả khi phone không đủ tile) */}
         <div className="mt-4 w-[272px]">
           <div className="mb-1.5 text-[11px] tracking-wide text-neutral-400 uppercase">Touchables · bấm để gắn adsEvent</div>
-          {manifest.touchables.length ? (
-            <div className="flex flex-wrap gap-1.5">
-              {manifest.touchables.map((t) => {
-                const ev = events[t.id]; const bad = ev && eventBad(t.id)
-                return (
-                  <button key={t.id} onClick={() => setSelTouch(t.id)} title={t.semantics}
-                    className={`rounded-md border px-2 py-1 text-xs ${selTouch === t.id ? 'ring-2 ring-teal-400 ' : ''}${bad ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-950'
-                      : ev ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-400'}`}>
-                    {t.label}{ev ? ` · ${ev.type === 'rewarded' ? 'RW' : 'INT'}` : ''}
-                  </button>
-                )
-              })}
-            </div>
-          ) : (
-            <p className="text-xs text-neutral-400">Matcher chưa dò được touchable cho màn này.</p>
-          )}
+          <div className="flex flex-wrap gap-1.5">
+            {allTouch.map((t) => {
+              const ev = events[t.id]; const bad = ev && eventBad(t.id)
+              const synthetic = t.source === 'synthetic'
+              return (
+                <button key={t.id} onClick={() => setSelTouch(t.id)} title={t.semantics}
+                  className={`rounded-md border px-2 py-1 text-xs ${selTouch === t.id ? 'ring-2 ring-teal-400 ' : ''}${bad ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-950'
+                    : ev ? 'border-teal-500 bg-teal-50 dark:bg-teal-950'
+                      : synthetic ? 'border-dashed border-neutral-400 text-neutral-500 dark:border-neutral-600'
+                        : 'border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-400'}`}>
+                  {t.label}{ev ? ` · ${ev.type === 'rewarded' ? 'RW' : 'INT'}` : ''}
+                </button>
+              )
+            })}
+          </div>
+          {!manifest.touchables.length && <p className="mt-1 text-[11px] text-neutral-400">Matcher chưa dò được touchable riêng của màn — chỉ có Back.</p>}
         </div>
       </div>
 
@@ -406,17 +399,6 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
 }
 
 function cap(s: string) { return s ? s[0].toUpperCase() + s.slice(1) : s }
-
-/** vị trí phủ zone lên ảnh màn thật, theo archetype (không toạ-độ chính xác — neo dọc gần đúng). */
-function archPos(a: string): React.CSSProperties {
-  switch (a) {
-    case 'below-header': return { top: '9%' }
-    case 'content-flow': return { top: '46%' }
-    case 'in-feed': return { top: '64%' }
-    case 'scaffold-bottom-dock': return { bottom: '3%' }
-    default: return { top: '50%' }
-  }
-}
 
 function FeedRow({ amt, c }: { amt: string; c: string }) {
   return (
