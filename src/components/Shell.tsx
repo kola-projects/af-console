@@ -20,6 +20,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/ads-builder', label: 'Ads Builder' },
   { to: '/tags', label: 'Tags' },
   { to: '/requests', label: 'Yêu cầu' },
+  { to: '/stores', label: 'Stores' },
   { to: '/users', label: 'Users' },
 ]
 const MEMBER_NAV: NavItem[] = [

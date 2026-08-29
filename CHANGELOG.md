@@ -3,6 +3,20 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.28.0 — 2026-08-29 (đi cùng AF v5.19.0 / migration 0034)
+
+**Trang quản lý Store `/stores` — CRUD đầy đủ.** Trước đây phải sửa DB tay để tạo/gán store.
+- Route mới `/stores` (admin) + mục nav **Stores**. Bảng liệt kê store: mã (aNNN), tên/brand, slug, GitHub org, trạng
+  thái PAT, số app, enabled.
+- **Tạo / sửa / xoá store** (RLS authenticated): name, slug, `store_code` (nút **Cấp mã** gọi RPC `alloc_store_code`),
+  display_name (brand), support_email, GitHub org (extra.github_org, dùng cho legal repo-per-app), github_repo (site
+  Pages legacy), website/Play Console URL, enabled. Xoá chặn nếu store còn app liên kết.
+- **GitHub PAT** (modal): set/clear qua RPC `set_/clear_store_github_credential` (mã hoá server-side, không đọc lại
+  được). Ghi rõ PAT chỉ cần khi máy chạy legal/ASO KHÔNG có `gh` owner của org.
+- Đọc từ view an toàn `v_stores` (không lộ ciphertext). `src/routes/Stores.tsx`, `src/lib/queries.ts` (+store CRUD).
+- Yêu cầu **AF migration 0034** (grant `store_code` + RPC `alloc_store_code`).
+- Dọn dead-code `AdZonesView.tsx` (hàm `cap` không dùng sau refactor) để build xanh.
+
 ## 3.27.2 — 2026-08-28
 
 **AdZones editor: về tương tác zone-inline (theo ý người dùng) + Back touchable.**

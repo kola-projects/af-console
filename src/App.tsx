@@ -19,6 +19,7 @@ import Libraries from './routes/Libraries'
 import Tags from './routes/Tags'
 import Users from './routes/Users'
 import Requests from './routes/Requests'
+import Stores from './routes/Stores'
 import Ads from './routes/Ads'
 import AdsBuilder from './routes/AdsBuilder'
 import AdsAppDetail from './routes/AdsAppDetail'
@@ -82,6 +83,7 @@ export default function App() {
               element={<RequireAdmin><AdsScenarioDetail /></RequireAdmin>}
             />
             <Route path="tags" element={<RequireAdmin><Tags /></RequireAdmin>} />
+            <Route path="stores" element={<RequireAdmin><Stores /></RequireAdmin>} />
             <Route path="users" element={<RequireAdmin><Users /></RequireAdmin>} />
             <Route path="*" element={<Navigate to="/apps" replace />} />
           </Route>

@@ -930,3 +930,80 @@ export const deleteAdPlan = async (id: number) => {
   const res = await supabase.from('ad_plans').delete().eq('id', id)
   if (res.error) throw new Error(res.error.message)
 }
+
+// ─── Stores (trang /stores) — v_stores (an toàn) + RLS CRUD + RPC PAT [0034] ──
+export type StoreRow = {
+  id: number
+  store_code: string | null
+  name: string
+  slug: string
+  display_name: string | null
+  support_email: string | null
+  github_repo: string | null
+  website_url: string | null
+  play_console_url: string | null
+  enabled: boolean
+  github_pat_configured: boolean
+  extra: Record<string, unknown>
+  app_count: number
+  created_at: string
+  updated_at: string
+}
+
+export type StoreInput = {
+  name: string
+  slug: string
+  store_code?: string | null
+  display_name?: string | null
+  support_email?: string | null
+  github_repo?: string | null
+  website_url?: string | null
+  play_console_url?: string | null
+  enabled?: boolean
+  extra?: Record<string, unknown>
+}
+
+export async function storesList(): Promise<StoreRow[]> {
+  const { data, error } = await supabase
+    .from('v_stores')
+    .select('*')
+    .order('store_code', { nullsFirst: false })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as StoreRow[]
+}
+
+/** RPC cấp mã store kế tiếp (aNNN). */
+export async function allocStoreCode(): Promise<string> {
+  const { data, error } = await supabase.rpc('alloc_store_code')
+  if (error) throw new Error(error.message)
+  return data as string
+}
+
+export async function createStore(input: StoreInput) {
+  const { data, error } = await supabase.from('stores').insert(input).select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không tạo được — chỉ admin mới có quyền.')
+  return data[0]
+}
+
+export async function updateStore(id: number, patch: Partial<StoreInput>) {
+  const { data, error } = await supabase.from('stores').update(patch).eq('id', id).select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
+}
+
+export async function deleteStore(id: number) {
+  const { error } = await supabase.from('stores').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+/** Đặt GitHub PAT (mã hoá server-side, không SELECT được lại). */
+export async function setStorePat(id: number, pat: string) {
+  const { error } = await supabase.rpc('set_store_github_credential', { p_store_id: id, p_pat: pat })
+  if (error) throw new Error(error.message)
+}
+
+export async function clearStorePat(id: number) {
+  const { error } = await supabase.rpc('clear_store_github_credential', { p_store_id: id })
+  if (error) throw new Error(error.message)
+}

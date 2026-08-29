@@ -290,25 +290,24 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
         {!(showReal && imgUrl) && (
         <div className="w-[272px] rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
           <div className="flex min-h-[540px] flex-col overflow-hidden rounded-[1.6rem] bg-neutral-50 dark:bg-neutral-950">
-            <div className="flex flex-1 flex-col gap-2 p-3">
-              {/* header */}
+            <div className="flex flex-1 flex-col gap-2.5 p-3">
+              {/* header — TÊN MÀN (rõ đang sửa màn nào) + layout; sơ đồ TRUNG TÍNH */}
               <div className="flex items-center justify-between pt-0.5">
-                <span className="text-[15px] font-bold">{cap(manifest.app.replace(/^\d+-\d+-/, ''))} 💰</span>
-                <span className="font-mono text-[11px] text-neutral-400">Aug ▾</span>
+                <span className="text-[13px] font-bold capitalize">{manifest.screen.replace(/_/g, ' ')}</span>
+                <span className="font-mono text-[10px] text-neutral-400">{manifest.layout}</span>
               </div>
+              <div className="-mt-1.5 text-[9px] text-neutral-400">sơ đồ zone (trung tính) — bấm 🖼 để xem màn thật</div>
 
               <ZoneOrGap z={zoneByArch('below-header')} {...slotProps} />
 
-              {/* hero card (trang trí) */}
-              <div className="rounded-2xl p-3 text-white" style={{ backgroundImage: 'linear-gradient(135deg,#5B8DD9,#7C6FE0)' }}>
-                <div className="text-[11px] opacity-90">Total balance</div>
-                <div className="text-xl font-bold">$4,820</div>
-                <div className="mt-2 flex justify-between border-t border-dashed border-white/40 pt-1.5 text-[10.5px] opacity-90">
-                  <span>Total expenditure</span><span>−$1,240</span>
-                </div>
+              {/* khối nội dung trung tính (placeholder — KHÔNG giả nội dung Home) */}
+              <div className="rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
+                <div className="h-2.5 w-1/2 rounded bg-neutral-200 dark:bg-neutral-800" />
+                <div className="mt-2 h-2 w-3/4 rounded bg-neutral-100 dark:bg-neutral-800/60" />
+                <div className="mt-1.5 h-2 w-2/3 rounded bg-neutral-100 dark:bg-neutral-800/60" />
               </div>
 
-              {/* actions = touchables (clickable, gắn event) */}
+              {/* touchables dạng tile (chỉ khi màn có) */}
               {tiles.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {tiles.map((t) => {
@@ -327,13 +326,12 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
 
               <ZoneOrGap z={zoneByArch('content-flow')} {...slotProps} />
 
-              {/* feed + in-feed zone chèn giữa các row */}
-              <div>
-                <div className="pb-1 text-[10px] font-bold text-neutral-400">TODAY</div>
-                <FeedRow amt="−$18" c="text-red-500" />
-                <ZoneOrGap z={zoneByArch('in-feed')} {...slotProps} inline />
-                <FeedRow amt="+$900" c="text-emerald-500" />
-              </div>
+              {/* list trung tính + in-feed (chỉ khi màn có in-feed) */}
+              {zoneByArch('in-feed') && (
+                <div className="space-y-1.5">
+                  <NeutralRow /><ZoneOrGap z={zoneByArch('in-feed')} {...slotProps} inline /><NeutralRow />
+                </div>
+              )}
             </div>
 
             {/* dock: scaffold zone trên nav bar */}
@@ -398,14 +396,11 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
   )
 }
 
-function cap(s: string) { return s ? s[0].toUpperCase() + s.slice(1) : s }
-
-function FeedRow({ amt, c }: { amt: string; c: string }) {
+function NeutralRow() {
   return (
-    <div className="flex items-center gap-2 py-1.5">
+    <div className="flex items-center gap-2 py-1">
       <span className="h-6 w-6 flex-none rounded-lg bg-neutral-200 dark:bg-neutral-800" />
-      <span className="flex-1"><span className="block h-2 w-3/5 rounded bg-neutral-300 dark:bg-neutral-700" /><span className="mt-1 block h-1.5 w-2/5 rounded bg-neutral-200 dark:bg-neutral-800" /></span>
-      <span className={`text-[11px] font-bold ${c}`}>{amt}</span>
+      <span className="flex-1"><span className="block h-2 w-3/5 rounded bg-neutral-200 dark:bg-neutral-700" /><span className="mt-1 block h-1.5 w-2/5 rounded bg-neutral-100 dark:bg-neutral-800" /></span>
     </div>
   )
 }
