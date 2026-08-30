@@ -17,6 +17,12 @@ Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, kh
 - Yêu cầu **AF migration 0034** (grant `store_code` + RPC `alloc_store_code`).
 - Dọn dead-code `AdZonesView.tsx` (hàm `cap` không dùng sau refactor) để build xanh.
 
+## 3.28.2 — 2026-08-29
+
+**Ads Builder: nhúng Navigation map vào bước "Ads Home-onward".** Người soạn kịch bản ads nhìn ngay quan hệ giữa các
+màn (node = ảnh THẬT, màu thật) để đặt ads đúng chỗ. Bấm node trên sơ đồ → nhảy tới màn đó để gắn ads. `NavMap`
+export dùng chung giữa tab Ad zones và wizard Ads Builder (`AdsBuilder.tsx`).
+
 ## 3.28.1 — 2026-08-29
 
 **AdZones dựng lại: Navigation map + danh sách màn (Plan B).** Bỏ editor schematic cũ. Tab Ad zones giờ 2 phần:

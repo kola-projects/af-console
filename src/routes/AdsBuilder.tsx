@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { adPlans, adPlan, saveAdPlan, deleteAdPlan, appsWithRuns, blueprintDir } from '../lib/queries'
+import { adPlans, adPlan, saveAdPlan, deleteAdPlan, appsWithRuns, blueprintDir, blueprintFile } from '../lib/queries'
 import { latestBlueprintRun } from '../components/appMeta'
 import { appCodeOf, type AppRow, type AdPlanBody } from '../lib/types'
 import { b64ToText } from '../lib/blueprint'
 import { BF_SCREENS, BF_TEMPLATES_SOURCE } from '../lib/bfTemplates'
 import {
-  AdScreenEditor,
+  AdScreenEditor, NavMap,
   type Manifest, type IndexFile, type Placement, type AdEvent,
 } from './blueprint/AdZonesView'
 import { Empty, ErrorBox, Loading } from '../components/ui'
@@ -252,6 +252,13 @@ function ScreensEditor({ index, manifests, layout, runName, screens, setScreens 
   const [sel, setSel] = useState<string>(list[0]?.id ?? '')
   const manifest = manifests[`${sel}.${layout}.json`] || manifests[`${sel}.default.json`] || Object.values(manifests).find((m) => m.screen === sel)
 
+  // nav map (quan hệ màn) — dùng ảnh THẬT, bấm node để nhảy tới màn đó
+  const navQ = useQuery({ queryKey: ['navmap', runName], queryFn: () => blueprintFile(runName!, 'navigation_map.md').catch(() => null), enabled: !!runName })
+  const navText = navQ.data ? (() => { try { return b64ToText(navQ.data.content_b64) } catch { return '' } })() : ''
+  const shotForScreen = (s: string) => Object.values(manifests).find((m) => m.screen === s && m.screenshot)?.screenshot || null
+  const norm = (s: string) => s.toLowerCase().replace(/[_\s-]/g, '')
+  const pickByNav = (navId: string) => { const n = norm(navId); const sc = list.find((s) => { const x = norm(s.id); return x === n || x.includes(n) || n.includes(x) }); if (sc) setSel(sc.id) }
+
   const setP: React.Dispatch<React.SetStateAction<Record<string, Placement>>> = (u) =>
     setScreens((s) => { const cur = s[sel]?.placements ?? {}; const next = typeof u === 'function' ? u(cur) : u; return { ...s, [sel]: { placements: next, events: s[sel]?.events ?? {} } } })
   const setE: React.Dispatch<React.SetStateAction<Record<string, AdEvent>>> = (u) =>
@@ -261,6 +268,12 @@ function ScreensEditor({ index, manifests, layout, runName, screens, setScreens 
 
   return (
     <div>
+      {navText && (
+        <div className="mb-4">
+          <NavMap navText={navText} runName={runName || ''} shotForScreen={shotForScreen} onPick={pickByNav} />
+          <p className="mt-1 text-[11px] text-neutral-400">Bấm màn trên sơ đồ để nhảy tới gắn ads. Màn đang chọn: <b className="text-neutral-600 dark:text-neutral-300">{sel}</b></p>
+        </div>
+      )}
       <div className="mb-4 flex flex-wrap gap-1.5">
         {list.map((s) => (
           <button key={s.id} onClick={() => setSel(s.id)} className={`rounded-lg border px-3 py-1.5 text-sm ${sel === s.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 text-neutral-600 dark:border-neutral-700'}`}>

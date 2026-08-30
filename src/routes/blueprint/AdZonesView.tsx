@@ -151,8 +151,8 @@ function layoutNodes(ids: string[], edges: [string, string][]): Record<string, {
   Object.keys(byL).forEach((L) => { const arr = byL[+L].sort(); const total = (arr.length - 1) * hGap; arr.forEach((id, i) => (pos[id] = { x: Math.round(midX - total / 2 + i * hGap), y: yBase + (+L) * vGap })) })
   return pos
 }
-function NavMap({ navText, runName, shotForScreen, onPick }: {
-  navText: string; manifests: Record<string, Manifest>; runName: string
+export function NavMap({ navText, runName, shotForScreen, onPick }: {
+  navText: string; manifests?: Record<string, Manifest>; runName: string
   shotForScreen: (s: string) => string | null; onPick: (screen: string) => void
 }) {
   const { nodes, edges, height } = useMemo(() => {
