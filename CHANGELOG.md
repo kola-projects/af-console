@@ -17,6 +17,12 @@ Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, kh
 - Yêu cầu **AF migration 0034** (grant `store_code` + RPC `alloc_store_code`).
 - Dọn dead-code `AdZonesView.tsx` (hàm `cap` không dùng sau refactor) để build xanh.
 
+## 3.28.3 — 2026-08-29
+
+**Fix nav map không hiện ảnh.** Node nav là CamelCase (Home/TxnDetail/BudgetDetail) còn manifest là snake-thường
+(home/txn_detail/budget_detail) → so `===` phân biệt hoa/thường nên không lấy được ảnh. Sửa `shotForScreen` khớp
+**chuẩn hoá** (lowercase + bỏ `_`). Giờ 8 màn chính hiện ảnh thật; sheet/funnel/intent (no manifest) vẫn là node chữ.
+
 ## 3.28.2 — 2026-08-29
 
 **Ads Builder: nhúng Navigation map vào bước "Ads Home-onward".** Người soạn kịch bản ads nhìn ngay quan hệ giữa các

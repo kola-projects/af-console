@@ -255,8 +255,8 @@ function ScreensEditor({ index, manifests, layout, runName, screens, setScreens 
   // nav map (quan hệ màn) — dùng ảnh THẬT, bấm node để nhảy tới màn đó
   const navQ = useQuery({ queryKey: ['navmap', runName], queryFn: () => blueprintFile(runName!, 'navigation_map.md').catch(() => null), enabled: !!runName })
   const navText = navQ.data ? (() => { try { return b64ToText(navQ.data.content_b64) } catch { return '' } })() : ''
-  const shotForScreen = (s: string) => Object.values(manifests).find((m) => m.screen === s && m.screenshot)?.screenshot || null
   const norm = (s: string) => s.toLowerCase().replace(/[_\s-]/g, '')
+  const shotForScreen = (s: string) => { const n = norm(s); return Object.values(manifests).find((m) => norm(m.screen) === n && m.screenshot)?.screenshot || null }
   const pickByNav = (navId: string) => { const n = norm(navId); const sc = list.find((s) => { const x = norm(s.id); return x === n || x.includes(n) || n.includes(x) }); if (sc) setSel(sc.id) }
 
   const setP: React.Dispatch<React.SetStateAction<Record<string, Placement>>> = (u) =>

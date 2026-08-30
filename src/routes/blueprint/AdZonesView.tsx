@@ -92,8 +92,7 @@ export default function AdZonesView({ runName }: { runName: string }) {
   const findManifest = (screen: string, layout: string) =>
     parsed.manifests[`${screen}.${layout}.json`] || parsed.manifests[`${screen}.default.json`] ||
     Object.values(parsed.manifests).find((m) => m.screen === screen)
-  const shotForScreen = (screen: string) =>
-    Object.values(parsed.manifests).find((m) => m.screen === screen && m.screenshot)?.screenshot || null
+  const shotForScreen = (screen: string) => { const n = norm(screen); return Object.values(parsed.manifests).find((m) => norm(m.screen) === n && m.screenshot)?.screenshot || null }
 
   if (sel) {
     const m = findManifest(sel.screen, sel.layout)
