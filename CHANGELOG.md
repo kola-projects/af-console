@@ -17,7 +17,7 @@ Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, kh
 - Yêu cầu **AF migration 0034** (grant `store_code` + RPC `alloc_store_code`).
 - Dọn dead-code `AdZonesView.tsx` (hàm `cap` không dùng sau refactor) để build xanh.
 
-## 3.28.0 — 2026-08-28
+## 3.28.1 — 2026-08-29
 
 **AdZones dựng lại: Navigation map + danh sách màn (Plan B).** Bỏ editor schematic cũ. Tab Ad zones giờ 2 phần:
 - **(1) Navigation map** — parse `navigation_map.md` (mermaid) → sơ đồ điều hướng **auto-layout** (BFS theo tầng, không đè
