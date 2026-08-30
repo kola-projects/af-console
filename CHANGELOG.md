@@ -17,6 +17,16 @@ Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, kh
 - Yêu cầu **AF migration 0034** (grant `store_code` + RPC `alloc_store_code`).
 - Dọn dead-code `AdZonesView.tsx` (hàm `cap` không dùng sau refactor) để build xanh.
 
+## 3.28.0 — 2026-08-28
+
+**AdZones dựng lại: Navigation map + danh sách màn (Plan B).** Bỏ editor schematic cũ. Tab Ad zones giờ 2 phần:
+- **(1) Navigation map** — parse `navigation_map.md` (mermaid) → sơ đồ điều hướng **auto-layout** (BFS theo tầng, không đè
+  node), node = **ảnh màn thật** (từ `adzones.screenshot` khớp tên màn), **zoom/pan** (nút + cuộn + kéo). Node chữ =
+  màn chưa chụp ảnh / intent hệ thống. Bấm node → mở editor màn.
+- **(2) Danh sách màn (Plan B)** — grid mỗi màn = **ảnh thật** + số zone; bấm mở **editor**: ảnh thật + **zone-cards**
+  (đặt native/banner click-to-add, không overlay che ảnh) + **touchables** (gồm synthetic Back) gắn inter/reward có
+  **kiểm policy**, xuất ad-plan. Degrade an toàn khi thiếu nav_map/ảnh. `AdScreenEditor` giữ controlled (wizard dùng chung).
+
 ## 3.27.2 — 2026-08-28
 
 **AdZones editor: về tương tác zone-inline (theo ý người dùng) + Back touchable.**
