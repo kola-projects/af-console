@@ -11,6 +11,7 @@ import {
   blueprintImageDataUri,
   cancelRequest,
   createRequest,
+  adPlans,
   myProfile,
   myRequests,
   removeRequestFile,
@@ -29,6 +30,7 @@ import {
   type UploadedFile,
 } from '../lib/types'
 import { Badge, Cell, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
+import AppSearchSelect from '../components/AppSearchSelect'
 
 const inputCls =
   'w-full rounded border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900'
@@ -1078,10 +1080,85 @@ function AfVersionsPanel() {
 }
 
 // ─── Trang Requests ──────────────────────────────────────────────────────
+/** Ads V2 — chọn APP trước (ô tìm kiếm) → lọc kịch bản (ad_plan) của app → Build Now tạo order. */
+function AdsV2Form({ onSubmitted }: { onSubmitted: () => void }) {
+  const nav = useNavigate()
+  const [af, setAf] = useState('')
+  const [appCode, setAppCode] = useState('')
+  const [planId, setPlanId] = useState<number | null>(null)
+  const plansQ = useQuery({ queryKey: ['ad-plans'], queryFn: adPlans })
+
+  const code = appCode.trim()
+  const plansOfApp = (plansQ.data ?? []).filter((p) => (p.app_code ?? p.plan?.app) === code)
+  const plan = plansOfApp.find((p) => p.id === planId)
+
+  const mut = useMutation({
+    mutationFn: () => createRequest('add_ads', af, { adsV2: true, app_code: code, ad_plan_id: planId, ad_plan_name: plan?.name ?? null }, code),
+    onSuccess: onSubmitted,
+  })
+
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-neutral-500">
+        Chọn <b>app</b> → chọn <b>kịch bản</b> đã soạn (Ads Builder / AdZones) → <b>Build Now</b> tạo order tích hợp (AF chạy <Mono>ads.sh --plan</Mono>).
+      </p>
+      <AfVersionSelect value={af} onChange={setAf} />
+
+      <div>
+        <Label req>App (tìm theo mã / tên / package)</Label>
+        <AppSearchSelect value={appCode} onChange={(c) => { setAppCode(c); setPlanId(null) }} placeholder="Tìm kiếm app…" />
+      </div>
+
+      {code && (
+        <div>
+          <Label>Kịch bản của app <span className="font-mono text-teal-600">{code}</span></Label>
+          {plansQ.isLoading ? (
+            <Loading />
+          ) : plansOfApp.length ? (
+            <div className="space-y-2">
+              {plansOfApp.map((p) => (
+                <div key={p.id}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition ${planId === p.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 hover:border-neutral-400 dark:border-neutral-700'}`}>
+                  <button type="button" onClick={() => setPlanId(p.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                    <span className={`grid h-9 w-9 flex-none place-items-center rounded-lg text-lg ${planId === p.id ? 'bg-teal-600 text-white' : 'bg-neutral-100 dark:bg-neutral-800'}`}>📋</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{p.name}</span>
+                      <span className="block font-mono text-[11px] text-neutral-400">{Object.keys(p.plan?.screens ?? {}).length} màn · sửa {p.updated_at?.slice(0, 10)}</span>
+                    </span>
+                  </button>
+                  <Badge tone={p.status === 'ready' ? 'good' : undefined}>{p.status}</Badge>
+                  <button type="button" onClick={() => nav(`/ads-builder?edit=${p.id}`)} title="Sửa trong Ads Builder"
+                    className="flex-none rounded-md border border-neutral-300 px-2 py-1 text-xs text-neutral-600 hover:border-teal-500 hover:text-teal-600 dark:border-neutral-700 dark:text-neutral-400">
+                    ✎ Sửa
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-neutral-300 p-4 text-sm text-neutral-500 dark:border-neutral-700">
+              App <Mono>{code}</Mono> chưa có kịch bản ads.{' '}
+              <button type="button" onClick={() => nav('/ads-builder')} className="font-medium text-teal-600 underline underline-offset-2">Soạn trong Ads Builder →</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+        <button type="button" disabled={!code || !planId || !af || mut.isPending} onClick={() => mut.mutate()}
+          className="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-40">
+          {mut.isPending ? 'Đang tạo…' : '⚡ Build Now — tạo order'}
+        </button>
+        {plan && <span className="text-xs text-neutral-400">→ tích hợp “{plan.name}” cho app {code}</span>}
+      </div>
+      {mut.isError && <p className="text-sm text-red-600">Lỗi: {(mut.error as Error).message}</p>}
+    </div>
+  )
+}
+
 export default function Requests() {
   const qc = useQueryClient()
   const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
-  const [type, setType] = useState<RequestType>('make_app')
+  const [type, setType] = useState<RequestType | 'ads_v2'>('make_app')
   const isAdmin = me.data?.role === 'admin'
 
   const onSubmitted = () => {
@@ -1114,10 +1191,21 @@ export default function Requests() {
               {REQUEST_TYPE_LABEL[t]}
             </button>
           ))}
+          <button
+            onClick={() => setType('ads_v2')}
+            className={`rounded px-2.5 py-1 ${
+              type === 'ads_v2'
+                ? 'bg-teal-600 text-white'
+                : 'text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950'
+            }`}
+          >
+            Ads V2
+          </button>
         </div>
         {type === 'make_app' && <MakeAppForm onSubmitted={onSubmitted} />}
         {type === 'add_ads' && <AdsForm onSubmitted={onSubmitted} />}
         {type === 'update_aso' && <AsoForm onSubmitted={onSubmitted} />}
+        {type === 'ads_v2' && <AdsV2Form onSubmitted={onSubmitted} />}
       </div>
 
       <div>

@@ -17,6 +17,8 @@ export default function ManageApps() {
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortKey>('last_update')
   const [teamFilter, setTeamFilter] = useState('')
+  const [platformFilter, setPlatformFilter] = useState('')          // '' | 'android' | 'ios'
+  const [availFilter, setAvailFilter] = useState('')                // '' | 'available' | 'hidden'
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['apps-manage'] })
     qc.invalidateQueries({ queryKey: ['apps-product'] })
@@ -34,6 +36,8 @@ export default function ManageApps() {
     const needle = search.trim().toLowerCase()
     const filtered = (q.data ?? [])
       .filter((a) => !teamFilter || (teamFilter === '__none__' ? !a.team : a.team === teamFilter))
+      .filter((a) => !platformFilter || (a.platform ?? 'android') === platformFilter)
+      .filter((a) => !availFilter || (availFilter === 'hidden' ? !!a.is_hidden : !a.is_hidden))
       .filter(
         (a) =>
           !needle ||
@@ -47,7 +51,7 @@ export default function ManageApps() {
       if (sort === 'created') return b.created_at.localeCompare(a.created_at)
       return appLastUpdate(b).localeCompare(appLastUpdate(a))
     })
-  }, [q.data, search, sort, teamFilter])
+  }, [q.data, search, sort, teamFilter, platformFilter, availFilter])
 
   if (q.isLoading) return <Loading />
   if (q.error) return <ErrorBox error={q.error} />
@@ -89,6 +93,24 @@ export default function ManageApps() {
           ))}
           <option value="__none__">Team: (chưa gán)</option>
         </select>
+        <select
+          value={platformFilter}
+          onChange={(e) => setPlatformFilter(e.target.value)}
+          className="rounded border border-neutral-300 bg-transparent px-2 py-1.5 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-950"
+        >
+          <option value="">Platform: tất cả</option>
+          <option value="android">🤖 Android</option>
+          <option value="ios"> iOS</option>
+        </select>
+        <select
+          value={availFilter}
+          onChange={(e) => setAvailFilter(e.target.value)}
+          className="rounded border border-neutral-300 bg-transparent px-2 py-1.5 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-950"
+        >
+          <option value="">Hiển thị: tất cả</option>
+          <option value="available">Chỉ available (chưa ẩn)</option>
+          <option value="hidden">Chỉ đã ẩn</option>
+        </select>
         <span className="text-xs text-neutral-500">
           {rows.length}/{q.data?.length ?? 0} app
         </span>
@@ -105,7 +127,7 @@ export default function ManageApps() {
           <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào.'}</Empty>
         ) : (
           <Table
-            head={['Code', 'App', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update', 'Ẩn']}
+            head={['Code', 'App', 'Platform', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update', 'Ẩn']}
           >
             {rows.map((a) => {
               const bp = blueprintRuns(a).length
@@ -124,6 +146,11 @@ export default function ManageApps() {
                       {a.name}
                       {a.is_hidden && <Badge tone="warn">ẩn</Badge>}
                     </span>
+                  </Cell>
+                  <Cell>
+                    {(a.platform ?? 'android') === 'ios'
+                      ? <Badge> iOS</Badge>
+                      : <Badge tone="good">🤖 Android</Badge>}
                   </Cell>
                   <Cell>
                     <select

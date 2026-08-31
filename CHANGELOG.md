@@ -3,6 +3,17 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.29.0 — 2026-08-29
+
+**AdZones/Ads Builder/Ads V2 + Quản lý app.**
+- **AdZones editor**: zone overlay MẢNH trên ẢNH màn THẬT (Plan-B, theo archetype) — không còn list phẳng/mockup Home.
+- **Ads Builder**: cột APP hiện **icon + tên** (không chỉ mã); ô **tên kịch bản** dời xuống cuối bước Lưu (cạnh nút);
+  nhận `?edit=<id>` mở thẳng plan để sửa; nav-map ở bước "Ads Home-onward" (bấm node nhảy tới màn).
+- **Ads V2** (tab Yêu cầu): chọn app (component mới **`AppSearchSelect`** — search icon+tên+**packageName**, dropdown dài)
+  → lọc kịch bản (ad_plan) của app → **Build Now** tạo order (`add_ads`+`{adsV2,ad_plan_id}`); nút **✎ Sửa** → Ads Builder.
+- **Quản lý app**: thêm **cột Platform** (🤖 Android /  iOS) + **filter Platform** + **filter Hiển thị** (available/đã-ẩn).
+  `appsWithRuns` select thêm `platform`; type `AppRow.platform`.
+
 ## 3.28.0 — 2026-08-29 (đi cùng AF v5.19.0 / migration 0034)
 
 **Trang quản lý Store `/stores` — CRUD đầy đủ.** Trước đây phải sửa DB tay để tạo/gán store.

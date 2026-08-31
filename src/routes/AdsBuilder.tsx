@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { adPlans, adPlan, saveAdPlan, deleteAdPlan, appsWithRuns, blueprintDir, blueprintFile } from '../lib/queries'
 import { latestBlueprintRun } from '../components/appMeta'
 import { appCodeOf, type AppRow, type AdPlanBody } from '../lib/types'
 import { b64ToText } from '../lib/blueprint'
 import { BF_SCREENS, BF_TEMPLATES_SOURCE } from '../lib/bfTemplates'
+import { AppIcon } from '../components/AppSearchSelect'
 import {
   AdScreenEditor, NavMap,
   type Manifest, type IndexFile, type Placement, type AdEvent,
@@ -16,15 +18,20 @@ import { Empty, ErrorBox, Loading } from '../components/ui'
  *  File này KHÔNG tích hợp ads — chỉ soạn/lưu plan; `ads.sh --plan <id>` sẽ đọc để tích hợp. */
 
 export default function AdsBuilder() {
-  const [editId, setEditId] = useState<number | null | 'new'>(null)
+  const [sp, setSp] = useSearchParams()
+  // mở thẳng một plan để sửa khi có ?edit=<id> (từ nút Edit ở Ads V2 / nơi khác)
+  const [editId, setEditId] = useState<number | null | 'new'>(() => { const e = sp.get('edit'); return e ? Number(e) : null })
+  const close = () => { setEditId(null); if (sp.get('edit')) { sp.delete('edit'); setSp(sp, { replace: true }) } }
   if (editId === null) return <PlanList onOpen={(id) => setEditId(id)} onNew={() => setEditId('new')} />
-  return <Wizard planId={editId === 'new' ? undefined : editId} onClose={() => setEditId(null)} />
+  return <Wizard planId={editId === 'new' ? undefined : editId} onClose={close} />
 }
 
 // ───────────────────────── LIST ─────────────────────────
 function PlanList({ onOpen, onNew }: { onOpen: (id: number) => void; onNew: () => void }) {
   const qc = useQueryClient()
   const plans = useQuery({ queryKey: ['ad-plans'], queryFn: adPlans })
+  const appsQ = useQuery({ queryKey: ['apps-with-runs'], queryFn: appsWithRuns })
+  const appOf = (code: string | null) => (appsQ.data ?? []).find((a) => appCodeOf(a) === code)
   const remove = async (id: number, name: string) => {
     if (!confirm(`Xoá plan "${name}"?`)) return
     await deleteAdPlan(id); qc.invalidateQueries({ queryKey: ['ad-plans'] })
@@ -50,7 +57,12 @@ function PlanList({ onOpen, onNew }: { onOpen: (id: number) => void; onNew: () =
               {plans.data.map((p) => (
                 <tr key={p.id} className="border-t border-neutral-100 dark:border-neutral-900">
                   <td className="px-4 py-2 font-medium">{p.name}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{p.app_code ?? p.plan?.app ?? '—'}</td>
+                  <td className="px-4 py-2">
+                    {(() => { const a = appOf(p.app_code ?? p.plan?.app ?? null)
+                      return a
+                        ? <div className="flex items-center gap-2"><AppIcon app={a} /><div className="min-w-0"><div className="truncate text-sm font-medium">{a.name}</div><div className="font-mono text-[11px] text-neutral-400">{appCodeOf(a)}</div></div></div>
+                        : <span className="font-mono text-xs">{p.app_code ?? p.plan?.app ?? '—'}</span> })()}
+                  </td>
                   <td className="px-4 py-2 font-mono text-xs text-neutral-500">{[p.plan?.style, p.plan?.layout].filter(Boolean).join(' · ') || '—'}</td>
                   <td className="px-4 py-2"><span className="rounded-full bg-neutral-100 px-2 py-0.5 font-mono text-[11px] dark:bg-neutral-800">{p.status}</span></td>
                   <td className="px-4 py-2 font-mono text-xs text-neutral-400">{p.updated_at?.slice(0, 16).replace('T', ' ')}</td>
@@ -217,17 +229,20 @@ function Wizard({ planId, onClose }: { planId?: number; onClose: () => void }) {
       {/* STEP 4 — Lưu */}
       {step === 4 && (
         <div className="max-w-xl">
-          <label className="mb-4 block">
-            <span className="mb-1 block text-[11px] tracking-wide text-neutral-400 uppercase">Tên plan</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`${app ? appCodeOf(app) : 'app'}-adplan`} className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900" />
-          </label>
           <div className="mb-4 rounded-lg border border-neutral-200 dark:border-neutral-800">
             <div className="border-b border-neutral-100 px-3 py-2 text-xs font-semibold dark:border-neutral-900">Xem trước ad-plan (JSON)</div>
             <pre className="max-h-72 overflow-auto p-3 font-mono text-[11px] leading-relaxed text-neutral-600 dark:text-neutral-300">{JSON.stringify(body, null, 2)}</pre>
           </div>
-          <div className="flex gap-2">
-            <button disabled={saving} onClick={() => save('draft')} className="rounded-lg border border-neutral-300 px-4 py-2 text-sm dark:border-neutral-700">Lưu nháp</button>
-            <button disabled={saving} onClick={() => save('ready')} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">Lưu · sẵn sàng tích hợp</button>
+          {/* tên kịch bản — đặt/sửa ngay trước khi lưu/export */}
+          <label className="mb-3 block">
+            <span className="mb-1 block text-[11px] tracking-wide text-neutral-400 uppercase">Tên kịch bản</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`${app ? appCodeOf(app) : 'app'}-adplan`}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-teal-500 dark:border-neutral-700 dark:bg-neutral-900" />
+          </label>
+          <div className="flex items-center gap-2">
+            <button disabled={saving} onClick={() => save('draft')} className="rounded-lg border border-neutral-300 px-4 py-2 text-sm hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:hover:bg-neutral-800">Lưu nháp</button>
+            <button disabled={saving} onClick={() => save('ready')} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-40">Lưu · sẵn sàng tích hợp</button>
+            {!name.trim() && <span className="text-xs text-amber-600">↑ đặt tên trước khi lưu</span>}
           </div>
         </div>
       )}

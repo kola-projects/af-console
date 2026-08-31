@@ -87,6 +87,8 @@ export interface AppRow {
   is_hidden?: boolean
   /** [0027] nhãn team (Auto/Titan) — thống kê/lọc, admin sửa. */
   team?: string | null
+  /** [0032] android | ios. Default 'android' cho row cũ. */
+  platform?: 'android' | 'ios' | null
   extra?: { app_code?: string; app_codes?: string[] } | null
   runs: AppRunSummary[]
 }

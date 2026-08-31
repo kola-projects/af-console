@@ -280,14 +280,17 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
           ))}
         </div>
         <div className="w-full max-w-[272px] rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
-          {shot ? <img src={shot} alt={manifest.screen} className="block w-full rounded-[1.6rem]" /> : <div className="grid aspect-[66/140] place-items-center rounded-[1.6rem] bg-neutral-50 font-mono text-[10px] text-neutral-400 dark:bg-neutral-950">màn này chưa có ảnh</div>}
-        </div>
-        <div className="mt-3 max-w-[272px]">
-          <div className="mb-1.5 text-[11px] tracking-wide text-neutral-400 uppercase">Zones — {armed ? `bấm để đặt ${armed}` : 'kéo/thả ads vào vị trí'}</div>
-          <div className="space-y-1">
-            {zones.map((z) => <ZoneCard key={z.id} z={z} p={placements[z.id]} armed={armed} onPlace={place} onRemove={rmZone} onField={setField} />)}
-            {!zones.length && <p className="text-xs text-neutral-400">Màn này matcher chưa dò ra zone.</p>}
+          <div className="relative overflow-hidden rounded-[1.6rem]">
+            {shot ? <img src={shot} alt={manifest.screen} className="block w-full" /> : <div className="grid aspect-[66/140] place-items-center bg-neutral-50 font-mono text-[10px] text-neutral-400 dark:bg-neutral-950">màn này chưa có ảnh</div>}
+            {/* zone OVERLAY lên ảnh theo vị trí archetype — bấm đặt/gỡ */}
+            {shot && zones.map((z) => <div key={z.id} className="absolute right-1.5 left-1.5 z-10" style={archPos(z.archetype)}><ZoneBar z={z} p={placements[z.id]} armed={armed} onPlace={place} onRemove={rmZone} /></div>)}
           </div>
+        </div>
+        {/* cấu hình zone đã đặt (tên/template/refresh) — chỉ hiện zone đã có ad */}
+        <div className="mt-3 max-w-[272px] space-y-1">
+          {zones.filter((z) => placements[z.id]).map((z) => <ZoneCard key={z.id} z={z} p={placements[z.id]} armed={armed} onPlace={place} onRemove={rmZone} onField={setField} />)}
+          {!zones.length && <p className="text-xs text-neutral-400">Màn này matcher chưa dò ra zone.</p>}
+          {!!zones.length && !Object.keys(placements).length && <p className="font-mono text-[10px] text-neutral-400">bấm chip Native/Banner rồi bấm zone trên ảnh để đặt.</p>}
         </div>
         <div className="mt-3 max-w-[272px]">
           <div className="mb-1.5 text-[11px] tracking-wide text-neutral-400 uppercase">Touchables · bấm gắn adsEvent</div>
@@ -308,6 +311,31 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
       </div>
     </div>
   )
+}
+
+// vị trí overlay zone lên ảnh theo archetype (neo dọc gần đúng — manifest chưa có toạ-độ pixel)
+function archPos(a: string): React.CSSProperties {
+  switch (a) {
+    case 'below-header': return { top: '8%' }
+    case 'content-flow': return { top: '43%' }
+    case 'in-feed': return { top: '60%' }
+    case 'scaffold-bottom-dock': return { bottom: '7%' }
+    default: return { top: '50%' }
+  }
+}
+// bar overlay MẢNH, trong suốt — đặt trên ảnh; rỗng=dashed, có ad=teal đặc. Bấm đặt/gỡ.
+function ZoneBar({ z, p, armed, onPlace, onRemove }: { z: Zone; p?: Placement; armed: string | null; onPlace: (zid: string, f?: string) => void; onRemove: (zid: string) => void }) {
+  if (!p) {
+    const can = armed && z.accepts.includes(armed)
+    return <div onClick={() => armed && onPlace(z.id)} title={z.archetype} style={{ textShadow: '0 1px 2px rgba(0,0,0,.55)' }}
+      className={`cursor-pointer rounded-md border-[1.5px] border-dashed px-2 py-0.5 text-center font-mono text-[8.5px] font-semibold backdrop-blur-[1px] ${can ? 'border-teal-400 bg-teal-500/25 text-white' : 'border-white/70 bg-black/15 text-white'}`}>
+      {z.id} · {z.archetype}
+    </div>
+  }
+  return <div onClick={() => onRemove(z.id)} title="bấm để gỡ" style={{ textShadow: '0 1px 2px rgba(0,0,0,.4)' }}
+    className="flex cursor-pointer items-center gap-1 rounded-md border-[1.5px] border-teal-400 bg-teal-500/35 px-1.5 py-0.5 font-mono text-[8.5px] font-semibold text-white backdrop-blur-[1px]">
+    <span className="grid h-3.5 w-3.5 place-items-center rounded bg-teal-600">{z.id}</span><span className="flex-1 truncate">{p.format}:{p.name}</span><span>✕</span>
+  </div>
 }
 
 function ZoneCard({ z, p, armed, onPlace, onRemove, onField }: { z: Zone; p?: Placement; armed: string | null; onPlace: (zid: string, f?: string) => void; onRemove: (zid: string) => void; onField: (zid: string, k: keyof Placement, v: string) => void }) {

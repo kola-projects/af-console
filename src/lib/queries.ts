@@ -90,7 +90,7 @@ export const appsWithRuns = async () =>
   unwrap<AppRow[]>(
     await supabase
       .from('apps')
-      .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
+      .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
       .order('created_at', { ascending: false })
       .order('started_at', { referencedTable: 'runs', ascending: false }),
   )
