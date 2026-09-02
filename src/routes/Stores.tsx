@@ -16,7 +16,7 @@ import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table } from '../comp
 const input =
   'mt-1 w-full rounded border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900'
 const btn =
-  'rounded bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-900'
+  'rounded bg-primary-600 hover:bg-primary-700 px-4 py-2 text-sm text-white disabled:opacity-40'
 const btnGhost =
   'rounded border border-neutral-300 px-3 py-1.5 text-xs dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'
 

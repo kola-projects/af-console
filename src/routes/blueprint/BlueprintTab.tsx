@@ -82,7 +82,7 @@ export default function BlueprintTab({
                   title={f.path}
                   className={`block w-full truncate rounded px-2 py-1 text-left font-mono text-xs ${
                     selected === f.path
-                      ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                      ? 'bg-primary-600 hover:bg-primary-700 text-white'
                       : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-900'
                   }`}
                 >

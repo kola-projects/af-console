@@ -98,7 +98,7 @@ export default function Login() {
               }}
               className={`rounded px-2.5 py-1 ${
                 mode === k
-                  ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                  ? 'bg-primary-600 hover:bg-primary-700 text-white'
                   : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-900'
               }`}
             >
@@ -130,7 +130,7 @@ export default function Login() {
         />
         <button
           disabled={busy}
-          className="w-full rounded bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          className="w-full rounded bg-primary-600 hover:bg-primary-700 px-3 py-2 text-sm text-white disabled:opacity-50"
         >
           {busy ? 'Đang xử lý…' : mode === 'signup' ? 'Đăng ký' : 'Đăng nhập'}
         </button>

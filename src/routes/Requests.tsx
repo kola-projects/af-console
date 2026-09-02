@@ -203,7 +203,7 @@ function SubmitBar({
       )}
       <button
         disabled={pending}
-        className="rounded bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-900"
+        className="rounded bg-primary-600 hover:bg-primary-700 px-4 py-2 text-sm text-white disabled:opacity-40"
       >
         {pending ? 'Đang gửi…' : 'Gửi yêu cầu'}
       </button>
@@ -1111,16 +1111,16 @@ function AdsV2Form({ onSubmitted }: { onSubmitted: () => void }) {
 
       {code && (
         <div>
-          <Label>Kịch bản của app <span className="font-mono text-teal-600">{code}</span></Label>
+          <Label>Kịch bản của app <span className="font-mono text-primary-600">{code}</span></Label>
           {plansQ.isLoading ? (
             <Loading />
           ) : plansOfApp.length ? (
             <div className="space-y-2">
               {plansOfApp.map((p) => (
                 <div key={p.id}
-                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition ${planId === p.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 hover:border-neutral-400 dark:border-neutral-700'}`}>
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition ${planId === p.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-950' : 'border-neutral-300 hover:border-neutral-400 dark:border-neutral-700'}`}>
                   <button type="button" onClick={() => setPlanId(p.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                    <span className={`grid h-9 w-9 flex-none place-items-center rounded-lg text-lg ${planId === p.id ? 'bg-teal-600 text-white' : 'bg-neutral-100 dark:bg-neutral-800'}`}>📋</span>
+                    <span className={`grid h-9 w-9 flex-none place-items-center rounded-lg text-lg ${planId === p.id ? 'bg-primary-600 text-white' : 'bg-neutral-100 dark:bg-neutral-800'}`}>📋</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{p.name}</span>
                       <span className="block font-mono text-[11px] text-neutral-400">{Object.keys(p.plan?.screens ?? {}).length} màn · sửa {p.updated_at?.slice(0, 10)}</span>
@@ -1128,7 +1128,7 @@ function AdsV2Form({ onSubmitted }: { onSubmitted: () => void }) {
                   </button>
                   <Badge tone={p.status === 'ready' ? 'good' : undefined}>{p.status}</Badge>
                   <button type="button" onClick={() => nav(`/ads-builder?edit=${p.id}`)} title="Sửa trong Ads Builder"
-                    className="flex-none rounded-md border border-neutral-300 px-2 py-1 text-xs text-neutral-600 hover:border-teal-500 hover:text-teal-600 dark:border-neutral-700 dark:text-neutral-400">
+                    className="flex-none rounded-md border border-neutral-300 px-2 py-1 text-xs text-neutral-600 hover:border-primary-500 hover:text-primary-600 dark:border-neutral-700 dark:text-neutral-400">
                     ✎ Sửa
                   </button>
                 </div>
@@ -1137,7 +1137,7 @@ function AdsV2Form({ onSubmitted }: { onSubmitted: () => void }) {
           ) : (
             <div className="rounded-xl border border-dashed border-neutral-300 p-4 text-sm text-neutral-500 dark:border-neutral-700">
               App <Mono>{code}</Mono> chưa có kịch bản ads.{' '}
-              <button type="button" onClick={() => nav('/ads-builder')} className="font-medium text-teal-600 underline underline-offset-2">Soạn trong Ads Builder →</button>
+              <button type="button" onClick={() => nav('/ads-builder')} className="font-medium text-primary-600 underline underline-offset-2">Soạn trong Ads Builder →</button>
             </div>
           )}
         </div>
@@ -1145,7 +1145,7 @@ function AdsV2Form({ onSubmitted }: { onSubmitted: () => void }) {
 
       <div className="flex flex-wrap items-center gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
         <button type="button" disabled={!code || !planId || !af || mut.isPending} onClick={() => mut.mutate()}
-          className="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-40">
+          className="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-40">
           {mut.isPending ? 'Đang tạo…' : '⚡ Build Now — tạo order'}
         </button>
         {plan && <span className="text-xs text-neutral-400">→ tích hợp “{plan.name}” cho app {code}</span>}
@@ -1184,7 +1184,7 @@ export default function Requests() {
               onClick={() => setType(t)}
               className={`rounded px-2.5 py-1 ${
                 type === t
-                  ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                  ? 'bg-primary-600 hover:bg-primary-700 text-white'
                   : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-900'
               }`}
             >
@@ -1195,8 +1195,8 @@ export default function Requests() {
             onClick={() => setType('ads_v2')}
             className={`rounded px-2.5 py-1 ${
               type === 'ads_v2'
-                ? 'bg-teal-600 text-white'
-                : 'text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950'
+                ? 'bg-primary-600 text-white'
+                : 'text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950'
             }`}
           >
             Ads V2

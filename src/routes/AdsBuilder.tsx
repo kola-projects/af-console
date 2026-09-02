@@ -43,7 +43,7 @@ function PlanList({ onOpen, onNew }: { onOpen: (id: number) => void; onNew: () =
           <h1 className="text-xl font-semibold">Ads Builder</h1>
           <p className="text-sm text-neutral-500">Soạn ad-contract đầy đủ (funnel + style/layout + ads Home-onward) → lưu → <span className="font-mono">ads.sh --plan</span> tích hợp.</p>
         </div>
-        <button onClick={onNew} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">+ Plan mới</button>
+        <button onClick={onNew} className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">+ Plan mới</button>
       </div>
       {plans.isLoading ? <Loading /> : plans.error ? <ErrorBox error={plans.error} /> : !plans.data?.length ? (
         <Empty>Chưa có plan nào. Bấm “Plan mới”.</Empty>
@@ -156,7 +156,7 @@ function Wizard({ planId, onClose }: { planId?: number; onClose: () => void }) {
       <div className="mb-6 flex flex-wrap gap-1.5">
         {STEPS.map((s, i) => (
           <button key={s} onClick={() => i <= step + 1 && setStep(i)}
-            className={`rounded-full px-3 py-1 text-xs ${i === step ? 'bg-teal-600 text-white' : i < step ? 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300' : 'bg-neutral-100 text-neutral-400 dark:bg-neutral-900'}`}>
+            className={`rounded-full px-3 py-1 text-xs ${i === step ? 'bg-primary-600 text-white' : i < step ? 'bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300' : 'bg-neutral-100 text-neutral-400 dark:bg-neutral-900'}`}>
             {i + 1}. {s}
           </button>
         ))}
@@ -170,7 +170,7 @@ function Wizard({ planId, onClose }: { planId?: number; onClose: () => void }) {
             <div className="flex flex-wrap gap-2">
               {(appsQ.data ?? []).filter((a) => latestBlueprintRun(a)).map((a) => (
                 <button key={a.id} onClick={() => { setApp(a); setStyle(null); setLayout(null) }}
-                  className={`rounded-lg border px-3 py-2 text-left text-sm ${app?.id === a.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 dark:border-neutral-700'}`}>
+                  className={`rounded-lg border px-3 py-2 text-left text-sm ${app?.id === a.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-950' : 'border-neutral-300 dark:border-neutral-700'}`}>
                   <div className="font-medium">{a.name}</div><div className="font-mono text-[11px] text-neutral-400">{appCodeOf(a) ?? '—'}</div>
                 </button>
               ))}
@@ -191,7 +191,7 @@ function Wizard({ planId, onClose }: { planId?: number; onClose: () => void }) {
                 <div className="flex flex-wrap gap-2">
                   {sc.templates.map((t) => (
                     <button key={t.code} title={t.desc} onClick={() => setFunnel((f) => ({ ...f, [sc.id]: t.code }))}
-                      className={`rounded-lg border px-3 py-1.5 text-sm ${funnel[sc.id] === t.code ? 'border-teal-500 bg-teal-50 font-medium text-teal-800 dark:bg-teal-950 dark:text-teal-200' : 'border-neutral-300 text-neutral-600 dark:border-neutral-700'}`}>
+                      className={`rounded-lg border px-3 py-1.5 text-sm ${funnel[sc.id] === t.code ? 'border-primary-500 bg-primary-50 font-medium text-primary-800 dark:bg-primary-950 dark:text-primary-200' : 'border-neutral-300 text-neutral-600 dark:border-neutral-700'}`}>
                       {t.label}{t.desc && <span className="ml-1.5 font-mono text-[10px] text-neutral-400">{t.desc}</span>}
                     </button>
                   ))}
@@ -209,11 +209,11 @@ function Wizard({ planId, onClose }: { planId?: number; onClose: () => void }) {
             <p className="mb-4 text-sm text-neutral-500">Zone bám <b>layout</b>; style chỉ skin preview.</p>
             <div className="mb-4"><div className="mb-1.5 text-[11px] tracking-wide text-neutral-400 uppercase">Style</div>
               <div className="flex flex-wrap gap-2">{parsed.index.styles.map((s) => (
-                <button key={s.id} onClick={() => setStyle(s.id)} className={`rounded-lg border px-3 py-1.5 text-sm ${style === s.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 dark:border-neutral-700'}`}>{s.label}</button>))}</div>
+                <button key={s.id} onClick={() => setStyle(s.id)} className={`rounded-lg border px-3 py-1.5 text-sm ${style === s.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-950' : 'border-neutral-300 dark:border-neutral-700'}`}>{s.label}</button>))}</div>
             </div>
             <div><div className="mb-1.5 text-[11px] tracking-wide text-neutral-400 uppercase">Layout</div>
               <div className="flex flex-wrap gap-2">{parsed.index.layouts.map((l) => (
-                <button key={l.id} title={l.desc} onClick={() => setLayout(l.id)} className={`rounded-lg border px-3 py-1.5 text-sm ${layout === l.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 dark:border-neutral-700'}`}>{l.label}</button>))}</div>
+                <button key={l.id} title={l.desc} onClick={() => setLayout(l.id)} className={`rounded-lg border px-3 py-1.5 text-sm ${layout === l.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-950' : 'border-neutral-300 dark:border-neutral-700'}`}>{l.label}</button>))}</div>
             </div>
           </div>
         )
@@ -237,11 +237,11 @@ function Wizard({ planId, onClose }: { planId?: number; onClose: () => void }) {
           <label className="mb-3 block">
             <span className="mb-1 block text-[11px] tracking-wide text-neutral-400 uppercase">Tên kịch bản</span>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`${app ? appCodeOf(app) : 'app'}-adplan`}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-teal-500 dark:border-neutral-700 dark:bg-neutral-900" />
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-primary-500 dark:border-neutral-700 dark:bg-neutral-900" />
           </label>
           <div className="flex items-center gap-2">
             <button disabled={saving} onClick={() => save('draft')} className="rounded-lg border border-neutral-300 px-4 py-2 text-sm hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:hover:bg-neutral-800">Lưu nháp</button>
-            <button disabled={saving} onClick={() => save('ready')} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-40">Lưu · sẵn sàng tích hợp</button>
+            <button disabled={saving} onClick={() => save('ready')} className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-40">Lưu · sẵn sàng tích hợp</button>
             {!name.trim() && <span className="text-xs text-amber-600">↑ đặt tên trước khi lưu</span>}
           </div>
         </div>
@@ -251,7 +251,7 @@ function Wizard({ planId, onClose }: { planId?: number; onClose: () => void }) {
       <div className="mt-8 flex justify-between border-t border-neutral-200 pt-4 dark:border-neutral-800">
         <button disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))} className="rounded-lg border border-neutral-300 px-4 py-2 text-sm disabled:opacity-40 dark:border-neutral-700">← Trước</button>
         {step < STEPS.length - 1 && (
-          <button disabled={!canNext} onClick={() => setStep((s) => s + 1)} className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-900">Tiếp →</button>
+          <button disabled={!canNext} onClick={() => setStep((s) => s + 1)} className="rounded-lg bg-primary-600 hover:bg-primary-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-40">Tiếp →</button>
         )}
       </div>
     </div>
@@ -291,8 +291,8 @@ function ScreensEditor({ index, manifests, layout, runName, screens, setScreens 
       )}
       <div className="mb-4 flex flex-wrap gap-1.5">
         {list.map((s) => (
-          <button key={s.id} onClick={() => setSel(s.id)} className={`rounded-lg border px-3 py-1.5 text-sm ${sel === s.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 text-neutral-600 dark:border-neutral-700'}`}>
-            {s.id}{count(s.id) > 0 && <span className="ml-1.5 rounded-full bg-teal-600 px-1.5 text-[10px] text-white">{count(s.id)}</span>}
+          <button key={s.id} onClick={() => setSel(s.id)} className={`rounded-lg border px-3 py-1.5 text-sm ${sel === s.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-950' : 'border-neutral-300 text-neutral-600 dark:border-neutral-700'}`}>
+            {s.id}{count(s.id) > 0 && <span className="ml-1.5 rounded-full bg-primary-600 px-1.5 text-[10px] text-white">{count(s.id)}</span>}
           </button>
         ))}
       </div>

@@ -3,6 +3,17 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.29.1 — 2026-09-02
+
+**Reskin nhẹ — màu brand + icon nav.** Giữ triết lý console mật-độ-cao và dark mode; không đụng logic/queries/Supabase.
+- Thêm palette brand **`primary`** (blue 50–950) qua `@theme` trong `index.css` — tách khỏi 3 màu-có-nghĩa (đỏ/vàng/lục).
+- **Nav** (`Shell.tsx`): logo tile brand + **icon lucide** cho từng mục; active state đổi từ đen đặc sang
+  `bg-primary-50 text-primary-700` (dark: `primary-950/300`).
+- Mọi **nút primary + tab active** (Login/Ads/Requests/Stores/Users/AdsBuilder…): `bg-neutral-900`+đảo-màu →
+  **`bg-primary-600 hover:bg-primary-700`**, đồng nhất cả sáng lẫn tối.
+- Gộp accent cũ **teal → primary** để không chỏi màu.
+- Dep mới `lucide-react`; đã cập nhật cả `pnpm-lock.yaml` (Vercel deploy `pnpm install` frozen).
+
 ## 3.29.0 — 2026-08-29
 
 **AdZones/Ads Builder/Ads V2 + Quản lý app.**

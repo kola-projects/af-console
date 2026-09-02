@@ -169,7 +169,7 @@ export function NavMap({ navText, runName, shotForScreen, onPick }: {
   if (!nodes.length) return null
   return (
     <section>
-      <div className="mb-2 flex items-baseline gap-3"><span className="font-mono text-xs text-teal-600">01</span><h3 className="text-base font-semibold">Navigation map</h3><span className="font-mono text-[11px] text-neutral-400">navigation_map.md · kéo để pan · nút zoom</span></div>
+      <div className="mb-2 flex items-baseline gap-3"><span className="font-mono text-xs text-primary-600">01</span><h3 className="text-base font-semibold">Navigation map</h3><span className="font-mono text-[11px] text-neutral-400">navigation_map.md · kéo để pan · nút zoom</span></div>
       <div className="mb-2 flex gap-1.5">
         <button onClick={() => setS((v) => Math.min(2.4, v * 1.2))} className="h-8 w-8 rounded-lg border border-neutral-300 dark:border-neutral-700">+</button>
         <button onClick={() => setS((v) => Math.max(.4, v / 1.2))} className="h-8 w-8 rounded-lg border border-neutral-300 dark:border-neutral-700">−</button>
@@ -211,7 +211,7 @@ function ScreenGrid({ index, runName, shotForScreen, manifests, onPick, defLayou
 }) {
   return (
     <section>
-      <div className="mb-3 flex items-baseline gap-3"><span className="font-mono text-xs text-teal-600">02</span><h3 className="text-base font-semibold">Danh sách màn — gắn ads (Plan B)</h3><span className="font-mono text-[11px] text-neutral-400">ảnh thật + zone</span></div>
+      <div className="mb-3 flex items-baseline gap-3"><span className="font-mono text-xs text-primary-600">02</span><h3 className="text-base font-semibold">Danh sách màn — gắn ads (Plan B)</h3><span className="font-mono text-[11px] text-neutral-400">ảnh thật + zone</span></div>
       <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(120px,1fr))' }}>
         {index.screens.map((sc) => {
           const layout = sc.layouts.includes(defLayout) ? defLayout : sc.layouts[0]
@@ -219,7 +219,7 @@ function ScreenGrid({ index, runName, shotForScreen, manifests, onPick, defLayou
           const shot = shotForScreen(sc.id)
           const zc = m?.zones.length ?? 0
           return (
-            <button key={sc.id} onClick={() => onPick(sc.id, layout)} className="overflow-hidden rounded-xl border border-neutral-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-teal-500 dark:border-neutral-800 dark:bg-neutral-900">
+            <button key={sc.id} onClick={() => onPick(sc.id, layout)} className="overflow-hidden rounded-xl border border-neutral-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary-500 dark:border-neutral-800 dark:bg-neutral-900">
               <div className="relative bg-neutral-50 dark:bg-neutral-950">
                 {shot ? <Shot runName={runName} path={shot} className="block w-full" /> : <div className="grid aspect-[66/140] place-items-center font-mono text-[10px] text-neutral-400">chưa có ảnh</div>}
               </div>
@@ -276,7 +276,7 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
         <div className="mb-1 text-sm font-semibold capitalize">{manifest.screen.replace(/_/g, ' ')} <span className="font-mono text-[11px] font-normal text-neutral-400">· {manifest.layout}</span></div>
         <div className="mb-2 flex gap-2">
           {['native', 'banner'].map((f) => (
-            <button key={f} onClick={() => setArmed(armed === f ? null : f)} className={`flex-1 rounded-lg border px-3 py-2 text-sm capitalize ${armed === f ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : 'border-neutral-300 dark:border-neutral-700'}`}>{f === 'native' ? '▭' : '▬'} {f}</button>
+            <button key={f} onClick={() => setArmed(armed === f ? null : f)} className={`flex-1 rounded-lg border px-3 py-2 text-sm capitalize ${armed === f ? 'border-primary-500 bg-primary-50 dark:bg-primary-950' : 'border-neutral-300 dark:border-neutral-700'}`}>{f === 'native' ? '▭' : '▬'} {f}</button>
           ))}
         </div>
         <div className="w-full max-w-[272px] rounded-[2rem] border border-neutral-300 bg-neutral-200 p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
@@ -296,7 +296,7 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
           <div className="mb-1.5 text-[11px] tracking-wide text-neutral-400 uppercase">Touchables · bấm gắn adsEvent</div>
           <div className="flex flex-wrap gap-1.5">
             {allTouch.map((t) => { const ev = events[t.id], bad = ev && evBad(t.id), syn = t.source === 'synthetic'
-              return <button key={t.id} onClick={() => setSelTouch(t.id)} title={t.semantics} className={`rounded-md border px-2 py-1 text-xs ${selTouch === t.id ? 'ring-2 ring-teal-400 ' : ''}${bad ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-950' : ev ? 'border-teal-500 bg-teal-50 dark:bg-teal-950' : syn ? 'border-dashed border-neutral-400 text-neutral-500 dark:border-neutral-600' : 'border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-400'}`}>{t.label}{ev ? ` · ${ev.type === 'rewarded' ? 'RW' : 'INT'}` : ''}</button> })}
+              return <button key={t.id} onClick={() => setSelTouch(t.id)} title={t.semantics} className={`rounded-md border px-2 py-1 text-xs ${selTouch === t.id ? 'ring-2 ring-primary-400 ' : ''}${bad ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-950' : ev ? 'border-primary-500 bg-primary-50 dark:bg-primary-950' : syn ? 'border-dashed border-neutral-400 text-neutral-500 dark:border-neutral-600' : 'border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-400'}`}>{t.label}{ev ? ` · ${ev.type === 'rewarded' ? 'RW' : 'INT'}` : ''}</button> })}
           </div>
         </div>
       </div>
@@ -306,7 +306,7 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
         <div className="rounded-xl border border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-2 dark:border-neutral-900"><h4 className="text-sm font-semibold">ad-plan (output)</h4><span className="font-mono text-xs text-neutral-400">{plan.placements.length} placement · {plan.events.length} event</span></div>
           <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-relaxed text-neutral-700 dark:text-neutral-300">{JSON.stringify(plan, null, 2)}</pre>
-          <div className="space-y-1.5 px-4 pb-4">{issues.length ? issues.map((m, i) => <div key={i} className={`rounded-md px-3 py-1.5 text-xs ${m.level === 'err' ? 'bg-red-50 text-red-700 dark:bg-red-950' : 'bg-amber-50 text-amber-700 dark:bg-amber-950'}`}>{m.level === 'err' ? '✕' : '!'} {m.msg}</div>) : <div className="rounded-md bg-teal-50 px-3 py-1.5 text-xs text-teal-700 dark:bg-teal-950 dark:text-teal-200">✓ ad-plan hợp lệ.</div>}</div>
+          <div className="space-y-1.5 px-4 pb-4">{issues.length ? issues.map((m, i) => <div key={i} className={`rounded-md px-3 py-1.5 text-xs ${m.level === 'err' ? 'bg-red-50 text-red-700 dark:bg-red-950' : 'bg-amber-50 text-amber-700 dark:bg-amber-950'}`}>{m.level === 'err' ? '✕' : '!'} {m.msg}</div>) : <div className="rounded-md bg-primary-50 px-3 py-1.5 text-xs text-primary-700 dark:bg-primary-950 dark:text-primary-200">✓ ad-plan hợp lệ.</div>}</div>
         </div>
       </div>
     </div>
@@ -328,23 +328,23 @@ function ZoneBar({ z, p, armed, onPlace, onRemove }: { z: Zone; p?: Placement; a
   if (!p) {
     const can = armed && z.accepts.includes(armed)
     return <div onClick={() => armed && onPlace(z.id)} title={z.archetype} style={{ textShadow: '0 1px 2px rgba(0,0,0,.55)' }}
-      className={`cursor-pointer rounded-md border-[1.5px] border-dashed px-2 py-0.5 text-center font-mono text-[8.5px] font-semibold backdrop-blur-[1px] ${can ? 'border-teal-400 bg-teal-500/25 text-white' : 'border-white/70 bg-black/15 text-white'}`}>
+      className={`cursor-pointer rounded-md border-[1.5px] border-dashed px-2 py-0.5 text-center font-mono text-[8.5px] font-semibold backdrop-blur-[1px] ${can ? 'border-primary-400 bg-primary-500/25 text-white' : 'border-white/70 bg-black/15 text-white'}`}>
       {z.id} · {z.archetype}
     </div>
   }
   return <div onClick={() => onRemove(z.id)} title="bấm để gỡ" style={{ textShadow: '0 1px 2px rgba(0,0,0,.4)' }}
-    className="flex cursor-pointer items-center gap-1 rounded-md border-[1.5px] border-teal-400 bg-teal-500/35 px-1.5 py-0.5 font-mono text-[8.5px] font-semibold text-white backdrop-blur-[1px]">
-    <span className="grid h-3.5 w-3.5 place-items-center rounded bg-teal-600">{z.id}</span><span className="flex-1 truncate">{p.format}:{p.name}</span><span>✕</span>
+    className="flex cursor-pointer items-center gap-1 rounded-md border-[1.5px] border-primary-400 bg-primary-500/35 px-1.5 py-0.5 font-mono text-[8.5px] font-semibold text-white backdrop-blur-[1px]">
+    <span className="grid h-3.5 w-3.5 place-items-center rounded bg-primary-600">{z.id}</span><span className="flex-1 truncate">{p.format}:{p.name}</span><span>✕</span>
   </div>
 }
 
 function ZoneCard({ z, p, armed, onPlace, onRemove, onField }: { z: Zone; p?: Placement; armed: string | null; onPlace: (zid: string, f?: string) => void; onRemove: (zid: string) => void; onField: (zid: string, k: keyof Placement, v: string) => void }) {
   if (!p) { const can = armed && z.accepts.includes(armed)
-    return <div onClick={() => armed && onPlace(z.id)} title={z.evidence} className={`cursor-pointer rounded-lg border-[1.5px] border-dashed p-2 text-center text-[9.5px] ${can ? 'border-teal-500 bg-teal-50 text-teal-700 dark:bg-teal-950' : 'border-neutral-300 text-neutral-400 dark:border-neutral-700'}`}><span className="font-mono font-semibold">{z.id}</span> · {z.archetype} — {z.accepts.join('/')}</div> }
+    return <div onClick={() => armed && onPlace(z.id)} title={z.evidence} className={`cursor-pointer rounded-lg border-[1.5px] border-dashed p-2 text-center text-[9.5px] ${can ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-950' : 'border-neutral-300 text-neutral-400 dark:border-neutral-700'}`}><span className="font-mono font-semibold">{z.id}</span> · {z.archetype} — {z.accepts.join('/')}</div> }
   const bad = z.archetype === 'in-feed' && !(Number(p.everyN) >= 2)
   return (
-    <div className={`rounded-lg border-[1.5px] p-1.5 ${bad ? 'border-red-500 bg-red-50 dark:bg-red-950' : 'border-teal-500 bg-teal-50 dark:bg-teal-950'}`}>
-      <div className="flex items-center gap-1.5"><span className={`grid h-4 w-4 place-items-center rounded font-mono text-[9px] text-white ${bad ? 'bg-red-500' : 'bg-teal-600'}`}>{z.id}</span><span className={`flex-1 truncate font-mono text-[9.5px] font-semibold ${bad ? 'text-red-600' : 'text-teal-700 dark:text-teal-300'}`}>{p.format}:{p.name}</span><button onClick={() => onRemove(z.id)} className="px-1 text-neutral-400 hover:text-red-500">✕</button></div>
+    <div className={`rounded-lg border-[1.5px] p-1.5 ${bad ? 'border-red-500 bg-red-50 dark:bg-red-950' : 'border-primary-500 bg-primary-50 dark:bg-primary-950'}`}>
+      <div className="flex items-center gap-1.5"><span className={`grid h-4 w-4 place-items-center rounded font-mono text-[9px] text-white ${bad ? 'bg-red-500' : 'bg-primary-600'}`}>{z.id}</span><span className={`flex-1 truncate font-mono text-[9.5px] font-semibold ${bad ? 'text-red-600' : 'text-primary-700 dark:text-primary-300'}`}>{p.format}:{p.name}</span><button onClick={() => onRemove(z.id)} className="px-1 text-neutral-400 hover:text-red-500">✕</button></div>
       <div className="mt-1 flex flex-wrap gap-1">
         <input value={p.name} onChange={(e) => onField(z.id, 'name', e.target.value)} className="w-24 rounded border border-neutral-300 px-1 py-0.5 font-mono text-[9.5px] dark:border-neutral-700 dark:bg-neutral-900" />
         <select value={p.template} onChange={(e) => onField(z.id, 'template', e.target.value)} className="rounded border border-neutral-300 px-0.5 py-0.5 font-mono text-[9.5px] dark:border-neutral-700 dark:bg-neutral-900"><option>small</option><option>full</option><option>adaptive</option></select>
@@ -362,7 +362,7 @@ function EventEditor({ t, ev, onSet, onField, onClose }: { t?: Touchable; ev?: A
   return (
     <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
       <div className="mb-2 flex items-center gap-2"><span className="text-sm font-semibold">{t.label}</span><span className="rounded border border-neutral-300 px-1.5 py-0.5 font-mono text-[10px] text-neutral-500 dark:border-neutral-700">{t.semantics}</span><button onClick={onClose} className="ml-auto text-neutral-400 hover:text-neutral-700">✕</button></div>
-      <div className="mb-3 flex gap-2">{(['interstitial', 'rewarded', 'none'] as const).map((ty) => <button key={ty} onClick={() => onSet(ty)} className={`flex-1 rounded-lg border px-2 py-1.5 text-xs ${(ev?.type === ty) || (!ev && ty === 'none') ? 'border-teal-500 bg-teal-50 font-medium text-teal-800 dark:bg-teal-950 dark:text-teal-200' : 'border-neutral-300 text-neutral-500 dark:border-neutral-700'}`}>{ty === 'none' ? 'Không' : ty === 'interstitial' ? 'Interstitial' : 'Rewarded'}</button>)}</div>
+      <div className="mb-3 flex gap-2">{(['interstitial', 'rewarded', 'none'] as const).map((ty) => <button key={ty} onClick={() => onSet(ty)} className={`flex-1 rounded-lg border px-2 py-1.5 text-xs ${(ev?.type === ty) || (!ev && ty === 'none') ? 'border-primary-500 bg-primary-50 font-medium text-primary-800 dark:bg-primary-950 dark:text-primary-200' : 'border-neutral-300 text-neutral-500 dark:border-neutral-700'}`}>{ty === 'none' ? 'Không' : ty === 'interstitial' ? 'Interstitial' : 'Rewarded'}</button>)}</div>
       {ev?.type && (
         <div className="flex flex-col gap-2">
           <label className="flex flex-col gap-1"><span className="font-mono text-[10px] tracking-wide text-neutral-400 uppercase">placement name</span><input value={ev.name} onChange={(e) => onField('name', e.target.value)} className="rounded border border-neutral-300 px-2 py-1 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-900" /></label>
@@ -374,7 +374,7 @@ function EventEditor({ t, ev, onSet, onField, onClose }: { t?: Touchable; ev?: A
           ) : (
             <label className="flex flex-col gap-1"><span className="font-mono text-[10px] tracking-wide text-neutral-400 uppercase">reward item (bắt buộc)</span><input value={ev.rewardItem ?? ''} placeholder="vd: unlock_theme / +5_budget" onChange={(e) => onField('rewardItem', e.target.value)} className="rounded border border-neutral-300 px-2 py-1 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-900" /></label>
           )}
-          <div className="mt-1 space-y-1">{msgs.length ? msgs.map((m, i) => <div key={i} className={`rounded-md px-2.5 py-1.5 text-xs ${m.level === 'err' ? 'bg-red-50 text-red-700 dark:bg-red-950' : 'bg-amber-50 text-amber-700 dark:bg-amber-950'}`}>{m.level === 'err' ? '✕' : '!'} {m.msg}</div>) : <div className="rounded-md bg-teal-50 px-2.5 py-1.5 text-xs text-teal-700 dark:bg-teal-950 dark:text-teal-200">✓ Hợp lệ.</div>}</div>
+          <div className="mt-1 space-y-1">{msgs.length ? msgs.map((m, i) => <div key={i} className={`rounded-md px-2.5 py-1.5 text-xs ${m.level === 'err' ? 'bg-red-50 text-red-700 dark:bg-red-950' : 'bg-amber-50 text-amber-700 dark:bg-amber-950'}`}>{m.level === 'err' ? '✕' : '!'} {m.msg}</div>) : <div className="rounded-md bg-primary-50 px-2.5 py-1.5 text-xs text-primary-700 dark:bg-primary-950 dark:text-primary-200">✓ Hợp lệ.</div>}</div>
         </div>
       )}
     </div>

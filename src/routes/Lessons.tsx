@@ -54,7 +54,7 @@ export default function Lessons() {
             onClick={() => setTab(k)}
             className={`rounded px-2.5 py-1 ${
               tab === k
-                ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                ? 'bg-primary-600 hover:bg-primary-700 text-white'
                 : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-900'
             }`}
           >
@@ -181,7 +181,7 @@ function GateCard({
           <button
             disabled={busy}
             onClick={() => onApprove(target)}
-            className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+            className="rounded bg-primary-600 hover:bg-primary-700 px-3 py-1.5 text-sm text-white disabled:opacity-50"
           >
             Duyệt lên skills
           </button>

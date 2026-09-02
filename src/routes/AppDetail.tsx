@@ -128,7 +128,7 @@ function CuratedDetail({ app }: { app: AppRow }) {
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {hasAso && (
-                <button onClick={downloadAso} disabled={zipping} className={`${btnCls} border-transparent bg-neutral-900 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900`}>
+                <button onClick={downloadAso} disabled={zipping} className={`${btnCls} border-transparent bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50`}>
                   📦 {zipping ? 'Đang nén…' : 'Tải aso.zip'}
                 </button>
               )}

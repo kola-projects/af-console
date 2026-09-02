@@ -8,7 +8,7 @@ import { b64ToDataURL, mimeOf } from '../lib/blueprint'
 /** Ô tìm app giàu: icon + tên (+team) + packageName; lọc theo code | name | packageName.
  *  Dropdown dài, cuộn. Trả về app_code qua onChange. Tái dùng nhiều nơi. */
 const norm = (s: string) => (s || '').toLowerCase().replace(/\s+/g, '')
-const INPUT = 'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-500 dark:border-neutral-700 dark:bg-neutral-900'
+const INPUT = 'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500 dark:border-neutral-700 dark:bg-neutral-900'
 
 export function AppIcon({ app }: { app: AppRow }) {
   const run = latestBlueprintRun(app)
@@ -53,7 +53,7 @@ export default function AppSearchSelect({ value, onChange, placeholder }: { valu
             filtered.map((a) => (
               <button key={a.id} type="button"
                 onMouseDown={(e) => { e.preventDefault(); onChange(appCodeOf(a) || ''); setOpen(false); setQ('') }}
-                className={`flex w-full items-center gap-3 border-b border-neutral-100 px-3 py-2.5 text-left last:border-b-0 hover:bg-neutral-100 dark:border-neutral-800/60 dark:hover:bg-neutral-800 ${appCodeOf(a) === value ? 'bg-teal-50 dark:bg-teal-950' : ''}`}>
+                className={`flex w-full items-center gap-3 border-b border-neutral-100 px-3 py-2.5 text-left last:border-b-0 hover:bg-neutral-100 dark:border-neutral-800/60 dark:hover:bg-neutral-800 ${appCodeOf(a) === value ? 'bg-primary-50 dark:bg-primary-950' : ''}`}>
                 <AppIcon app={a} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{a.name}{a.team ? <span className="font-normal text-neutral-400"> · {a.team}</span> : null}</div>

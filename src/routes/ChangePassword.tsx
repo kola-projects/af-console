@@ -104,7 +104,7 @@ export default function ChangePassword({ onClose }: { onClose: () => void }) {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 rounded bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-900"
+              className="flex-1 rounded bg-primary-600 hover:bg-primary-700 px-3 py-2 text-sm text-white disabled:opacity-40"
             >
               {loading ? 'Đang xử lý…' : 'Đổi mật khẩu'}
             </button>

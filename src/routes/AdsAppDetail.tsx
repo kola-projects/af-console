@@ -101,7 +101,7 @@ function UsageCard({
         <button
           type="button"
           onClick={onToggleDefinition}
-          className="rounded bg-neutral-900 px-2.5 py-1 text-xs text-white dark:bg-neutral-100 dark:text-neutral-900"
+          className="rounded bg-primary-600 hover:bg-primary-700 px-2.5 py-1 text-xs text-white"
         >
           {showDefinition ? 'Ẩn kịch bản' : 'Xem kịch bản (screens / flow / placements)'}
         </button>

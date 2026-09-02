@@ -52,7 +52,7 @@ export default function Ads() {
             onClick={() => setTab(k)}
             className={`rounded px-2.5 py-1 ${
               tab === k
-                ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                ? 'bg-primary-600 hover:bg-primary-700 text-white'
                 : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-900'
             }`}
           >

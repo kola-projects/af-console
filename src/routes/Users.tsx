@@ -95,7 +95,7 @@ function CreateUser({ onDone }: { onDone: () => void }) {
         </div>
         <button
           disabled={create.isPending}
-          className="rounded bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-900"
+          className="rounded bg-primary-600 hover:bg-primary-700 px-4 py-2 text-sm text-white disabled:opacity-40"
         >
           {create.isPending ? 'Đang tạo…' : 'Tạo người dùng'}
         </button>
@@ -180,7 +180,7 @@ function SetUserPassword({
             <button
               type="submit"
               disabled={m.isPending}
-              className="flex-1 rounded bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-900"
+              className="flex-1 rounded bg-primary-600 hover:bg-primary-700 px-3 py-2 text-sm text-white disabled:opacity-40"
             >
               {m.isPending ? 'Đang đổi…' : 'Đổi mật khẩu'}
             </button>
