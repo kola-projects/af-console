@@ -475,6 +475,11 @@ export interface ProductAssets {
   legal: { privacyUrl: string | null; termsUrl: string | null; verdict: string | null }
   designImages: { path: string; dataUri: string }[]
   hasDesignIndex: boolean
+  /** iOS (App Store) layout — landing page + reviewer notes. Null cho app Android. */
+  landingUrl: string | null
+  supportUrl: string | null
+  landingHtml: string | null
+  reviewNotesMd: string | null
 }
 
 // ─── Appearance variants (contract cho form ASO) ──────────────────────

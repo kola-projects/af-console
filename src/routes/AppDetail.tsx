@@ -60,12 +60,24 @@ function CuratedDetail({ app }: { app: AppRow }) {
     staleTime: 5 * 60_000,
   })
   const [showMockup, setShowMockup] = useState(false)
+  const [showLanding, setShowLanding] = useState(false)
+  const [showReview, setShowReview] = useState(false)
   const [zoom, setZoom] = useState<string | null>(null)
   const [zipping, setZipping] = useState(false)
   const [zipErr, setZipErr] = useState<string | null>(null)
   const a = assets.data
   const title = a?.title || app.name
-  const hasAso = !!(a && (a.title || a.icon || a.featureGraphic || a.screenshots.length || a.fullDesc))
+  const hasAso = !!(
+    a &&
+    (a.title ||
+      a.icon ||
+      a.featureGraphic ||
+      a.screenshots.length ||
+      a.fullDesc ||
+      a.landingHtml ||
+      a.reviewNotesMd ||
+      a.landingUrl)
+  )
 
   async function downloadAso() {
     if (!runName) return
@@ -143,6 +155,16 @@ function CuratedDetail({ app }: { app: AppRow }) {
                   📄 Terms
                 </a>
               )}
+              {a?.landingUrl && (
+                <a href={a.landingUrl} target="_blank" rel="noreferrer" className={btnCls}>
+                  🌐 Landing page
+                </a>
+              )}
+              {a?.supportUrl && !a?.legal.privacyUrl && (
+                <a href={a.supportUrl} target="_blank" rel="noreferrer" className={btnCls}>
+                  🛟 Support
+                </a>
+              )}
               <span
                 className={`${btnCls} cursor-not-allowed opacity-40`}
                 title="Sắp có ở bản tích hợp CI/CD"
@@ -205,6 +227,47 @@ function CuratedDetail({ app }: { app: AppRow }) {
               <div className="whitespace-pre-line rounded-lg border border-neutral-200 px-4 py-3 text-sm dark:border-neutral-800">
                 {a.releaseNotes}
               </div>
+            </section>
+          )}
+
+          {a.landingHtml && (
+            <section className="mt-8">
+              <SectionTitle>Landing page</SectionTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <button onClick={() => setShowLanding((v) => !v)} className={btnCls}>
+                  {showLanding ? 'Ẩn' : 'Xem'} landing page
+                </button>
+                {a.landingUrl && (
+                  <a href={a.landingUrl} target="_blank" rel="noreferrer" className={btnCls}>
+                    ↗ Mở bản live
+                  </a>
+                )}
+                <span className="text-xs text-neutral-500">
+                  Marketing URL — trang giới thiệu app (dán vào App Store Connect ▸ App Information).
+                </span>
+              </div>
+              {showLanding && (
+                <iframe
+                  title="landing"
+                  srcDoc={a.landingHtml}
+                  className="mt-3 h-[75vh] w-full rounded-lg border border-neutral-200 dark:border-neutral-800"
+                  sandbox=""
+                />
+              )}
+            </section>
+          )}
+
+          {a.reviewNotesMd && (
+            <section className="mt-8">
+              <SectionTitle>Reviewer notes (App Review Information)</SectionTitle>
+              <button onClick={() => setShowReview((v) => !v)} className={btnCls}>
+                {showReview ? 'Ẩn' : 'Xem'} ghi chú cho reviewer
+              </button>
+              {showReview && (
+                <pre className="mt-3 max-h-[60vh] overflow-auto whitespace-pre-wrap rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs leading-relaxed dark:border-neutral-800 dark:bg-neutral-900">
+                  {a.reviewNotesMd}
+                </pre>
+              )}
             </section>
           )}
 

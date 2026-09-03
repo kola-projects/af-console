@@ -3,6 +3,20 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.29.2 — 2026-09-03
+
+**Trang app iOS không còn TRỐNG — AFC đọc được layout ASO của App Store.** Trước đây `productAppAssets`
+chỉ hiểu layout ASO Android (`aso/title.txt`, `full_description.txt`, `icon_512.png`, screenshot
+`NN.png`) nên MỌI app iOS (Summonster, Inkling, Scout…) hiện trống (`hasAso=false`), dù blueprint có đủ
+file. Không đụng schema/RLS — chỉ tầng parse + render (`queries.ts`, `AppDetail.tsx`, `types.ts`).
+- **Screenshot**: matcher nới cho tên `NN_name.png` (iOS) ngoài `NN.png` (Android); gom 2 bộ
+  `appstore/screenshots/6.5in|6.9-inch` vs `raw`, **ưu tiên bản đã đóng khung**, dedupe theo tên file.
+- **Fallback iOS metadata**: title/short/full lấy từ `aso/landing.json` (`appName`/`tagline`/`heroSub`,
+  strip markup `{u:}`/`{b:}`) khi không có file `.txt` Android.
+- **Landing page**: section mới — nút xem `aso/landing/index.html` inline (iframe sandbox) + link
+  Marketing URL live. **Reviewer notes**: section mới đọc `aso/review_notes.md`, trích Marketing/Support URL.
+- `ProductAssets` thêm `landingUrl` / `supportUrl` / `landingHtml` / `reviewNotesMd` (null cho app Android).
+
 ## 3.29.1 — 2026-09-02
 
 **Reskin nhẹ — màu brand + icon nav.** Giữ triết lý console mật-độ-cao và dark mode; không đụng logic/queries/Supabase.

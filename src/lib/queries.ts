@@ -757,10 +757,63 @@ export async function productAppAssets(runName: string): Promise<ProductAssets> 
     return f ? b64ToDataURL(f.content_b64, mimeOf(f.path, f.content_type)) : null
   }
 
-  const screenshots = aso
-    .filter((f) => IMG_EXT.test(f.path) && isNumberedShot(f.path))
-    .sort((a, b) => a.path.localeCompare(b.path))
+  // Screenshot: Android = 'aso/screenshots/phone/NN.png' (isNumberedShot); iOS =
+  // 'aso/appstore/screenshots/6.5in/NN_name.png' + '/raw/NN_name.png'. Gom mọi ảnh
+  // có segment cuối BẮT ĐẦU bằng số thứ tự (01_summon…), ưu tiên bản đã đóng khung
+  // (6.5in/6.9-inch/phone) hơn 'raw', dedupe theo tên file.
+  const shotOrder = (p: string) => {
+    const l = p.toLowerCase()
+    if (/\braw\b/.test(l)) return 3
+    if (/6\.9|6_9|6\.9-inch/.test(l)) return 0
+    if (/6\.5|6_5|6\.5in/.test(l)) return 1
+    return 2 // phone/ hoặc khác
+  }
+  const shotSet = new Map<string, (typeof aso)[number]>()
+  aso
+    .filter((f) => IMG_EXT.test(f.path) && (isNumberedShot(f.path) || /(^|\/)\d{1,2}[_-]/.test(base(f.path))))
+    .forEach((f) => {
+      const k = base(f.path).replace(/^\d+[_-]?/, '') || base(f.path)
+      const cur = shotSet.get(k)
+      if (!cur || shotOrder(f.path) < shotOrder(cur.path)) shotSet.set(k, f)
+    })
+  const screenshots = [...shotSet.values()]
+    .sort((a, b) => base(a.path).localeCompare(base(b.path)))
     .map((f) => b64ToDataURL(f.content_b64, mimeOf(f.path, f.content_type)))
+
+  // iOS ASO: landing.json (appName/tagline/heroSub), landing/index.html (trang đã
+  // render), review_notes.md (Marketing/Support URL). Dùng làm fallback khi không có
+  // metadata Android (title.txt/full_description.txt…).
+  const stripMk = (s: string) =>
+    s.replace(/\{[ubi]:([^}]*)\}/g, '$1').replace(/\{[^}]*\}/g, '').trim()
+  let iosTitle: string | null = null
+  let iosTagline: string | null = null
+  let iosDesc: string | null = null
+  const landingJson = aso.find((f) => base(f.path) === 'landing.json')
+  if (landingJson) {
+    try {
+      const j = JSON.parse(b64ToText(landingJson.content_b64)) as Record<string, unknown>
+      const s = (v: unknown) => (typeof v === 'string' && v.trim() ? stripMk(v) : null)
+      iosTitle = s(j.appName)
+      iosTagline = s(j.tagline) ?? s(j.metaDesc)
+      iosDesc = s(j.heroSub) ?? s(j.metaDesc)
+    } catch {
+      /* json hỏng → bỏ qua */
+    }
+  }
+  const landingFile =
+    aso.find((f) => f.path.endsWith('landing/index.html')) ??
+    aso.find((f) => f.path.endsWith('landing/index.en.html'))
+  const landingHtml = landingFile ? b64ToText(landingFile.content_b64) : null
+  const reviewFile = aso.find((f) => /review_notes\.md$/i.test(f.path))
+  const reviewNotesMd = reviewFile ? b64ToText(reviewFile.content_b64) : null
+  let landingUrl: string | null = null
+  let supportUrl: string | null = null
+  if (reviewNotesMd) {
+    const mk = reviewNotesMd.match(/Marketing URL:\**\s*(https?:\/\/\S+?)(?:\s|$|\*)/i)
+    const su = reviewNotesMd.match(/Support URL:\**\s*(https?:\/\/\S+?)(?:\s|$|\*)/i)
+    if (mk) landingUrl = mk[1].replace(/[),.]+$/, '')
+    if (su) supportUrl = su[1].replace(/[),.]+$/, '')
+  }
 
   // legal: URL live ở legal/URLS.json (shape { pages: {privacy,terms,support} });
   // verdict ở aso/legal_urls.json (bản ASO verify). Đọc cả hai, nới lỏng key.
@@ -797,9 +850,9 @@ export async function productAppAssets(runName: string): Promise<ProductAssets> 
     .map((f) => ({ path: f.path, dataUri: b64ToDataURL(f.content_b64, mimeOf(f.path, f.content_type)) }))
 
   return {
-    title: textOf('title.txt'),
-    shortDesc: textOf('short_description.txt'),
-    fullDesc: textOf('full_description.txt'),
+    title: textOf('title.txt') ?? iosTitle,
+    shortDesc: textOf('short_description.txt') ?? iosTagline,
+    fullDesc: textOf('full_description.txt') ?? iosDesc,
     releaseNotes: textOf('release_notes.txt'),
     icon: imgOf('icon_512.png'),
     featureGraphic: imgOf('feature_graphic.png'),
@@ -807,6 +860,10 @@ export async function productAppAssets(runName: string): Promise<ProductAssets> 
     legal: { privacyUrl, termsUrl, verdict },
     designImages,
     hasDesignIndex: dp.some((f) => f.path.endsWith('index.html')),
+    landingUrl,
+    supportUrl,
+    landingHtml,
+    reviewNotesMd,
   }
 }
 
