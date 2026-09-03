@@ -3,6 +3,15 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.29.6 — 2026-09-03
+
+**Link landing page hiện NỔI BẬT trên trang app** — giúp người xem AFC nhận ra app đang xem ngay. Trước:
+landing URL chỉ parse từ `review_notes.md` (app không có review-notes ⇒ mất link) và chỉ là 1 nút nhỏ.
+- `landingUrl`/`supportUrl` lấy theo thứ tự tin cậy: `aso/metadata/marketing_url.txt` / `support_url.txt`
+  (chuẩn fastlane) → trường `marketingUrl`/`url` trong `landing.json` → parse `review_notes.md`.
+- Hiện **URL landing rõ ràng ngay dưới tên/package app** (link bấm được, mở tab mới), ngoài nút "Landing
+  page" + section preview đã có. App không có landing thì không hiện gì (không đổi).
+
 ## 3.29.5 — 2026-09-03
 
 **Hotfix build 3.29.4.** Comment JSDoc của `appIcon` chứa chuỗi `legal/*` + `/icon.png` ⇒ ghép thành

@@ -138,6 +138,18 @@ function CuratedDetail({ app }: { app: AppRow }) {
               <span>·</span>
               <span>tạo {localTime(app.created_at)}</span>
             </div>
+            {a?.landingUrl && (
+              <a
+                href={a.landingUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-xs font-medium text-primary-600 hover:underline dark:text-primary-400"
+                title="Mở trang giới thiệu app (landing page)"
+              >
+                🌐 <span className="truncate">{a.landingUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+                <span aria-hidden>↗</span>
+              </a>
+            )}
             <div className="mt-3 flex flex-wrap gap-2">
               {hasAso && (
                 <button onClick={downloadAso} disabled={zipping} className={`${btnCls} border-transparent bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50`}>

@@ -823,13 +823,29 @@ export async function productAppAssets(runName: string): Promise<ProductAssets> 
   const landingHtml = landingFile ? b64ToText(landingFile.content_b64) : null
   const reviewFile = aso.find((f) => /review_notes\.md$/i.test(f.path))
   const reviewNotesMd = reviewFile ? b64ToText(reviewFile.content_b64) : null
-  let landingUrl: string | null = null
-  let supportUrl: string | null = null
+  // landingUrl (Marketing URL) = trang giới thiệu app; hiện nổi bật để người xem AFC nhận
+  // ra app ngay. Ưu tiên aso/metadata/marketing_url.txt (chuẩn fastlane), rồi review_notes.md,
+  // rồi trường url/marketingUrl trong landing.json. supportUrl tương tự.
+  const urlText = (name: string) => {
+    const t = textOf(name)
+    return t && /^https?:\/\//i.test(t) ? t.split(/\s+/)[0] : null
+  }
+  let landingUrl: string | null = urlText('marketing_url.txt')
+  let supportUrl: string | null = urlText('support_url.txt')
+  if (landingJson && !landingUrl) {
+    try {
+      const j = JSON.parse(b64ToText(landingJson.content_b64)) as Record<string, unknown>
+      const u = (j.marketingUrl ?? j.url ?? j.landingUrl) as unknown
+      if (typeof u === 'string' && /^https?:\/\//i.test(u)) landingUrl = u
+    } catch {
+      /* bỏ qua */
+    }
+  }
   if (reviewNotesMd) {
     const mk = reviewNotesMd.match(/Marketing URL:\**\s*(https?:\/\/\S+?)(?:\s|$|\*)/i)
     const su = reviewNotesMd.match(/Support URL:\**\s*(https?:\/\/\S+?)(?:\s|$|\*)/i)
-    if (mk) landingUrl = mk[1].replace(/[),.]+$/, '')
-    if (su) supportUrl = su[1].replace(/[),.]+$/, '')
+    if (!landingUrl && mk) landingUrl = mk[1].replace(/[),.]+$/, '')
+    if (!supportUrl && su) supportUrl = su[1].replace(/[),.]+$/, '')
   }
 
   // legal: URL live ở legal/URLS.json (shape { pages: {privacy,terms,support} });
