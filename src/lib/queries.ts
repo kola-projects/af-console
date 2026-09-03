@@ -221,15 +221,26 @@ async function resolveContent(row: RawBlueprintRow): Promise<BlueprintFileConten
   return { path: row.path, content_type: row.content_type, content_b64 }
 }
 
-/** Icon đại diện của một run blueprint — MỘT request cho đúng MỘT file:
- *  ưu tiên `aso/icon_512.png` (icon final), fallback `design_previews/app_icon.svg`
- *  ('a' < 'd' nên order=path rồi limit 1 chọn đúng ưu tiên, không kéo thừa file kia). */
+/** Icon đại diện của một run blueprint — MỘT request cho đúng MỘT file. Ưu tiên theo
+ *  thứ tự alphabet của path (order=path + limit 1): `aso/icon_512.png` (Android final) >
+ *  `aso/icon/*` (iOS AppIcon) > `design_previews/app_icon.svg` / `appicon_master.png`
+ *  (icon thiết kế, dùng cho app iOS như Inkling) > `legal/*/icon.png` (Summonster).
+ *  Mọi path đều nằm trong whitelist non-admin (aso/design_previews/legal). */
 export const appIcon = async (runName: string) => {
   const res = await supabase
     .from('blueprint_files')
     .select('path,content_type,storage_key')
     .eq('run_name', runName)
-    .in('path', ['aso/icon_512.png', 'design_previews/app_icon.svg'])
+    .or(
+      [
+        'path.eq.aso/icon_512.png',
+        'path.like.aso/icon/*',
+        'path.eq.design_previews/app_icon.svg',
+        'path.eq.design_previews/app_icon.png',
+        'path.eq.design_previews/appicon_master.png',
+        'path.like.legal/*/icon.png',
+      ].join(','),
+    )
     .order('path')
     .limit(1)
   if (res.error) throw new Error(res.error.message)

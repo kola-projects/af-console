@@ -3,6 +3,14 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.29.4 — 2026-09-03
+
+**Icon app iOS hiện được** (Inkling/Summonster… trước là chữ-placeholder). `appIcon` chỉ tìm
+`aso/icon_512.png` + `design_previews/app_icon.svg` (layout Android); iOS để icon ở
+`design_previews/appicon_master.png` (Inkling) hoặc `legal/<slug>/icon.png` (Summonster). Mở rộng
+truy vấn (`.or` eq/like) bắt thêm các path đó + `aso/icon/*` — vẫn trong whitelist non-admin, ưu tiên
+theo alphabet path. App không có icon trong blueprint (Scout/PocketZen) vẫn fallback chữ cái.
+
 ## 3.29.3 — 2026-09-03
 
 **Sửa lỗi TRỐNG THẬT SỰ: mọi query blueprint còn select cột `content_b64` đã bị DROP ở migration
