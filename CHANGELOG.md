@@ -3,6 +3,17 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.29.3 — 2026-09-03
+
+**Sửa lỗi TRỐNG THẬT SỰ: mọi query blueprint còn select cột `content_b64` đã bị DROP ở migration
+0035 → lỗi 42703, cả query hỏng.** Đây mới là gốc rễ 3.29.2 chưa chạm (3.29.2 sửa parser nhưng query
+đã chết trước đó). `productAppAssets` bọc `.catch(()=>[])` nên nuốt lỗi → trang app TRỐNG; `appIcon`
+throw → icon không load (cả trang list lẫn detail). **Ảnh hưởng MỌI app** (Android lẫn iOS) mở sau 0035.
+- Bỏ `content_b64` khỏi cả 6 `.select(...)` (`appIcon`, `detectPackageName`, `blueprintFile`,
+  `blueprintDir`, appearance manifest, spec) → chỉ còn `path,content_type,storage_key`.
+- `resolveContent` chuyển **storage-first**: bytes luôn tải từ Storage qua signed URL; `content_b64`
+  chỉ còn cho schema cũ chưa migrate. Cơ chế signed-URL đã verify end-to-end (sign→fetch trả content).
+
 ## 3.29.2 — 2026-09-03
 
 **Trang app iOS không còn TRỐNG — AFC đọc được layout ASO của App Store.** Trước đây `productAppAssets`

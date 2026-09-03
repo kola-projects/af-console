@@ -195,10 +195,13 @@ export const appDetail = async (id: number) => {
 // hoặc tải từ Storage qua signed URL rồi encode base64 (không đổi viewer).
 const BLUEPRINT_BUCKET = 'blueprints'
 
+// [v3.29.3] migration 0035 ĐÃ DROP cột `content_b64` — bytes chỉ còn ở Storage.
+// KHÔNG select cột này nữa (select nó ⇒ lỗi 42703, cả query hỏng). `content_b64`
+// để optional cho tương thích ngược nếu schema cũ vẫn còn cột.
 type RawBlueprintRow = {
   path: string
   content_type: string
-  content_b64: string | null
+  content_b64?: string | null
   storage_key?: string | null
 }
 
@@ -211,7 +214,10 @@ async function contentFromStorage(storageKey: string): Promise<string> {
 }
 
 async function resolveContent(row: RawBlueprintRow): Promise<BlueprintFileContent> {
-  const content_b64 = row.content_b64 ?? (row.storage_key ? await contentFromStorage(row.storage_key) : '')
+  // Storage-first: bytes ở Storage (0017+); content_b64 chỉ còn cho schema cũ chưa migrate.
+  const content_b64 = row.storage_key
+    ? await contentFromStorage(row.storage_key)
+    : (row.content_b64 ?? '')
   return { path: row.path, content_type: row.content_type, content_b64 }
 }
 
@@ -221,7 +227,7 @@ async function resolveContent(row: RawBlueprintRow): Promise<BlueprintFileConten
 export const appIcon = async (runName: string) => {
   const res = await supabase
     .from('blueprint_files')
-    .select('path,content_b64,content_type,storage_key')
+    .select('path,content_type,storage_key')
     .eq('run_name', runName)
     .in('path', ['aso/icon_512.png', 'design_previews/app_icon.svg'])
     .order('path')
@@ -237,7 +243,7 @@ export const appIcon = async (runName: string) => {
 export const detectPackageName = async (runName: string) => {
   const res = await supabase
     .from('blueprint_files')
-    .select('path,content_b64,content_type,storage_key')
+    .select('path,content_type,storage_key')
     .eq('run_name', runName)
     .in('path', ['order.md', 'task.md'])
     .order('path')
@@ -311,7 +317,7 @@ export const blueprintFiles = async (runName: string) =>
 export const blueprintFile = async (runName: string, path: string) => {
   const res = await supabase
     .from('blueprint_files')
-    .select('path,content_b64,content_type,storage_key')
+    .select('path,content_type,storage_key')
     .eq('run_name', runName)
     .eq('path', path)
     .single()
@@ -324,7 +330,7 @@ export const blueprintFile = async (runName: string, path: string) => {
 export const blueprintDir = async (runName: string, prefix: string) => {
   const res = await supabase
     .from('blueprint_files')
-    .select('path,content_b64,content_type,storage_key')
+    .select('path,content_type,storage_key')
     .eq('run_name', runName)
     .like('path', `${prefix}%`)
     .order('path')
@@ -663,7 +669,7 @@ export async function appearanceInfo(code: string): Promise<AppearanceInfo> {
   // 1. manifest
   const man = await supabase
     .from('blueprint_files')
-    .select('path,content_b64,content_type,storage_key')
+    .select('path,content_type,storage_key')
     .eq('run_name', runName)
     .eq('path', 'appearance/variants.json')
     .maybeSingle()
@@ -687,7 +693,7 @@ export async function appearanceInfo(code: string): Promise<AppearanceInfo> {
   // 2. suy N từ task.md / order.md (design_variants: N)
   const spec = await supabase
     .from('blueprint_files')
-    .select('path,content_b64,content_type,storage_key')
+    .select('path,content_type,storage_key')
     .eq('run_name', runName)
     .in('path', ['order.md', 'task.md'])
     .order('path')
