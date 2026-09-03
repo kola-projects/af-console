@@ -3,7 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
-## 3.29.4 — 2026-09-03
+## 3.29.5 — 2026-09-03
+
+**Hotfix build 3.29.4.** Comment JSDoc của `appIcon` chứa chuỗi `legal/*` + `/icon.png` ⇒ ghép thành
+`*/` đóng block-comment sớm ⇒ `tsc` vỡ cả file (v3.29.4 deploy FAIL trên Vercel, production giữ 3.29.3).
+Đổi ví dụ path trong comment sang `legal/<slug>/icon.png`. Nội dung 3.29.4 (icon iOS) giữ nguyên.
+
+## 3.29.4 — 2026-09-03 · ⚠️ build hỏng, thay bằng 3.29.5
 
 **Icon app iOS hiện được** (Inkling/Summonster… trước là chữ-placeholder). `appIcon` chỉ tìm
 `aso/icon_512.png` + `design_previews/app_icon.svg` (layout Android); iOS để icon ở

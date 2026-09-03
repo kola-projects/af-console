@@ -223,8 +223,8 @@ async function resolveContent(row: RawBlueprintRow): Promise<BlueprintFileConten
 
 /** Icon đại diện của một run blueprint — MỘT request cho đúng MỘT file. Ưu tiên theo
  *  thứ tự alphabet của path (order=path + limit 1): `aso/icon_512.png` (Android final) >
- *  `aso/icon/*` (iOS AppIcon) > `design_previews/app_icon.svg` / `appicon_master.png`
- *  (icon thiết kế, dùng cho app iOS như Inkling) > `legal/*/icon.png` (Summonster).
+ *  `aso/icon/…` (iOS AppIcon) > `design_previews/app_icon.svg` / `appicon_master.png`
+ *  (icon thiết kế, dùng cho app iOS như Inkling) > `legal/<slug>/icon.png` (Summonster).
  *  Mọi path đều nằm trong whitelist non-admin (aso/design_previews/legal). */
 export const appIcon = async (runName: string) => {
   const res = await supabase
