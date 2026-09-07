@@ -3,6 +3,18 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.30.0 — 2026-09-07
+
+**Ads Builder nâng cấp phục vụ `adsx.sh` (adplan/2)** — soạn ad-contract đầy đủ cho một app rồi tạo order
+`type=adsx` → `./adsx.sh <orderCode>` tích hợp funnel bfx + ads Home-trở-đi một run.
+- Wizard 6 bước: App → **Style/Theme** (colorsystem dùng chung) → Layout → **Funnel (bfx)** (type mỗi màn từ
+  catalog `bfx_catalogs`, serial auto, resource-gate shift-left port từ `validate_config.py`) → **Ads Home-trở-đi**
+  (nav map + **ảnh thật** từng màn từ `blueprint/adzones` + zone overlay + touchable list, Back luôn có) → Kích hoạt.
+- Đọc adzones từ **run generate/clone** (`latestAdzonesRun`) — không dính run ads/adsx rỗng (bug run pointer).
+- Bỏ Ads V2 cũ (`add_ads {adsV2}`); tab mới tạo order `type=adsx` (payload app_code/ad_plan_id/serial/bfxVersion/scope).
+- `bfxValidate.ts` (resource-completeness) · `queries.ts` bfxCatalogs/bfxCatalog · `types.ts` adplan/2 + RequestType 'adsx'.
+- Tái dùng `NavMap`/`Shot`/`archPos` từ AdZonesView cho editor Home-trở-đi (ảnh thật), UI touchable list mới.
+
 ## 3.29.6 — 2026-09-03
 
 **Link landing page hiện NỔI BẬT trên trang app** — giúp người xem AFC nhận ra app đang xem ngay. Trước:

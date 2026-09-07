@@ -28,6 +28,14 @@ export function latestBlueprintRun(a: AppRow): string | null {
   return r ? String(r.extra!.blueprint_run) : null
 }
 
+/** run_name có ADZONES mới nhất. adzones CHỈ sinh ở run generate/clone — các run
+ *  ads/aso/adsx/legal cũng set extra.blueprint_run nhưng KHÔNG có adzones (sẽ làm
+ *  latestBlueprintRun trỏ vào run rỗng → Ads Builder trống). Dùng hàm này cho adzones. */
+export function latestAdzonesRun(a: AppRow): string | null {
+  const r = blueprintRuns(a).find((x) => x.job_kind === 'generate' || x.job_kind === 'clone')
+  return r ? String(r.extra!.blueprint_run) : null
+}
+
 /** Icon app từ blueprint của run mới nhất; app chưa có blueprint → ô chữ cái đầu.
  *  Lazy + cache vĩnh viễn theo run_name (blueprint bất biến sau khi push). */
 export function AppIcon({ app, size = 32 }: { app: AppRow; size?: number }) {

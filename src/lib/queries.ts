@@ -5,6 +5,7 @@ import type {
   AdPlan,
   AdPlanBody,
   AfVersion,
+  BfxCatalogRow,
   AppRequest,
   AppearanceInfo,
   AppearanceManifest,
@@ -988,6 +989,28 @@ export const adsProfileMatrix = async () =>
       .order('profile_id')
       .order('version', { ascending: false }),
   )
+
+// ─── bfx catalogs (migration 0036) — nguồn schema funnel cho Ads Builder ─────
+// Bảng bfx_catalogs RLS admin-only; AFC session admin đọc được. Snapshot theo
+// bfxVersion; nguồn sự thật vẫn ở git bfx (ingest bằng tools/bfx_ingest.py).
+
+/** Danh sách version bfx đã ingest (mới nhất trước) — cho dropdown chọn bfxVersion. */
+export const bfxCatalogs = async () =>
+  unwrap<{ bfx_version: string; imported_at: string }[]>(
+    await supabase
+      .from('bfx_catalogs')
+      .select('bfx_version,imported_at')
+      .order('bfx_version', { ascending: false }),
+  )
+
+/** catalog_json của một version (bỏ trống → bản mới nhất). Null nếu chưa ingest bản nào. */
+export const bfxCatalog = async (version?: string): Promise<BfxCatalogRow | null> => {
+  let q = supabase.from('bfx_catalogs').select('bfx_version,catalog_json')
+  q = version ? q.eq('bfx_version', version) : q.order('bfx_version', { ascending: false })
+  const res = await q.limit(1).maybeSingle()
+  if (res.error) throw new Error(res.error.message)
+  return (res.data as BfxCatalogRow | null) ?? null
+}
 
 // ─── ad_plans (migration 0033) — Ads Builder CRUD (admin-only qua RLS) ───────
 export const adPlans = async () =>

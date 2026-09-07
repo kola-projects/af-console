@@ -56,7 +56,7 @@ function useShot(runName: string, path?: string | null) {
   const q = useQuery({ queryKey: ['bpshot', runName, path], queryFn: () => blueprintFile(runName, path!), enabled: !!runName && !!path })
   return q.data ? b64ToDataURL(q.data.content_b64, mimeOf(path!, q.data.content_type)) : null
 }
-function Shot({ runName, path, className, alt }: { runName: string; path?: string | null; className?: string; alt?: string }) {
+export function Shot({ runName, path, className, alt }: { runName: string; path?: string | null; className?: string; alt?: string }) {
   const url = useShot(runName, path)
   if (!url) return <div className={`${className || ''} bg-neutral-100 dark:bg-neutral-800`} style={{ minHeight: 40 }} />
   return <img src={url} className={className} alt={alt || ''} draggable={false} />
@@ -314,7 +314,7 @@ export function AdScreenEditor({ manifest, runName, placements, events, setPlace
 }
 
 // vị trí overlay zone lên ảnh theo archetype (neo dọc gần đúng — manifest chưa có toạ-độ pixel)
-function archPos(a: string): React.CSSProperties {
+export function archPos(a: string): React.CSSProperties {
   switch (a) {
     case 'below-header': return { top: '8%' }
     case 'content-flow': return { top: '43%' }

@@ -418,8 +418,8 @@ export interface UploadedFile {
   type: string
 }
 
-// ─── Requests queue (0020) ────────────────────────────────────────────
-export type RequestType = 'make_app' | 'add_ads' | 'update_aso'
+// ─── Requests queue (0020; 'adsx' thêm ở 0037) ────────────────────────
+export type RequestType = 'make_app' | 'add_ads' | 'update_aso' | 'adsx'
 export type RequestStatus =
   | 'submitted'
   | 'accepted'
@@ -461,6 +461,7 @@ export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
   make_app: 'Make app',
   add_ads: 'Ads integration',
   update_aso: 'ASO',
+  adsx: 'Ads (adsx)',
 }
 
 /** Asset trang sản phẩm (/apps/:id) đọc từ blueprint whitelisted (aso/design/legal). */
@@ -522,15 +523,73 @@ export interface SignupStatus {
   bootstrap: boolean
 }
 
+// ─── bfx catalog (migration 0036) — nguồn schema funnel cho Ads Builder ──────
+/** Một resource-slot của một type bfx: kind + có bắt buộc + thứ tự resolve
+ *  (passed → default → aigen), count (mảng), default (giá trị mặc định),
+ *  conformance (kích thước ảnh phải khớp/đóng băng khi AI-gen). */
+export interface BfxResourceRule {
+  kind: string
+  required: boolean
+  resolve: string[]
+  count?: number
+  default?: string | string[]
+  conformance?: { width: number; height: number }
+}
+/** Một type bfx (S1/L1/O1/W1/U1): màn nó phục vụ + adSlots + schema resource. */
+export interface BfxType {
+  code: string
+  screen: string // Splash | Language | Onboarding | WelcomeBack | Uninstall
+  title: string
+  sinceVersion?: string
+  adSlots: string[]
+  resources: Record<string, BfxResourceRule>
+}
+export interface BfxCatalog {
+  bfxVersion: string
+  types: Record<string, BfxType>
+}
+/** Một dòng bảng bfx_catalogs (chỉ trường AFC cần đọc). */
+export interface BfxCatalogRow {
+  bfx_version: string
+  catalog_json: BfxCatalog
+  imported_at?: string
+}
+
+// ─── ad_plans (0033) — adplan/2 (nâng cấp ở 0037 cho adsx) ───────────────────
+/** Bộ màu dùng chung (funnel reskin + Home-trở-đi skin cùng một colorsystem).
+ *  source: 'host' (đọc colors.xml/blueprint) | 'style:<id>' | 'manual'. */
+export interface AdPlanTheme {
+  source: string
+  mode: 'dark' | 'light'
+  tokens: Record<string, string> // primary/background/surface/onSurface/accent
+}
+/** Khối funnel của adplan/2: chốt version bfx + serial (SxLxOxWxUx) + type mỗi màn
+ *  + resource đắp thêm ("<TYPE>.<slot>" -> value | array | "aigen"). */
+export interface AdPlanFunnel {
+  bfxVersion: string
+  serial: string
+  screens: Record<string, string> // screenName -> typeCode (Splash->S1…)
+  resources: Record<string, unknown>
+}
+/** Ads Home-trở-đi cho MỘT màn: placements (zone) + events (touchable). */
+export interface AdPlanScreenAds {
+  placements: Record<string, unknown>
+  events: Record<string, unknown>
+}
 /** ad_plans (migration 0033) — ad-contract đầy đủ soạn bằng Ads Builder.
- *  plan.body: funnel templates + style/layout + ads Home-onward. Xem AdsBuilder.tsx. */
+ *  adplan/2 (Ads Builder mới, phục vụ adsx.sh): thêm scope/theme + funnel (khối bfx).
+ *  Giữ tương thích đọc adplan/1 cũ: funnel có thể là Record<screenId,templateCode>. */
 export interface AdPlanBody {
   schema: string
   app?: string
-  funnel?: Record<string, string>            // screenId -> templateCode (BF)
+  scope?: 'front-funnel' | 'full'
   style?: string | null
   layout?: string | null
-  screens?: Record<string, { placements: Record<string, unknown>; events: Record<string, unknown> }>
+  theme?: AdPlanTheme
+  /** adplan/2: khối funnel bfx. adplan/1 (cũ): map screenId -> templateCode. */
+  funnel?: AdPlanFunnel | Record<string, string>
+  /** Ads Home-trở-đi theo màn (adplan/1 lẫn /2 dùng chung khoá này). */
+  screens?: Record<string, AdPlanScreenAds>
 }
 export interface AdPlan {
   id: number
