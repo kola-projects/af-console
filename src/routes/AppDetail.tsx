@@ -7,6 +7,7 @@ import {
   appLearning,
   appNewLessons,
   asoZipBytes,
+  designZipBytes,
   productAppAssets,
 } from '../lib/queries'
 import { appCodeOf } from '../lib/types'
@@ -65,6 +66,8 @@ function CuratedDetail({ app }: { app: AppRow }) {
   const [zoom, setZoom] = useState<string | null>(null)
   const [zipping, setZipping] = useState(false)
   const [zipErr, setZipErr] = useState<string | null>(null)
+  const [dZipping, setDZipping] = useState(false)
+  const [dZipErr, setDZipErr] = useState<string | null>(null)
   const a = assets.data
   const title = a?.title || app.name
   const hasAso = !!(
@@ -78,6 +81,7 @@ function CuratedDetail({ app }: { app: AppRow }) {
       a.reviewNotesMd ||
       a.landingUrl)
   )
+  const hasDesign = !!(a && (a.designImages.length || a.hasDesignIndex))
 
   async function downloadAso() {
     if (!runName) return
@@ -98,6 +102,28 @@ function CuratedDetail({ app }: { app: AppRow }) {
       setZipErr(e instanceof Error ? e.message : String(e))
     } finally {
       setZipping(false)
+    }
+  }
+
+  async function downloadDesign() {
+    if (!runName) return
+    setDZipping(true)
+    setDZipErr(null)
+    try {
+      const bytes = await designZipBytes(runName)
+      const blob = new Blob([bytes.slice()], { type: 'application/zip' })
+      const url = URL.createObjectURL(blob)
+      const el = document.createElement('a')
+      el.href = url
+      el.download = `${appCodeOf(app) || 'app'}-design.zip`
+      document.body.appendChild(el)
+      el.click()
+      el.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setDZipErr(e instanceof Error ? e.message : String(e))
+    } finally {
+      setDZipping(false)
     }
   }
 
@@ -156,6 +182,11 @@ function CuratedDetail({ app }: { app: AppRow }) {
                   📦 {zipping ? 'Đang nén…' : 'Tải aso.zip'}
                 </button>
               )}
+              {hasDesign && (
+                <button onClick={downloadDesign} disabled={dZipping} className={`${btnCls} border-transparent bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50`} title="Ảnh mọi màn app (storyboard) + navigation_map.md">
+                  🖼️ {dZipping ? 'Đang nén…' : 'Tải design.zip'}
+                </button>
+              )}
               {a?.legal.privacyUrl && (
                 <a href={a.legal.privacyUrl} target="_blank" rel="noreferrer" className={btnCls}>
                   🔒 Privacy Policy
@@ -185,6 +216,7 @@ function CuratedDetail({ app }: { app: AppRow }) {
               </span>
             </div>
             {zipErr && <div className="mt-2 text-xs text-red-600 dark:text-red-400">{zipErr}</div>}
+            {dZipErr && <div className="mt-2 text-xs text-red-600 dark:text-red-400">{dZipErr}</div>}
           </div>
         </div>
       </div>

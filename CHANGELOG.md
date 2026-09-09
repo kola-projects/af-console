@@ -3,6 +3,15 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.31.0 — 2026-09-09
+
+**Nút tải design.zip (song song aso.zip)** — AppDetail (bản curated) thêm nút **🖼️ Tải design.zip**
+(`<code>-design.zip`) cạnh **📦 Tải aso.zip**, gói toàn bộ `design_previews/**` = mockup + `navigation_map.md`
++ `screens/` storyboard (ảnh THẬT mọi màn app). Thêm `designZipBytes(runName)` trong `queries.ts` (fflate
+`zipSync`). Nút hiện khi app có design preview. Đồng bộ kit AF v5.28.0 (design_preview = ảnh mọi màn
+Android+iOS; navigation_map GỘP vào `design_previews/`). **KHÔNG cần migration RLS mới** — `design_previews/`
+đã whitelist non-admin ở 0023.
+
 ## 3.30.1 — 2026-09-09
 
 **Fix: landing page hiện LINK thay vì chỉ embed** — AppDetail resolve `landingUrl` (Marketing URL) từ

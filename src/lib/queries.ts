@@ -735,6 +735,17 @@ export async function asoZipBytes(runName: string): Promise<Uint8Array> {
   return zipSync(entries, { level: 6 })
 }
 
+/** Gói design preview thành zip — song song aso.zip. Nội dung = toàn bộ design_previews/**
+ *  (mockup + navigation_map.md + screens/ ảnh THẬT mọi màn). Whitelist non-admin (RLS 0023).
+ *  Path trong zip bỏ tiền tố 'design_previews/'. */
+export async function designZipBytes(runName: string): Promise<Uint8Array> {
+  const files = await blueprintDir(runName, 'design_previews/')
+  if (!files.length) throw new Error('App này chưa có design preview (thư mục design_previews/ trống).')
+  const entries: Record<string, Uint8Array> = {}
+  for (const f of files) entries[f.path.replace(/^design_previews\//, '')] = b64ToBytes(f.content_b64)
+  return zipSync(entries, { level: 6 })
+}
+
 /** Store options cho form ASO/Make+ASO — đọc view an toàn v_stores (0014;
  *  cột nhạy cảm đã REVOKE, view chỉ lộ trường công khai). */
 export const storeOptions = async () => {
