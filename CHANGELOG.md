@@ -3,6 +3,17 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.31.1 — 2026-09-09
+
+**Fix: design preview / design.zip đọc từ run GENERATE thay vì run mới nhất** — `design_previews/`
+(screens + `navigation_map.md`) thuộc run **generate/clone** (nơi build app + chụp màn). Nhưng
+AppDetail đọc mọi asset từ `latestBlueprintRun` (run mới nhất có blueprint) = run **aso/legal** khi
+chúng chạy SAU generate → snapshot của aso/legal thiếu screens ⇒ `design.zip` chỉ có asset thiết kế
+(icon/bg/ob_hero), **thiếu `screens/` + `navigation_map.md`** (user báo tải về không khớp storyboard).
+Tách nguồn: design_previews đọc từ `generateBlueprintRun(app)` (alias `latestAdzonesRun` — run
+generate/clone), aso/legal vẫn từ latest. `productAppAssets(runName, designRun)` +
+`designZipBytes(designRun)`. Không đổi RLS/schema.
+
 ## 3.31.0 — 2026-09-09
 
 **Nút tải design.zip (song song aso.zip)** — AppDetail (bản curated) thêm nút **🖼️ Tải design.zip**

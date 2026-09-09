@@ -18,6 +18,7 @@ import {
   PackageName,
   appLastUpdate,
   blueprintRuns as blueprintRunsOf,
+  generateBlueprintRun,
   latestBlueprintRun,
 } from '../components/appMeta'
 import HtmlMockupView from './blueprint/HtmlMockupView'
@@ -54,9 +55,13 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
  *  mô tả + có gì mới + design preview + legal. Đọc asset từ blueprint whitelisted. */
 function CuratedDetail({ app }: { app: AppRow }) {
   const runName = latestBlueprintRun(app)
+  // design_previews (screens + navigation_map) thuộc run GENERATE/CLONE, KHÁC aso/legal ở run mới
+  // nhất — nếu đọc từ latest, aso/legal chạy sau generate sẽ thiếu screens (đã gặp: design.zip chỉ có
+  // asset, không có screens/navmap). Đọc design từ generateBlueprintRun; aso/legal vẫn từ latest.
+  const designRun = generateBlueprintRun(app) ?? runName
   const assets = useQuery({
-    queryKey: ['product-assets', runName],
-    queryFn: () => productAppAssets(runName!),
+    queryKey: ['product-assets', runName, designRun],
+    queryFn: () => productAppAssets(runName!, designRun ?? undefined),
     enabled: !!runName,
     staleTime: 5 * 60_000,
   })
@@ -106,11 +111,12 @@ function CuratedDetail({ app }: { app: AppRow }) {
   }
 
   async function downloadDesign() {
-    if (!runName) return
+    const dRun = designRun ?? runName
+    if (!dRun) return
     setDZipping(true)
     setDZipErr(null)
     try {
-      const bytes = await designZipBytes(runName)
+      const bytes = await designZipBytes(dRun)
       const blob = new Blob([bytes.slice()], { type: 'application/zip' })
       const url = URL.createObjectURL(blob)
       const el = document.createElement('a')

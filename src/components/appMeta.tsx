@@ -36,6 +36,11 @@ export function latestAdzonesRun(a: AppRow): string | null {
   return r ? String(r.extra!.blueprint_run) : null
 }
 
+/** run_name của run GENERATE/CLONE — nơi build app + `design_previews/` (gồm navigation_map +
+ *  screens). Dùng cho design preview / design.zip: aso/legal chạy SAU generate làm
+ *  `latestBlueprintRun` trỏ vào snapshot của chúng (thiếu screens), nên đọc design từ run này. */
+export const generateBlueprintRun = latestAdzonesRun
+
 /** Icon app từ blueprint của run mới nhất; app chưa có blueprint → ô chữ cái đầu.
  *  Lazy + cache vĩnh viễn theo run_name (blueprint bất biến sau khi push). */
 export function AppIcon({ app, size = 32 }: { app: AppRow; size?: number }) {

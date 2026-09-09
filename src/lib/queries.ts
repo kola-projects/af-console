@@ -769,12 +769,16 @@ const IMG_EXT = /\.(png|jpe?g|webp|gif)$/i
 const isNumberedShot = (path: string) => /(^|\/)\d+\.(png|jpe?g|webp)$/i.test(path)
 
 /** Đọc aso/ + legal/ + design_previews/ (RLS 0023 whitelist) → dữ liệu cho trang
- *  sản phẩm thân thiện. Chịu lỗi từng nhóm (app có thể thiếu nhóm nào đó). */
-export async function productAppAssets(runName: string): Promise<ProductAssets> {
+ *  sản phẩm thân thiện. Chịu lỗi từng nhóm (app có thể thiếu nhóm nào đó).
+ *  `designRun` (mặc định = runName): design_previews thuộc run GENERATE/CLONE (nơi build app +
+ *  chụp screens), KHÁC aso/legal ở run mới nhất — nếu không tách, aso/legal chạy SAU generate làm
+ *  `latestBlueprintRun` trỏ vào snapshot của chúng (thiếu screens mới thêm). */
+export async function productAppAssets(runName: string, designRun?: string): Promise<ProductAssets> {
+  const dRun = designRun || runName
   const [aso, legal, dp] = await Promise.all([
     blueprintDir(runName, 'aso/').catch(() => []),
     blueprintDir(runName, 'legal/').catch(() => []),
-    blueprintDir(runName, 'design_previews/').catch(() => []),
+    blueprintDir(dRun, 'design_previews/').catch(() => []),
   ])
   const base = (p: string) => p.split('/').pop() ?? p
   const textOf = (name: string) => {
