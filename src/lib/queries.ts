@@ -163,12 +163,17 @@ export const appDetailPublic = async (id: number): Promise<AppRow | null> => {
     .eq('app_id', id)
     .order('started_at', { ascending: false })
   if (bpRes.error) throw new Error(bpRes.error.message)
+  // v_app_blueprints KHÔNG có job_kind → suy từ tiền tố run_name. Run external (aso/legal/ads/…) đặt
+  // tên "aso-…"/"legal-…"; run GENERATE/CLONE tên theo thư mục app "YYMMDD-<code>-<name>" (bắt đầu bằng
+  // 6 chữ số). Cần đúng job_kind để generateBlueprintRun() lấy được run generate (nơi có design_previews
+  // screens) thay vì run aso mới nhất (thiếu screens). Xem CHANGELOG 3.31.2.
+  const EXTERNAL_PREFIX = /^(aso|legal|ads|adsx|adsf|adzones|filter|filterlab|cicd)[-_]/i
   return {
     ...(appRes.data as Omit<AppRow, 'runs'>),
     runs: ((bpRes.data ?? []) as { run_name: string; started_at: string }[]).map((b) => ({
       id: 0,
       run_name: b.run_name,
-      job_kind: 'generate' as const,
+      job_kind: EXTERNAL_PREFIX.test(b.run_name) ? ('aso' as const) : ('generate' as const),
       status: 'completed' as const,
       af_version: null,
       started_at: b.started_at,

@@ -3,6 +3,16 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.31.2 — 2026-09-09
+
+**Fix (tiếp 3.31.1): suy `job_kind` thật trong `appDetailPublic` để `generateBlueprintRun` hoạt động** —
+3.31.1 chưa đủ: đường `/apps/:id` (curated) đọc view `v_app_blueprints` (KHÔNG có `job_kind`) rồi tổng hợp
+run với `job_kind:'generate'` **hardcode cho MỌI run** ⇒ `generateBlueprintRun` (tìm run generate đầu tiên)
+= run mới nhất = **aso** (thiếu screens). App có run aso/ads đẩy `blueprint_run` mới hơn generate (vd 01s
+Veil VPN có `aso-veil-vpn-…`) ⇒ design preview + design.zip thiếu screens; app không có (01n/01p) thì tình
+cờ đúng. Fix: `appDetailPublic` suy `job_kind` từ tiền tố run_name (`aso-`/`legal-`/`ads*-`/`adzones-`/… =
+external; còn lại `YYMMDD-…` = generate). Giờ `generateBlueprintRun` lấy đúng run generate cho MỌI app.
+
 ## 3.31.1 — 2026-09-09
 
 **Fix: design preview / design.zip đọc từ run GENERATE thay vì run mới nhất** — `design_previews/`
