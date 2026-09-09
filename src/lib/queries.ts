@@ -173,7 +173,9 @@ export const appDetailPublic = async (id: number): Promise<AppRow | null> => {
     runs: ((bpRes.data ?? []) as { run_name: string; started_at: string }[]).map((b) => ({
       id: 0,
       run_name: b.run_name,
-      job_kind: EXTERNAL_PREFIX.test(b.run_name) ? ('aso' as const) : ('generate' as const),
+      // 'ads' = marker "external, KHÔNG phải generate" (job_kind aso không có trong union; chỉ cần khác
+      // generate/clone để generateBlueprintRun bỏ qua). aso/legal đọc theo latestBlueprintRun nên nhãn ở đây vô hại.
+      job_kind: EXTERNAL_PREFIX.test(b.run_name) ? ('ads' as const) : ('generate' as const),
       status: 'completed' as const,
       af_version: null,
       started_at: b.started_at,

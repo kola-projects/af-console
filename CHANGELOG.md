@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.31.3 — 2026-09-09
+
+**Hotfix build 3.31.2:** nhãn job_kind external dùng `'ads'` (hợp union `AppRunSummary.job_kind`) thay
+`'aso'` (không có trong union → tsc fail, deploy 3.31.2 hỏng, prod giữ 3.31.1). Logic y hệt 3.31.2.
+
 ## 3.31.2 — 2026-09-09
 
 **Fix (tiếp 3.31.1): suy `job_kind` thật trong `appDetailPublic` để `generateBlueprintRun` hoạt động** —
