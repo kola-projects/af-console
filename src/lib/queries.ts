@@ -843,10 +843,11 @@ export async function productAppAssets(runName: string): Promise<ProductAssets> 
     }
   }
   if (reviewNotesMd) {
-    const mk = reviewNotesMd.match(/Marketing URL:\**\s*(https?:\/\/\S+?)(?:\s|$|\*)/i)
-    const su = reviewNotesMd.match(/Support URL:\**\s*(https?:\/\/\S+?)(?:\s|$|\*)/i)
-    if (!landingUrl && mk) landingUrl = mk[1].replace(/[),.]+$/, '')
-    if (!supportUrl && su) supportUrl = su[1].replace(/[),.]+$/, '')
+    // Nới: cho phép text giữa "URL" và ":" (vd "Marketing URL / Website:") + URL bọc trong `backtick`.
+    const mk = reviewNotesMd.match(/Marketing URL[^:\n]*:\**\s*`?\s*(https?:\/\/\S+?)`?(?:\s|$|\*|`)/i)
+    const su = reviewNotesMd.match(/Support URL[^:\n]*:\**\s*`?\s*(https?:\/\/\S+?)`?(?:\s|$|\*|`)/i)
+    if (!landingUrl && mk) landingUrl = mk[1].replace(/[)`,.]+$/, '')
+    if (!supportUrl && su) supportUrl = su[1].replace(/[)`,.]+$/, '')
   }
 
   // legal: URL live ở legal/URLS.json (shape { pages: {privacy,terms,support} });

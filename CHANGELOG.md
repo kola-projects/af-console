@@ -3,6 +3,14 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.30.1 — 2026-09-09
+
+**Fix: landing page hiện LINK thay vì chỉ embed** — AppDetail resolve `landingUrl` (Marketing URL) từ
+`review_notes.md` bằng regex quá chặt (`/Marketing URL:/`) nên trượt khi aso-expert viết
+`**Marketing URL / Website**:` và URL bọc trong `` `backtick` ``. Nới regex trong `queries.ts`: cho phép
+text giữa "URL" và ":" + strip backtick (áp cho cả Support URL). Kèm fix phía kit (AF v5.27.1:
+`landing_publish.sh` ghi `marketing_url.txt` — nguồn ưu tiên hơn) nên landing luôn có link. (Phát hiện ở app Veil VPN 01s.)
+
 ## 3.30.0 — 2026-09-07
 
 **Ads Builder nâng cấp phục vụ `adsx.sh` (adplan/2)** — soạn ad-contract đầy đủ cho một app rồi tạo order
