@@ -481,6 +481,9 @@ export interface ProductAssets {
   supportUrl: string | null
   landingHtml: string | null
   reviewNotesMd: string | null
+  /** [v5.30.0] Video demo permission (foreground service / quyền nhạy cảm) — link DIRECT host
+   *  GitHub Pages public để nhân sự ASO tải + nộp Play Console. Video KHÔNG nằm trong aso.zip. */
+  permissionVideos: { permission: string; urlDirect: string; urlPages: string }[]
 }
 
 // ─── Appearance variants (contract cho form ASO) ──────────────────────

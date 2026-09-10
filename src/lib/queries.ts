@@ -738,6 +738,9 @@ export async function asoZipBytes(runName: string): Promise<Uint8Array> {
   const files = await blueprintDir(runName, 'aso/')
   if (!files.length) throw new Error('App này chưa có gói ASO (thư mục aso/ trống).')
   const entries: Record<string, Uint8Array> = {}
+  // [v5.30.0] Video demo permission (permission_videos/*.mp4) VẪN nằm trong aso.zip — nhẹ (~1-2MB),
+  // để nhân sự ASO có đủ mọi thứ trong một gói. Ngoài ra AppDetail còn hiện link DIRECT riêng
+  // (permission_videos.json) để tải nhanh không cần giải nén.
   for (const f of files) entries[f.path.replace(/^aso\//, '')] = b64ToBytes(f.content_b64)
   return zipSync(entries, { level: 6 })
 }
@@ -906,6 +909,28 @@ export async function productAppAssets(runName: string, designRun?: string): Pro
     .filter((f) => IMG_EXT.test(f.path) || f.path.endsWith('.svg'))
     .map((f) => ({ path: f.path, dataUri: b64ToDataURL(f.content_b64, mimeOf(f.path, f.content_type)) }))
 
+  // Permission demo videos: aso/permission_videos.json → link DIRECT (host GitHub Pages public)
+  // để nhân sự ASO tải/nộp vào Play Console. Video KHÔNG nằm trong aso.zip (chỉ link).
+  const permissionVideos: ProductAssets['permissionVideos'] = []
+  const pvJson = aso.find((f) => base(f.path) === 'permission_videos.json')
+  if (pvJson) {
+    try {
+      const j = JSON.parse(b64ToText(pvJson.content_b64)) as Record<string, unknown>
+      const vids = Array.isArray(j.videos) ? j.videos : []
+      for (const v of vids as Record<string, unknown>[]) {
+        const urlDirect = asStr(v.url_raw_direct) ?? asStr(v.url_pages)
+        if (!urlDirect) continue
+        permissionVideos.push({
+          permission: asStr(v.permission) ?? 'permission',
+          urlDirect,
+          urlPages: asStr(v.url_pages) ?? urlDirect,
+        })
+      }
+    } catch {
+      /* json hỏng → bỏ qua */
+    }
+  }
+
   return {
     title: textOf('title.txt') ?? iosTitle,
     shortDesc: textOf('short_description.txt') ?? iosTagline,
@@ -921,6 +946,7 @@ export async function productAppAssets(runName: string, designRun?: string): Pro
     supportUrl,
     landingHtml,
     reviewNotesMd,
+    permissionVideos,
   }
 }
 

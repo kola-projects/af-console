@@ -3,6 +3,16 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.32.0 — 2026-09-10
+
+**Link video demo permission DIRECT trong AppDetail (đồng bộ AF v5.30.0).** ASO giờ sinh
+`blueprint/aso/permission_videos/<perm>.mp4` (video demo foreground-service/quyền nhạy cảm, AI tự quay) +
+`blueprint/aso/permission_videos.json` (host GitHub Pages public). AppDetail:
+- Đọc `permission_videos.json` (`productAppAssets` → `ProductAssets.permissionVideos`) và hiện nút
+  **🎥 Video &lt;PERMISSION&gt;** = link DIRECT (`url_raw_direct` raw.githubusercontent, tải thẳng) để nhân sự
+  ASO tải về nộp Play Console (App content → Permissions), không cần giải nén.
+- **Video VẪN nằm trong `aso.zip`** (nhẹ ~1-2MB — gói đủ mọi thứ trong một lần tải); link direct chỉ là lối tắt.
+
 ## 3.31.3 — 2026-09-09
 
 **Hotfix build 3.31.2:** nhãn job_kind external dùng `'ads'` (hợp union `AppRunSummary.job_kind`) thay

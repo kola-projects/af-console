@@ -193,6 +193,19 @@ function CuratedDetail({ app }: { app: AppRow }) {
                   🖼️ {dZipping ? 'Đang nén…' : 'Tải design.zip'}
                 </button>
               )}
+              {a?.permissionVideos?.map((v) => (
+                <a
+                  key={v.permission}
+                  href={v.urlDirect}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  className={btnCls}
+                  title={`Video demo quyền ${v.permission} — link DIRECT, tải về để nộp Play Console (App content → Permissions)`}
+                >
+                  🎥 Video {v.permission.replace(/^ANDROID\.PERMISSION\./i, '').replace(/_/g, ' ')}
+                </a>
+              ))}
               {a?.legal.privacyUrl && (
                 <a href={a.legal.privacyUrl} target="_blank" rel="noreferrer" className={btnCls}>
                   🔒 Privacy Policy
