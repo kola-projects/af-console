@@ -169,6 +169,21 @@ function CuratedDetail({ app }: { app: AppRow }) {
               <PackageName app={app} />
               <span>·</span>
               <span>tạo {localTime(app.created_at)}</span>
+              {app.family_code && (
+                <>
+                  <span>·</span>
+                  <span
+                    className="inline-flex items-center gap-1"
+                    title="Multi-Version: app thuộc family (family_code = mã master). Con chung một family để upgrade cả loạt."
+                  >
+                    <span className="text-neutral-400">family</span>
+                    <Mono>{app.family_code}</Mono>
+                    <Badge tone={app.family_role === 'master' ? 'good' : undefined}>
+                      {app.family_role === 'master' ? 'master' : `member #${app.family_seq ?? '?'}`}
+                    </Badge>
+                  </span>
+                </>
+              )}
             </div>
             {a?.landingUrl && (
               <a

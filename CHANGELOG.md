@@ -3,6 +3,15 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.33.0 — 2026-09-14
+
+**Surface Multi-Version family (đồng bộ AF v5.40.0).** AF thêm mode `-mv` (1 master + N app con độc lập, chung
+`family_code`). AFC hiện thông tin family (read-only, migration 0039):
+- `AppRow` + query `apps` đọc thêm `family_code` / `family_role` / `family_seq` / `variant_spec`.
+- **Apps** (`/apps`): thêm cột **Family** — `family_code` + badge `master` / `#seq`; app solo hiện `—`.
+- **AppDetail**: badge `family <code> · master|member #seq` cạnh meta header (tooltip giải thích Multi-Version).
+- Chưa có family nào thì mọi app hiện `—` (opt-in, không đổi app cũ).
+
 ## 3.32.0 — 2026-09-10
 
 **Link video demo permission DIRECT trong AppDetail (đồng bộ AF v5.30.0).** ASO giờ sinh

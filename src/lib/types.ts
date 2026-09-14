@@ -89,6 +89,17 @@ export interface AppRow {
   team?: string | null
   /** [0032] android | ios. Default 'android' cho row cũ. */
   platform?: 'android' | 'ios' | null
+  /** [0039] Multi-Version: family_code = app_code của MASTER (NULL = app solo). Con chung một family. */
+  family_code?: string | null
+  family_role?: 'master' | 'member' | null
+  family_seq?: number | null
+  variant_spec?: {
+    variantOrd?: number
+    appName?: string
+    applicationId?: string
+    secondaryFeatures?: string[]
+    palette?: Record<string, string>
+  } | null
   extra?: { app_code?: string; app_codes?: string[] } | null
   runs: AppRunSummary[]
 }

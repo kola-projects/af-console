@@ -87,7 +87,7 @@ export default function Apps() {
         {!rows.length ? (
           <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào.'}</Empty>
         ) : (
-          <Table head={['Code', 'App', 'Team', 'Package', 'Tạo lúc']}>
+          <Table head={['Code', 'App', 'Family', 'Team', 'Package', 'Tạo lúc']}>
             {rows.map((a) => (
               <Row key={a.id} onClick={() => navigate(`/apps/${a.id}`)}>
                 <Cell>
@@ -102,6 +102,18 @@ export default function Apps() {
                     <AppIcon app={a} size={32} />
                     {a.name}
                   </span>
+                </Cell>
+                <Cell>
+                  {a.family_code ? (
+                    <span className="flex items-center gap-1.5">
+                      <Mono>{a.family_code}</Mono>
+                      <Badge tone={a.family_role === 'master' ? 'good' : undefined}>
+                        {a.family_role === 'master' ? 'master' : `#${a.family_seq ?? '?'}`}
+                      </Badge>
+                    </span>
+                  ) : (
+                    <span className="text-neutral-400">—</span>
+                  )}
                 </Cell>
                 <Cell>{a.team ? <Badge>{a.team}</Badge> : <span className="text-neutral-400">—</span>}</Cell>
                 <Cell>
