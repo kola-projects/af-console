@@ -3,6 +3,20 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.34.0 — 2026-09-15
+
+**Trạng thái tích hợp app (đồng bộ AF v5.43.0, migration 0040).** Một số app đã tích hợp Ads (full/chỉ funnel)
+nhưng AFC không thấy → khó quản lý, chồng chéo. AFC không truy cập git được; AF quét repo ghi `apps.integration`,
+AFC CHỈ đọc lên hiển thị (con trỏ, không tự tính). Có ghi NGÀY QUÉT (`checked_at`).
+- `AppRow` + 4 query app (`appsWithRuns` / `appsPublic` / `appDetailPublic` / `appDetail`) đọc thêm cột `integration`.
+- Component `Integration.tsx`: `GithubLink`, `AdsBadge` (🟢 full / 🟡 funnel / —), `IntegrationChips` (Ads + ASO +
+  Legal + Landing + github), `IntegrationPanel` (đầy đủ: github, ads engine/version/nhánh, AF version build+ads,
+  aso/legal/landing, ngày quét).
+- **ManageApps** (`/manage-apps`): thêm cột **Tích hợp** + filter **Ads** (full/funnel/none/chưa quét).
+- **Apps** (`/apps`): thêm cột **Tích hợp**.
+- **AppDetail**: section **Tích hợp (quét repo)** + link **GitHub** ở cả trang quản trị lẫn trang sản phẩm.
+- App chưa quét hiện "chưa quét" (opt-in, không đổi app cũ).
+
 ## 3.33.0 — 2026-09-14
 
 **Surface Multi-Version family (đồng bộ AF v5.40.0).** AF thêm mode `-mv` (1 master + N app con độc lập, chung

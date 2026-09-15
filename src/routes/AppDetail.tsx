@@ -22,6 +22,7 @@ import {
   latestBlueprintRun,
 } from '../components/appMeta'
 import HtmlMockupView from './blueprint/HtmlMockupView'
+import { GithubLink, IntegrationChips, IntegrationPanel } from '../components/Integration'
 
 const btnCls =
   'inline-flex items-center gap-1.5 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm no-underline dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-900'
@@ -169,6 +170,12 @@ function CuratedDetail({ app }: { app: AppRow }) {
               <PackageName app={app} />
               <span>·</span>
               <span>tạo {localTime(app.created_at)}</span>
+              {app.integration?.github && (
+                <>
+                  <span>·</span>
+                  <GithubLink url={app.integration.github} compact />
+                </>
+              )}
               {app.family_code && (
                 <>
                   <span>·</span>
@@ -185,6 +192,11 @@ function CuratedDetail({ app }: { app: AppRow }) {
                 </>
               )}
             </div>
+            {app.integration?.checked_at && (
+              <div className="mt-1.5">
+                <IntegrationChips integ={app.integration} showGithub={false} />
+              </div>
+            )}
             {a?.landingUrl && (
               <a
                 href={a.landingUrl}
@@ -492,11 +504,24 @@ function Detail({ app }: { app: AppRow }) {
             <span>tạo {localTime(app.created_at)}</span>
             <span>·</span>
             <span>last update {localTime(appLastUpdate(app))}</span>
+            {app.integration?.github && (
+              <>
+                <span>·</span>
+                <GithubLink url={app.integration.github} compact />
+              </>
+            )}
           </div>
         </div>
       </div>
 
       <div className="mt-6 space-y-8">
+        <section>
+          <h2 className="text-sm font-medium text-neutral-500">Tích hợp (quét repo)</h2>
+          <div className="mt-2">
+            <IntegrationPanel integ={app.integration} />
+          </div>
+        </section>
+
         <section>
           <h2 className="text-sm font-medium text-neutral-500">Runs ({app.runs.length})</h2>
           {!app.runs.length ? (

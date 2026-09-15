@@ -91,7 +91,7 @@ export const appsWithRuns = async () =>
   unwrap<AppRow[]>(
     await supabase
       .from('apps')
-      .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
+      .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
       .order('created_at', { ascending: false })
       .order('started_at', { referencedTable: 'runs', ascending: false }),
   )
@@ -120,7 +120,7 @@ export async function setAppTeam(id: number, team: string) {
 export const appsPublic = async (): Promise<AppRow[]> => {
   const appsRes = await supabase
     .from('apps')
-    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec')
+    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration')
     .order('created_at', { ascending: false })
   if (appsRes.error) throw new Error(appsRes.error.message)
   const bpRes = await supabase.from('v_app_blueprints').select('app_id,run_name,started_at')
@@ -152,7 +152,7 @@ export const appsPublic = async (): Promise<AppRow[]> => {
 export const appDetailPublic = async (id: number): Promise<AppRow | null> => {
   const appRes = await supabase
     .from('apps')
-    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec')
+    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration')
     .eq('id', id)
     .maybeSingle()
   if (appRes.error) throw new Error(appRes.error.message)
@@ -188,7 +188,7 @@ export const appDetailPublic = async (id: number): Promise<AppRow | null> => {
 export const appDetail = async (id: number) => {
   const res = await supabase
     .from('apps')
-    .select('id,name,package_name,source_kind,created_at,extra,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
+    .select('id,name,package_name,source_kind,created_at,extra,integration,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
     .eq('id', id)
     .order('started_at', { referencedTable: 'runs', ascending: false })
     .single()

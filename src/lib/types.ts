@@ -71,6 +71,36 @@ export interface AppRunSummary {
   extra: Record<string, unknown> | null
 }
 
+/** [0040] Ảnh chụp trạng thái tích hợp do session QUÉT REPO ghi (AFC không truy cập git
+ *  → chỉ đọc cột này). Field mềm: thiếu = unknown. `{}` = app chưa được quét. */
+export interface AppIntegration {
+  checked_at?: string
+  source?: string
+  github?: string | null
+  applicationId?: string | null
+  /** AF version lúc BUILD app (từ blueprint/README, git describe). */
+  af_version?: string | null
+  ads?: {
+    status?: 'none' | 'funnel' | 'full'
+    engine?: 'adsf' | 'adsx' | 'bf-classic' | 'ads-sheet' | 'unknown' | null
+    funnel_version?: string | null
+    /** AF version của run tích hợp ads (nếu đọc được từ funnel.lock generatedBy). */
+    ads_af_version?: string | null
+    branch?: string | null
+    adsMode?: string | null
+    scope?: string | null
+    host?: string | null
+  }
+  aso?: boolean
+  /** Hiệu lực (merge repo + apps.legal_status). */
+  legal?: 'none' | 'built' | 'staged' | 'live'
+  legal_repo?: string | null
+  legal_source?: string
+  landing?: 'built' | 'live' | null
+  branch_count?: number
+  scanned_dir?: string
+}
+
 /** Một dòng bảng apps + toàn bộ run của nó. "Last update" KHÔNG có cột riêng —
  *  suy từ run mới nhất (started_at/finished_at), app chưa run nào thì lấy created_at. */
 export interface AppRow {
@@ -100,6 +130,8 @@ export interface AppRow {
     secondaryFeatures?: string[]
     palette?: Record<string, string>
   } | null
+  /** [0040] Trạng thái tích hợp do quét repo (ads/af_version/aso/legal/landing/github). */
+  integration?: AppIntegration | null
   extra?: { app_code?: string; app_codes?: string[] } | null
   runs: AppRunSummary[]
 }

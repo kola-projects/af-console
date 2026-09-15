@@ -5,6 +5,7 @@ import { appsPublic } from '../lib/queries'
 import { appCodeOf, TEAMS } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 import { AppIcon, PackageName } from '../components/appMeta'
+import { IntegrationChips } from '../components/Integration'
 
 type SortKey = 'created' | 'name' | 'code'
 
@@ -87,7 +88,7 @@ export default function Apps() {
         {!rows.length ? (
           <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào.'}</Empty>
         ) : (
-          <Table head={['Code', 'App', 'Family', 'Team', 'Package', 'Tạo lúc']}>
+          <Table head={['Code', 'App', 'Tích hợp', 'Family', 'Team', 'Package', 'Tạo lúc']}>
             {rows.map((a) => (
               <Row key={a.id} onClick={() => navigate(`/apps/${a.id}`)}>
                 <Cell>
@@ -102,6 +103,9 @@ export default function Apps() {
                     <AppIcon app={a} size={32} />
                     {a.name}
                   </span>
+                </Cell>
+                <Cell>
+                  <IntegrationChips integ={a.integration} />
                 </Cell>
                 <Cell>
                   {a.family_code ? (
