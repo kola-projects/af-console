@@ -133,9 +133,13 @@ export function HostCell({ integ }: { integ?: AppIntegration | null }) {
   const ads = integ!.ads
   const status = ads?.status ?? 'none'
   if (status === 'none') return dash
-  const hostOn = status === 'full' || ads?.host === 'true' || ads?.adsMode === 'FULL'
-  if (hostOn)
-    return <Badge tone="good"><span title="Ads chạy trong màn host (Home-trở-đi) — bản cuối cùng">🟢 Có</span></Badge>
+  const hostOn = status === 'full' || ads?.host_wired || ads?.host === 'true' || ads?.adsMode === 'FULL'
+  if (hostOn) {
+    const ev = ads?.host_wired
+      ? `slot ad màn nội dung (${ads.host_kind === 'xml' ? 'layout XML' : 'Compose'}${ads.host_ref ? ` @ ${ads.host_ref}` : ''})`
+      : 'lock khai host/full'
+    return <Badge tone="good"><span title={`Ads chạy trong màn host (Home-trở-đi) — ${ev}`}>🟢 Có</span></Badge>
+  }
   const note = ads?.host_any_branch ? ' (nhánh khác từng bật host)' : ''
   return (
     <Badge tone="warn">

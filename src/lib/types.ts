@@ -97,6 +97,11 @@ export interface AppIntegration {
     /** true = KHÔNG có file lock, funnel nhận qua dep thư viện com.bbl:funnel-* (quy trình
      *  adsf bất nhất: tích hợp thật nhưng không ghi lock). Kém chắc hơn có lock. */
     lock_missing?: boolean
+    /** true = có slot ad THẬT trong màn nội dung host (Home-trở-đi), tách khỏi màn funnel.
+     *  Gate bằng funnel_present (base cũ có slot leftover không tính). Nguồn của status='full'. */
+    host_wired?: boolean
+    host_ref?: string | null
+    host_kind?: 'kt' | 'xml' | null
     /** Có nhánh nào bật ads-host không (dù bản cuối chỉ funnel). */
     host_any_branch?: boolean
     /** Mọi (engine, version, host) DISTINCT thấy qua các nhánh — để biết có nhiều bản.

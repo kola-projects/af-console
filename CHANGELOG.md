@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.34.4 — 2026-09-15
+
+**Host phân loại theo slot ad màn nội dung (đồng bộ AF v5.45.1).** Cột Host ads giờ đúng cho app tích hợp host mà
+lock không khai: scan nhận slot ad thật trong màn Home-trở-đi (Compose/XML), gate base-leftover. `HostCell` dùng
+`ads.host_wired` + hiện bằng chứng (Compose/XML + nhánh) trong tooltip. `AppIntegration.ads` thêm
+`host_wired`/`host_ref`/`host_kind`. Kết quả: 11 app full (funnel+host) + 2 funnel-only.
+
 ## 3.34.3 — 2026-09-15
 
 **Funnel nhận qua dep (không lock) → marker ⚠ (đồng bộ AF v5.45.0).** Scan giờ bắt cả funnel tích hợp mà không ghi
