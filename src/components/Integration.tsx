@@ -86,39 +86,60 @@ export function IntegrationChips({
 const dash = <span className="text-[11px] text-neutral-400">—</span>
 const unscanned = <span className="text-[11px] text-neutral-400" title="Chưa quét repo">·</span>
 
-/** Cột FUNNEL: có funnel gì (engine + version), độc lập với việc bật ads host. */
+/** Cột FUNNEL: có funnel gì (engine + version của BẢN CUỐI CÙNG), độc lập với ads-host.
+ *  Nhiều bản qua các nhánh ⇒ hiện bản cuối + "·+N" (tooltip liệt kê toàn bộ lịch sử). */
 export function FunnelCell({ integ }: { integ?: AppIntegration | null }) {
   if (notScanned(integ)) return unscanned
   const ads = integ!.ads
   if (!ads || (ads.status ?? 'none') === 'none') return dash
-  const title = [
-    ads.engine && `engine ${ads.engine}`,
-    ads.funnel_version && `funnel ${ads.funnel_version}`,
-    ads.ads_af_version && `ads AF ${ads.ads_af_version}`,
-    ads.branch && ads.branch !== '(working-tree)' && `nhánh ${ads.branch}`,
-  ].filter(Boolean).join(' · ')
+  const seen = ads.versions_seen ?? []
+  const extra = Math.max(0, seen.length - 1)
+  const histLines =
+    seen.length > 1
+      ? '\nLịch sử (cũ→mới):\n' +
+        seen
+          .map((v) => `• ${v.engine ?? 'funnel'} ${v.funnel_version ?? ''} ${v.host ? '[host]' : '[funnel]'}${v.date ? ' ' + v.date : ''}`)
+          .join('\n')
+      : ''
+  const title =
+    [
+      ads.engine && `engine ${ads.engine}`,
+      ads.funnel_version && `funnel ${ads.funnel_version}`,
+      ads.ads_af_version && `ads AF ${ads.ads_af_version}`,
+      ads.branch && ads.branch !== '(working-tree)' && `nhánh ${ads.branch}`,
+      ads.date && `commit ${ads.date.slice(0, 10)}`,
+    ]
+      .filter(Boolean)
+      .join(' · ') + (histLines ? ` ${histLines}` : '')
   return (
-    <Badge tone="warn">
-      <span title={title}>
+    <span className="whitespace-nowrap" title={title}>
+      <Badge tone="warn">
         {ads.engine ?? 'funnel'}
         {ads.funnel_version && <> · {ads.funnel_version}</>}
-      </span>
-    </Badge>
+      </Badge>
+      {extra > 0 && <span className="ml-1 text-[10px] text-neutral-500">·+{extra}</span>}
+    </span>
   )
 }
 
-/** Cột HOST: ads có chạy trong màn THẬT của app (Home-trở-đi) không.
- *  full / host=true / adsMode=FULL ⇒ Có; chỉ funnel ⇒ Tắt; không ads ⇒ —. */
+/** Cột HOST: ads có chạy trong màn THẬT của app (Home-trở-đi) không — theo BẢN CUỐI.
+ *  full / host=true / adsMode=FULL ⇒ Có; chỉ funnel ⇒ Tắt; không ads ⇒ —.
+ *  Nếu bản cuối là funnel-only nhưng nhánh khác từng bật host ⇒ ghi chú trong tooltip. */
 export function HostCell({ integ }: { integ?: AppIntegration | null }) {
   if (notScanned(integ)) return unscanned
   const ads = integ!.ads
   const status = ads?.status ?? 'none'
   if (status === 'none') return dash
   const hostOn = status === 'full' || ads?.host === 'true' || ads?.adsMode === 'FULL'
-  return hostOn ? (
-    <Badge tone="good"><span title="Ads chạy trong màn host (Home-trở-đi)">🟢 Có</span></Badge>
-  ) : (
-    <Badge tone="warn"><span title={`Chỉ funnel, chưa gắn ads màn host${ads?.host ? ` (host=${ads.host})` : ''}`}>Tắt</span></Badge>
+  if (hostOn)
+    return <Badge tone="good"><span title="Ads chạy trong màn host (Home-trở-đi) — bản cuối cùng">🟢 Có</span></Badge>
+  const note = ads?.host_any_branch ? ' (nhánh khác từng bật host)' : ''
+  return (
+    <Badge tone="warn">
+      <span title={`Bản cuối: chỉ funnel, chưa gắn ads màn host${ads?.host ? ` (host=${ads.host})` : ''}${note}`}>
+        Tắt{ads?.host_any_branch ? '*' : ''}
+      </span>
+    </Badge>
   )
 }
 
@@ -185,6 +206,22 @@ export function IntegrationPanel({ integ }: { integ?: AppIntegration | null }) {
           )}
         </span>
       </Field>
+      {(ads?.versions_seen?.length ?? 0) > 1 && (
+        <Field label="Bản funnel đã thấy">
+          <span className="flex flex-col gap-0.5">
+            {ads!.versions_seen!.map((v, idx) => (
+              <span key={idx} className="text-xs">
+                <Mono>{v.engine ?? 'funnel'} {v.funnel_version ?? ''}</Mono>{' '}
+                <Badge tone={v.host ? 'good' : 'warn'}>{v.host ? 'host' : 'funnel-only'}</Badge>{' '}
+                <span className="text-neutral-500">
+                  {v.branch}{v.date ? ` · ${v.date}` : ''}
+                  {idx === ads!.versions_seen!.length - 1 && ' · ← bản cuối'}
+                </span>
+              </span>
+            ))}
+          </span>
+        </Field>
+      )}
       <Field label="AF version (build)">
         {i.af_version ? <Mono>{i.af_version}</Mono> : <span className="text-neutral-400">—</span>}
       </Field>

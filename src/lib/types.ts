@@ -90,6 +90,20 @@ export interface AppIntegration {
     adsMode?: string | null
     scope?: string | null
     host?: string | null
+    /** Ngày commit funnel.lock của BẢN ĐƯỢC CHỌN (bản cuối cùng). */
+    date?: string | null
+    /** Có nhánh nào bật ads-host không (dù bản cuối chỉ funnel). */
+    host_any_branch?: boolean
+    /** Mọi (engine, version, host) DISTINCT thấy qua các nhánh — để biết có nhiều bản.
+     *  Bản hiển thị (Funnel/Host) là BẢN CUỐI; đây là toàn bộ lịch sử tích hợp. */
+    versions_seen?: Array<{
+      engine?: string | null
+      funnel_version?: string | null
+      status?: string
+      host?: boolean
+      branch?: string | null
+      date?: string | null
+    }>
   }
   aso?: boolean
   /** Hiệu lực (merge repo + apps.legal_status). */

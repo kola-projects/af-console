@@ -3,6 +3,17 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.34.2 — 2026-09-15
+
+**Ads nhiều bản → hiện BẢN CUỐI + phân loại rõ host/funnel (đồng bộ AF v5.43.1).** App tích hợp ads qua nhiều nhánh
+với version khác nhau: nay hiển thị **bản funnel cuối cùng** (chọn theo commit funnel.lock mới nhất).
+- **Funnel** hiện engine+version bản cuối; có nhiều bản → thêm **·+N** (tooltip liệt kê toàn bộ lịch sử cũ→mới,
+  đánh dấu host/funnel-only từng bản).
+- **Host ads** phân loại theo bản cuối (🟢 Có / Tắt); nếu bản cuối chỉ funnel nhưng nhánh khác từng bật host →
+  hiện **Tắt\*** (tooltip ghi chú).
+- `AppIntegration.ads` đọc thêm `versions_seen` / `host_any_branch` / `date`; `IntegrationPanel` thêm mục
+  "Bản funnel đã thấy" khi >1 bản.
+
 ## 3.34.1 — 2026-09-15
 
 **Tách trạng thái tích hợp thành cột riêng ở /manage-apps.** Thay ô "Tích hợp" gộp bằng các cột độc lập cho dễ
