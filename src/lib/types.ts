@@ -92,6 +92,11 @@ export interface AppIntegration {
     host?: string | null
     /** Ngày commit funnel.lock của BẢN ĐƯỢC CHỌN (bản cuối cùng). */
     date?: string | null
+    /** Lane thư viện funnel (view30 | compose26) khi nhận qua dep. */
+    lane?: string | null
+    /** true = KHÔNG có file lock, funnel nhận qua dep thư viện com.bbl:funnel-* (quy trình
+     *  adsf bất nhất: tích hợp thật nhưng không ghi lock). Kém chắc hơn có lock. */
+    lock_missing?: boolean
     /** Có nhánh nào bật ads-host không (dù bản cuối chỉ funnel). */
     host_any_branch?: boolean
     /** Mọi (engine, version, host) DISTINCT thấy qua các nhánh — để biết có nhiều bản.

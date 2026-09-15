@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.34.3 — 2026-09-15
+
+**Funnel nhận qua dep (không lock) → marker ⚠ (đồng bộ AF v5.45.0).** Scan giờ bắt cả funnel tích hợp mà không ghi
+lock (qua dep `com.bbl:funnel-*`). FunnelCell hiện **⚠** khi `ads.lock_missing` + lane trong tooltip — cảnh báo
+"quy trình adsf bất nhất về lock". `AppIntegration.ads` đọc thêm `lane` / `lock_missing`.
+
 ## 3.34.2 — 2026-09-15
 
 **Ads nhiều bản → hiện BẢN CUỐI + phân loại rõ host/funnel (đồng bộ AF v5.43.1).** App tích hợp ads qua nhiều nhánh

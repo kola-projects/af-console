@@ -111,12 +111,15 @@ export function FunnelCell({ integ }: { integ?: AppIntegration | null }) {
     ]
       .filter(Boolean)
       .join(' · ') + (histLines ? ` ${histLines}` : '')
+  const laneStr = ads.lane ? ` · lane ${ads.lane}` : ''
+  const lockNote = ads.lock_missing ? '\n⚠ KHÔNG có file lock — nhận qua dep thư viện com.bbl:funnel-* (quy trình adsf bất nhất về lock).' : ''
   return (
-    <span className="whitespace-nowrap" title={title}>
+    <span className="whitespace-nowrap" title={title + laneStr + lockNote}>
       <Badge tone="warn">
         {ads.engine ?? 'funnel'}
         {ads.funnel_version && <> · {ads.funnel_version}</>}
       </Badge>
+      {ads.lock_missing && <span className="ml-1 text-[10px] text-amber-600 dark:text-amber-400" title="Không có file lock — nhận qua dep">⚠</span>}
       {extra > 0 && <span className="ml-1 text-[10px] text-neutral-500">·+{extra}</span>}
     </span>
   )
