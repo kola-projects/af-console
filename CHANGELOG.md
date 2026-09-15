@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.34.1 — 2026-09-15
+
+**Tách trạng thái tích hợp thành cột riêng ở /manage-apps.** Thay ô "Tích hợp" gộp bằng các cột độc lập cho dễ
+quét/so sánh: **Funnel** (engine + version), **Host ads** (ads màn host: 🟢 Có / Tắt / —), **ASO**, **Legal**,
+**Landing**, **Git** (icon repo). Component `Integration.tsx` thêm `FunnelCell`/`HostCell`/`AsoCell`/`LegalCell`/
+`LandingCell`/`GitCell`. Danh mục `/apps` + trang detail vẫn dùng chips gọn (không đổi).
+
 ## 3.34.0 — 2026-09-15
 
 **Trạng thái tích hợp app (đồng bộ AF v5.43.0, migration 0040).** Một số app đã tích hợp Ads (full/chỉ funnel)

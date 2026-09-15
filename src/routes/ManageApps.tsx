@@ -5,7 +5,7 @@ import { appsWithRuns, setAppHidden, setAppTeam } from '../lib/queries'
 import { appCodeOf, TEAMS } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 import { AppIcon, PackageName, appLastUpdate, blueprintRuns } from '../components/appMeta'
-import { IntegrationChips } from '../components/Integration'
+import { FunnelCell, HostCell, AsoCell, LegalCell, LandingCell, GitCell } from '../components/Integration'
 
 type SortKey = 'last_update' | 'created' | 'name' | 'code'
 
@@ -146,7 +146,7 @@ export default function ManageApps() {
           <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào.'}</Empty>
         ) : (
           <Table
-            head={['Code', 'App', 'Platform', 'Tích hợp', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update', 'Ẩn']}
+            head={['Code', 'App', 'Platform', 'Funnel', 'Host ads', 'ASO', 'Legal', 'Landing', 'Git', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update', 'Ẩn']}
           >
             {rows.map((a) => {
               const bp = blueprintRuns(a).length
@@ -171,9 +171,12 @@ export default function ManageApps() {
                       ? <Badge> iOS</Badge>
                       : <Badge tone="good">🤖 Android</Badge>}
                   </Cell>
-                  <Cell>
-                    <IntegrationChips integ={a.integration} />
-                  </Cell>
+                  <Cell><FunnelCell integ={a.integration} /></Cell>
+                  <Cell><HostCell integ={a.integration} /></Cell>
+                  <Cell><AsoCell integ={a.integration} /></Cell>
+                  <Cell><LegalCell integ={a.integration} /></Cell>
+                  <Cell><LandingCell integ={a.integration} /></Cell>
+                  <Cell><GitCell integ={a.integration} /></Cell>
                   <Cell>
                     <select
                       value={a.team ?? ''}

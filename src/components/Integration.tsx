@@ -83,6 +83,73 @@ export function IntegrationChips({
   )
 }
 
+const dash = <span className="text-[11px] text-neutral-400">—</span>
+const unscanned = <span className="text-[11px] text-neutral-400" title="Chưa quét repo">·</span>
+
+/** Cột FUNNEL: có funnel gì (engine + version), độc lập với việc bật ads host. */
+export function FunnelCell({ integ }: { integ?: AppIntegration | null }) {
+  if (notScanned(integ)) return unscanned
+  const ads = integ!.ads
+  if (!ads || (ads.status ?? 'none') === 'none') return dash
+  const title = [
+    ads.engine && `engine ${ads.engine}`,
+    ads.funnel_version && `funnel ${ads.funnel_version}`,
+    ads.ads_af_version && `ads AF ${ads.ads_af_version}`,
+    ads.branch && ads.branch !== '(working-tree)' && `nhánh ${ads.branch}`,
+  ].filter(Boolean).join(' · ')
+  return (
+    <Badge tone="warn">
+      <span title={title}>
+        {ads.engine ?? 'funnel'}
+        {ads.funnel_version && <> · {ads.funnel_version}</>}
+      </span>
+    </Badge>
+  )
+}
+
+/** Cột HOST: ads có chạy trong màn THẬT của app (Home-trở-đi) không.
+ *  full / host=true / adsMode=FULL ⇒ Có; chỉ funnel ⇒ Tắt; không ads ⇒ —. */
+export function HostCell({ integ }: { integ?: AppIntegration | null }) {
+  if (notScanned(integ)) return unscanned
+  const ads = integ!.ads
+  const status = ads?.status ?? 'none'
+  if (status === 'none') return dash
+  const hostOn = status === 'full' || ads?.host === 'true' || ads?.adsMode === 'FULL'
+  return hostOn ? (
+    <Badge tone="good"><span title="Ads chạy trong màn host (Home-trở-đi)">🟢 Có</span></Badge>
+  ) : (
+    <Badge tone="warn"><span title={`Chỉ funnel, chưa gắn ads màn host${ads?.host ? ` (host=${ads.host})` : ''}`}>Tắt</span></Badge>
+  )
+}
+
+/** Cột ASO: có gói ASO trong blueprint chưa. */
+export function AsoCell({ integ }: { integ?: AppIntegration | null }) {
+  if (notScanned(integ)) return unscanned
+  return integ!.aso ? <Badge tone="good">ASO</Badge> : dash
+}
+
+/** Cột LEGAL: none|built|staged|live. */
+export function LegalCell({ integ }: { integ?: AppIntegration | null }) {
+  if (notScanned(integ)) return unscanned
+  const v = integ!.legal
+  if (!v || v === 'none') return dash
+  return <Badge tone={legalTone(v)}><span title={`nguồn ${integ!.legal_source ?? 'repo'}`}>{v}</span></Badge>
+}
+
+/** Cột LANDING: built|live. */
+export function LandingCell({ integ }: { integ?: AppIntegration | null }) {
+  if (notScanned(integ)) return unscanned
+  const v = integ!.landing
+  if (!v) return dash
+  return <Badge tone={v === 'live' ? 'good' : 'warn'}>{v}</Badge>
+}
+
+/** Cột GIT: link repo GitHub (icon-only). */
+export function GitCell({ integ }: { integ?: AppIntegration | null }) {
+  if (notScanned(integ)) return unscanned
+  return integ!.github ? <GithubLink url={integ!.github} compact /> : dash
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline gap-2">
