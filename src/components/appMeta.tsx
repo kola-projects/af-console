@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { appIcon, detectPackageName } from '../lib/queries'
 import { b64ToDataURL, mimeOf } from '../lib/blueprint'
@@ -80,16 +81,36 @@ export function latestAdzonesRun(a: AppRow): string | null {
  *  `latestBlueprintRun` trỏ vào snapshot của chúng (thiếu screens), nên đọc design từ run này. */
 export const generateBlueprintRun = latestAdzonesRun
 
-/** Icon app từ blueprint của run mới nhất; app chưa có blueprint → ô chữ cái đầu.
- *  Lazy + cache vĩnh viễn theo run_name (blueprint bất biến sau khi push). */
+/** Icon app theo ƯU TIÊN: (1) icon golive từ Play (extra.icon_url — CDN công khai,
+ *  hiện thẳng); (2) blueprint của run mới nhất (Storage); (3) ô chữ cái đầu.
+ *  Blueprint lazy + cache vĩnh viễn theo run_name (bất biến sau khi push). */
 export function AppIcon({ app, size = 32 }: { app: AppRow; size?: number }) {
+  const storeIcon = app.extra?.icon_url || null
+  const [storeErr, setStoreErr] = useState(false)
+  const useStore = !!storeIcon && !storeErr
   const runName = latestBlueprintRun(app)
   const q = useQuery({
     queryKey: ['app-icon', runName],
     queryFn: () => appIcon(runName!),
-    enabled: !!runName,
+    enabled: !!runName && !useStore,
     staleTime: Infinity,
   })
+  const imgCls = 'rounded-lg object-cover ring-1 ring-neutral-200 dark:ring-neutral-800'
+  if (useStore) {
+    return (
+      <img
+        src={storeIcon!}
+        width={size}
+        height={size}
+        alt=""
+        title="Icon từ Play (golive)"
+        referrerPolicy="no-referrer"
+        onError={() => setStoreErr(true)}
+        className={imgCls}
+        style={{ width: size, height: size }}
+      />
+    )
+  }
   if (q.data) {
     return (
       <img
@@ -97,7 +118,7 @@ export function AppIcon({ app, size = 32 }: { app: AppRow; size?: number }) {
         width={size}
         height={size}
         alt=""
-        className="rounded-lg object-cover ring-1 ring-neutral-200 dark:ring-neutral-800"
+        className={imgCls}
         style={{ width: size, height: size }}
       />
     )

@@ -103,6 +103,15 @@ export async function setAppHidden(id: number, is_hidden: boolean) {
   if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
 }
 
+/** Admin đặt link golive (store_url) cho app — merge vào apps.extra (giữ nguyên app_code/
+ *  icon_url có sẵn). '' = xoá link. RLS chỉ admin ghi. `extra` không bị scan_integration đụng. */
+export async function setAppStoreUrl(id: number, currentExtra: AppRow['extra'], store_url: string) {
+  const extra = { ...(currentExtra ?? {}), store_url: store_url.trim() || null }
+  const { data, error } = await supabase.from('apps').update({ extra }).eq('id', id).select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
+}
+
 /** [0027] Admin gán team cho app (nhãn thống kê; '' = bỏ team). RLS chỉ admin ghi. */
 export async function setAppTeam(id: number, team: string) {
   const { data, error } = await supabase

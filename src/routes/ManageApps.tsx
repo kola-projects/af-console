@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { appsWithRuns, setAppHidden, setAppTeam } from '../lib/queries'
-import { appCodeOf, TEAMS } from '../lib/types'
+import { appsWithRuns, setAppHidden, setAppStoreUrl, setAppTeam } from '../lib/queries'
+import { appCodeOf, TEAMS, type AppRow } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 import { AppIcon, AppNameLabel, PackageName, appLastUpdate, blueprintRuns } from '../components/appMeta'
 import { FunnelCell, HostCell, AsoCell, LegalCell, LandingCell, GitCell } from '../components/Integration'
@@ -31,6 +31,11 @@ export default function ManageApps() {
   })
   const team = useMutation({
     mutationFn: ({ id, team }: { id: number; team: string }) => setAppTeam(id, team),
+    onSuccess: invalidate,
+  })
+  const store = useMutation({
+    mutationFn: ({ id, extra, url }: { id: number; extra: AppRow['extra']; url: string }) =>
+      setAppStoreUrl(id, extra, url),
     onSuccess: invalidate,
   })
 
@@ -146,7 +151,7 @@ export default function ManageApps() {
           <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào.'}</Empty>
         ) : (
           <Table
-            head={['Code', 'App', 'Family', 'Ẩn', 'Platform', 'Funnel', 'Host ads', 'ASO', 'Legal', 'Landing', 'Git', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update']}
+            head={['Code', 'App', 'Family', 'Ẩn', 'Store (golive)', 'Platform', 'Funnel', 'Host ads', 'ASO', 'Legal', 'Landing', 'Git', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update']}
           >
             {rows.map((a) => {
               const bp = blueprintRuns(a).length
@@ -189,6 +194,13 @@ export default function ManageApps() {
                     >
                       {a.is_hidden ? 'Hiện' : 'Ẩn'}
                     </button>
+                  </Cell>
+                  <Cell>
+                    <StoreLinkCell
+                      app={a}
+                      pending={store.isPending}
+                      onSave={(url) => store.mutate({ id: a.id, extra: a.extra, url })}
+                    />
                   </Cell>
                   <Cell>
                     {(a.platform ?? 'android') === 'ios'
@@ -236,5 +248,52 @@ export default function ManageApps() {
         )}
       </div>
     </div>
+  )
+}
+
+/** Ô nhập link golive (store_url). Bấm/blur đổi giá trị → lưu vào apps.extra.
+ *  placeholder gợi ý URL Play suy từ packageName. stopPropagation để không mở trang chi tiết. */
+function StoreLinkCell({
+  app,
+  pending,
+  onSave,
+}: {
+  app: AppRow
+  pending: boolean
+  onSave: (url: string) => void
+}) {
+  const current = app.extra?.store_url ?? ''
+  const [val, setVal] = useState(current)
+  const pkg = app.integration?.applicationId || app.package_name || ''
+  const derived = pkg ? `https://play.google.com/store/apps/details?id=${pkg}` : ''
+  const commit = () => {
+    if (val.trim() !== current) onSave(val)
+  }
+  return (
+    <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <input
+        value={val}
+        disabled={pending}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+        }}
+        placeholder={derived ? 'golive… (auto theo package)' : 'link golive…'}
+        title={derived ? `Bỏ trống → auto thử: ${derived}` : 'Dán link Play golive'}
+        className="w-40 rounded border border-neutral-300 bg-transparent px-1.5 py-1 text-xs outline-none focus:border-neutral-500 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900"
+      />
+      {(current || derived) && (
+        <a
+          href={current || derived}
+          target="_blank"
+          rel="noreferrer"
+          title="Mở trang Play"
+          className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+        >
+          ↗
+        </a>
+      )}
+    </span>
   )
 }

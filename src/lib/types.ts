@@ -156,7 +156,11 @@ export interface AppRow {
   } | null
   /** [0040] Trạng thái tích hợp do quét repo (ads/af_version/aso/legal/landing/github). */
   integration?: AppIntegration | null
-  extra?: { app_code?: string; app_codes?: string[] } | null
+  /** `store_url` = link golive Play (admin nhập tay hoặc suy từ packageName);
+   *  `icon_url` = URL icon trên CDN Play (play-lh.googleusercontent.com) do tool resolve
+   *  từ store_url — AppIcon ưu tiên hiện ảnh này. Cả hai nằm ở `extra` (scan_integration
+   *  chỉ ghi đè cột `integration`, không đụng `extra` → không bị xoá khi quét lại). */
+  extra?: { app_code?: string; app_codes?: string[]; store_url?: string | null; icon_url?: string | null } | null
   runs: AppRunSummary[]
 }
 

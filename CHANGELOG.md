@@ -3,6 +3,21 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.34.7 — 2026-09-18
+
+**Logo app theo ưu tiên store→blueprint + ô nhập link golive ở /manage-apps.** App import ngoài pipeline
+(không blueprint) trước hiện avatar chữ-cái dù đã golive. Nay:
+- **`AppIcon` ưu tiên**: (1) icon golive từ Play (`extra.icon_url` — URL trên CDN công khai
+  play-lh.googleusercontent.com, hiện thẳng, `onError` rơi tiếp) → (2) blueprint (Storage) → (3) chữ-cái.
+- **Ô nhập "Store (golive)"** mỗi hàng ở `/manage-apps`: admin dán link Play, lưu vào `apps.extra.store_url`
+  (`setAppStoreUrl`, merge — không đụng app_code/icon_url). Bỏ trống → auto suy link theo packageName. Link
+  nhập tay **được ưu tiên** hơn link auto (vì packageName có thể đổi lúc build). Nút ↗ mở trang Play.
+- `apps.extra` thêm `store_url`/`icon_url` (scan_integration chỉ ghi `integration` nên `extra` không bị xoá).
+
+*Icon golive được điền bởi tool AF `resolve_store_icons.py` (cào `og:image` trang Play theo store_url/
+packageName). App chưa golive (Play 404) → giữ blueprint/chữ-cái. Nguồn "đọc code" (ưu tiên 3):
+`tools/scan_icons.py`.*
+
 ## 3.34.6 — 2026-09-18
 
 **Tên app gọn + đánh dấu repo ngoài af-products.** App import từ git (chưa qua pipeline) có `apps.name` =
