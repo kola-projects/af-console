@@ -173,7 +173,7 @@ export default function ManageApps() {
           <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào.'}</Empty>
         ) : (
           <Table
-            head={['Code', 'App', 'Family', 'Ẩn', 'Store (golive)', 'Platform', 'Funnel', 'Host ads', 'ASO', 'Legal', 'Landing', 'Git', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update']}
+            head={['Code', 'App', 'Family', 'Store (golive)', 'Platform', 'Funnel', 'Host ads', 'ASO', 'Legal', 'Landing', 'Git', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update', 'Ẩn']}
           >
             {rows.map((a) => {
               const bp = blueprintRuns(a).length
@@ -204,18 +204,6 @@ export default function ManageApps() {
                     ) : (
                       <span className="text-neutral-400">—</span>
                     )}
-                  </Cell>
-                  <Cell>
-                    <button
-                      disabled={hide.isPending}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        hide.mutate({ id: a.id, hidden: !a.is_hidden })
-                      }}
-                      className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
-                    >
-                      {a.is_hidden ? 'Hiện' : 'Ẩn'}
-                    </button>
                   </Cell>
                   <Cell>
                     <StoreLinkCell
@@ -263,6 +251,18 @@ export default function ManageApps() {
                   </Cell>
                   <Cell className="text-neutral-500">{localTime(a.created_at)}</Cell>
                   <Cell className="text-neutral-500">{localTime(appLastUpdate(a))}</Cell>
+                  <Cell>
+                    <button
+                      disabled={hide.isPending}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        hide.mutate({ id: a.id, hidden: !a.is_hidden })
+                      }}
+                      className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
+                    >
+                      {a.is_hidden ? 'Hiện' : 'Ẩn'}
+                    </button>
+                  </Cell>
                 </Row>
               )
             })}

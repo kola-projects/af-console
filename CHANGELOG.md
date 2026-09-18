@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.34.9 — 2026-09-18
+
+**Cột "Ẩn" về cuối bảng /manage-apps.** Có 2 checkbox lọc hiển thị rồi nên nút Ẩn/Hiện không cần ở đầu nữa —
+chuyển về cột cuối cùng (sau Last update) cho gọn nhìn.
+
 ## 3.34.8 — 2026-09-18
 
 **Lọc hiển thị 2-checkbox (mặc định ẩn app đã ẩn, nhớ qua F5) + logo ưu tiên-3 từ code.**
