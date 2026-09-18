@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { appsWithRuns, setAppHidden, setAppStoreUrl, setAppTeam } from '../lib/queries'
@@ -19,7 +19,20 @@ export default function ManageApps() {
   const [sort, setSort] = useState<SortKey>('last_update')
   const [teamFilter, setTeamFilter] = useState('')
   const [platformFilter, setPlatformFilter] = useState('')          // '' | 'android' | 'ios'
-  const [availFilter, setAvailFilter] = useState('')                // '' | 'available' | 'hidden'
+  // Hiển thị theo trạng thái kinh doanh (is_hidden là boolean → 2 checkbox). MẶC ĐỊNH ẩn
+  // app đã ẩn (chỉ 'Đang kinh doanh'); nhớ lựa chọn qua localStorage để F5 không reset.
+  const [avail, setAvail] = useState<{ active: boolean; hidden: boolean }>(() => {
+    try {
+      const s = localStorage.getItem('manage-apps-avail')
+      if (s) return JSON.parse(s)
+    } catch { /* private mode / blocked */ }
+    return { active: true, hidden: false }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem('manage-apps-avail', JSON.stringify(avail))
+    } catch { /* ignore */ }
+  }, [avail])
   const [adsFilter, setAdsFilter] = useState('')                    // '' | full | funnel | none | unscanned
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['apps-manage'] })
@@ -44,7 +57,7 @@ export default function ManageApps() {
     const filtered = (q.data ?? [])
       .filter((a) => !teamFilter || (teamFilter === '__none__' ? !a.team : a.team === teamFilter))
       .filter((a) => !platformFilter || (a.platform ?? 'android') === platformFilter)
-      .filter((a) => !availFilter || (availFilter === 'hidden' ? !!a.is_hidden : !a.is_hidden))
+      .filter((a) => (a.is_hidden ? avail.hidden : avail.active))
       .filter((a) => {
         if (!adsFilter) return true
         const scanned = !!a.integration?.checked_at
@@ -64,7 +77,7 @@ export default function ManageApps() {
       if (sort === 'created') return b.created_at.localeCompare(a.created_at)
       return appLastUpdate(b).localeCompare(appLastUpdate(a))
     })
-  }, [q.data, search, sort, teamFilter, platformFilter, availFilter, adsFilter])
+  }, [q.data, search, sort, teamFilter, platformFilter, avail, adsFilter])
 
   if (q.isLoading) return <Loading />
   if (q.error) return <ErrorBox error={q.error} />
@@ -115,15 +128,24 @@ export default function ManageApps() {
           <option value="android">🤖 Android</option>
           <option value="ios"> iOS</option>
         </select>
-        <select
-          value={availFilter}
-          onChange={(e) => setAvailFilter(e.target.value)}
-          className="rounded border border-neutral-300 bg-transparent px-2 py-1.5 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-950"
-        >
-          <option value="">Hiển thị: tất cả</option>
-          <option value="available">Chỉ available (chưa ẩn)</option>
-          <option value="hidden">Chỉ đã ẩn</option>
-        </select>
+        <span className="flex items-center gap-3 rounded border border-neutral-300 px-2.5 py-1.5 text-sm dark:border-neutral-700">
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={avail.active}
+              onChange={(e) => setAvail((v) => ({ ...v, active: e.target.checked }))}
+            />
+            Đang kinh doanh
+          </label>
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={avail.hidden}
+              onChange={(e) => setAvail((v) => ({ ...v, hidden: e.target.checked }))}
+            />
+            Ngừng kinh doanh
+          </label>
+        </span>
         <select
           value={adsFilter}
           onChange={(e) => setAdsFilter(e.target.value)}

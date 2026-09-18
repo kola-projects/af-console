@@ -3,6 +3,17 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.34.8 — 2026-09-18
+
+**Lọc hiển thị 2-checkbox (mặc định ẩn app đã ẩn, nhớ qua F5) + logo ưu tiên-3 từ code.**
+- **/manage-apps**: bỏ dropdown "Hiển thị" → **2 checkbox** `Đang kinh doanh` (app chưa ẩn) và
+  `Ngừng kinh doanh` (app đã ẩn). **Mặc định chỉ tick "Đang kinh doanh"** → app đã ẩn KHÔNG hiện; lựa chọn
+  lưu `localStorage` (`manage-apps-avail`) nên **F5 giữ nguyên** (trước đây default = "tất cả" nên F5 lại hiện
+  app ẩn). Lọc: `is_hidden ? avail.hidden : avail.active`.
+- **`AppIcon` ưu tiên-3**: sau store/blueprint, thử `extra.icon_storage_key` (icon trích từ code repo, lưu
+  bucket private `blueprints` key `app-icons/<code>.<ext>`) qua **signed URL** — chỉ admin đọc được (RLS 0024).
+  Tool AF `scan_icons.py` bơm 9 app (lemuroid/reels/dramas/TT-VPN…). `types.extra` thêm `icon_storage_key`.
+
 ## 3.34.7 — 2026-09-18
 
 **Logo app theo ưu tiên store→blueprint + ô nhập link golive ở /manage-apps.** App import ngoài pipeline

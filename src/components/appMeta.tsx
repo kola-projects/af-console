@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { appIcon, detectPackageName } from '../lib/queries'
+import { appIcon, appIconStorageUrl, detectPackageName } from '../lib/queries'
 import { b64ToDataURL, mimeOf } from '../lib/blueprint'
 import type { AppRow } from '../lib/types'
 import { Mono } from './ui'
@@ -81,11 +81,13 @@ export function latestAdzonesRun(a: AppRow): string | null {
  *  `latestBlueprintRun` trỏ vào snapshot của chúng (thiếu screens), nên đọc design từ run này. */
 export const generateBlueprintRun = latestAdzonesRun
 
-/** Icon app theo ƯU TIÊN: (1) icon golive từ Play (extra.icon_url — CDN công khai,
- *  hiện thẳng); (2) blueprint của run mới nhất (Storage); (3) ô chữ cái đầu.
+/** Icon app theo ƯU TIÊN: (1) icon golive từ Play (extra.icon_url — CDN công khai, hiện
+ *  thẳng); (2) blueprint của run mới nhất (Storage); (3) icon trích từ code
+ *  (extra.icon_storage_key — signed URL bucket private, chỉ admin); (4) ô chữ cái đầu.
  *  Blueprint lazy + cache vĩnh viễn theo run_name (bất biến sau khi push). */
 export function AppIcon({ app, size = 32 }: { app: AppRow; size?: number }) {
   const storeIcon = app.extra?.icon_url || null
+  const codeKey = app.extra?.icon_storage_key || null
   const [storeErr, setStoreErr] = useState(false)
   const useStore = !!storeIcon && !storeErr
   const runName = latestBlueprintRun(app)
@@ -94,6 +96,13 @@ export function AppIcon({ app, size = 32 }: { app: AppRow; size?: number }) {
     queryFn: () => appIcon(runName!),
     enabled: !!runName && !useStore,
     staleTime: Infinity,
+  })
+  const useCode = !useStore && !q.data && !!codeKey
+  const cq = useQuery({
+    queryKey: ['app-icon-code', codeKey],
+    queryFn: () => appIconStorageUrl(codeKey!),
+    enabled: useCode,
+    staleTime: 30 * 60 * 1000,
   })
   const imgCls = 'rounded-lg object-cover ring-1 ring-neutral-200 dark:ring-neutral-800'
   if (useStore) {
@@ -118,6 +127,19 @@ export function AppIcon({ app, size = 32 }: { app: AppRow; size?: number }) {
         width={size}
         height={size}
         alt=""
+        className={imgCls}
+        style={{ width: size, height: size }}
+      />
+    )
+  }
+  if (cq.data) {
+    return (
+      <img
+        src={cq.data}
+        width={size}
+        height={size}
+        alt=""
+        title="Icon trích từ code repo"
         className={imgCls}
         style={{ width: size, height: size }}
       />

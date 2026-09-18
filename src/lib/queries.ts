@@ -230,6 +230,15 @@ async function contentFromStorage(storageKey: string): Promise<string> {
   return bytesToB64(new Uint8Array(await resp.arrayBuffer()))
 }
 
+/** Signed URL cho một object trong bucket private 'blueprints' — dùng thẳng làm <img src>
+ *  (icon ưu tiên-3 do scan_icons.py trích từ code, key kiểu 'app-icons/<code>.png').
+ *  Chỉ admin đọc được (RLS 0024: is_admin() thấy toàn bucket). TTL 1h đủ cho lần render. */
+export async function appIconStorageUrl(storageKey: string): Promise<string> {
+  const signed = await supabase.storage.from(BLUEPRINT_BUCKET).createSignedUrl(storageKey, 3600)
+  if (signed.error || !signed.data) throw new Error(signed.error?.message ?? 'không tạo được signed URL')
+  return signed.data.signedUrl
+}
+
 async function resolveContent(row: RawBlueprintRow): Promise<BlueprintFileContent> {
   // Storage-first: bytes ở Storage (0017+); content_b64 chỉ còn cho schema cũ chưa migrate.
   const content_b64 = row.storage_key
