@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { appsWithRuns, setAppHidden, setAppTeam } from '../lib/queries'
 import { appCodeOf, TEAMS } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
-import { AppIcon, PackageName, appLastUpdate, blueprintRuns } from '../components/appMeta'
+import { AppIcon, AppNameLabel, PackageName, appLastUpdate, blueprintRuns } from '../components/appMeta'
 import { FunnelCell, HostCell, AsoCell, LegalCell, LandingCell, GitCell } from '../components/Integration'
 
 type SortKey = 'last_update' | 'created' | 'name' | 'code'
@@ -162,7 +162,7 @@ export default function ManageApps() {
                   <Cell>
                     <span className="flex items-center gap-2.5 underline underline-offset-2">
                       <AppIcon app={a} size={32} />
-                      {a.name}
+                      <AppNameLabel app={a} />
                       {a.is_hidden && <Badge tone="warn">ẩn</Badge>}
                     </span>
                   </Cell>

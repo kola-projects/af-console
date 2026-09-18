@@ -3,6 +3,19 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.34.6 — 2026-09-18
+
+**Tên app gọn + đánh dấu repo ngoài af-products.** App import từ git (chưa qua pipeline) có `apps.name` =
+`org/repo` nên bảng hiện tên dài xấu (vd `Binary-Bridge-Labs/AND-TITAN-BROWSER2`). Thêm helper + component
+`AppNameLabel` (`appMeta.tsx`) dùng chung `/apps` và `/manage-apps`:
+- **Tên hiển thị gọn**: `apps.name` dạng `org/repo` → chỉ hiện phần repo (sau `/` cuối); app pipeline có appName
+  sạch giữ nguyên. Tooltip giữ tên đầy đủ. Avatar chữ-cái cũng dùng tên gọn.
+- **Dấu `*` đỏ phía trước** khi repo GitHub **không thuộc org `af-products`** (`isForeignRepo`) — đánh dấu app
+  import ngoài pipeline; tooltip nêu org thật.
+
+*(Logo cho các app external này là việc riêng: chúng không có blueprint lẫn checkout local, phải clone repo
+private + trích icon lên Storage — tool server-side, làm sau.)*
+
 ## 3.34.5 — 2026-09-18
 
 **Quản lý app: khôi phục nút Ẩn ra trước + thêm cột Family + siết ẩn app đã đánh dấu.** Ba tinh chỉnh cho

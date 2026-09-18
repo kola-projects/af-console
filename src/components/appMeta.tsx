@@ -7,6 +7,45 @@ import { Mono } from './ui'
 /** Helpers + component nhận diện app (icon, package) dùng chung Apps/AppDetail.
  *  Tách khỏi routes để tránh cảnh báo fast-refresh khi route export thêm hàm. */
 
+/** Org GitHub của app (segment sau github.com/), null nếu không có git. */
+export function appGitOrg(a: AppRow): string | null {
+  const g = a.integration?.github
+  if (typeof g !== 'string') return null
+  const m = g.match(/github\.com[/:]([^/]+)\//)
+  return m ? m[1] : null
+}
+
+/** App có repo nhưng KHÔNG thuộc org af-products → import ngoài pipeline, cần đánh dấu. */
+export function isForeignRepo(a: AppRow): boolean {
+  const org = appGitOrg(a)
+  return !!org && org !== 'af-products'
+}
+
+/** Tên hiển thị gọn: app import từ git có apps.name = 'org/repo' → chỉ hiện phần repo
+ *  (sau dấu '/' cuối). App qua pipeline đã có appName sạch nên giữ nguyên. */
+export function appDisplayName(a: AppRow): string {
+  const n = (a.name || '').trim()
+  const i = n.lastIndexOf('/')
+  return i >= 0 ? n.slice(i + 1) : n
+}
+
+/** Nhãn tên app: dấu '*' đỏ phía trước nếu repo không thuộc af-products (import ngoài),
+ *  rồi tới tên hiển thị gọn. Tooltip nêu org thật + tên đầy đủ. */
+export function AppNameLabel({ app }: { app: AppRow }) {
+  const foreign = isForeignRepo(app)
+  const org = appGitOrg(app)
+  return (
+    <span title={foreign ? `Repo ngoài af-products (org: ${org}) — ${app.name}` : app.name}>
+      {foreign && (
+        <span className="mr-0.5 font-bold text-red-500" aria-label={`repo ngoài af-products: ${org}`}>
+          *
+        </span>
+      )}
+      {appDisplayName(app)}
+    </span>
+  )
+}
+
 /** "Last update" của app KHÔNG có cột riêng trong DB — nó là thời điểm hoạt động
  *  gần nhất: max(started_at/finished_at) trên mọi run; app chưa run nào → created_at. */
 export function appLastUpdate(a: AppRow): string {
@@ -68,7 +107,7 @@ export function AppIcon({ app, size = 32 }: { app: AppRow; size?: number }) {
       className="flex flex-none items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 ring-1 ring-neutral-200 dark:bg-neutral-900 dark:text-neutral-400 dark:ring-neutral-800"
       style={{ width: size, height: size, fontSize: size * 0.45 }}
     >
-      {app.name.trim().charAt(0).toUpperCase() || '?'}
+      {appDisplayName(app).charAt(0).toUpperCase() || '?'}
     </span>
   )
 }

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { appsPublic } from '../lib/queries'
 import { appCodeOf, TEAMS } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
-import { AppIcon, PackageName } from '../components/appMeta'
+import { AppIcon, AppNameLabel, PackageName } from '../components/appMeta'
 import { IntegrationChips } from '../components/Integration'
 
 type SortKey = 'created' | 'name' | 'code'
@@ -101,7 +101,7 @@ export default function Apps() {
                 <Cell>
                   <span className="flex items-center gap-2.5 underline underline-offset-2">
                     <AppIcon app={a} size={32} />
-                    {a.name}
+                    <AppNameLabel app={a} />
                   </span>
                 </Cell>
                 <Cell>
