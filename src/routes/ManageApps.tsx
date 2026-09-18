@@ -146,7 +146,7 @@ export default function ManageApps() {
           <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào.'}</Empty>
         ) : (
           <Table
-            head={['Code', 'App', 'Platform', 'Funnel', 'Host ads', 'ASO', 'Legal', 'Landing', 'Git', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update', 'Ẩn']}
+            head={['Code', 'App', 'Family', 'Ẩn', 'Platform', 'Funnel', 'Host ads', 'ASO', 'Legal', 'Landing', 'Git', 'Team', 'Package', 'Nguồn', 'Runs', 'Blueprints', 'Tạo lúc', 'Last update']}
           >
             {rows.map((a) => {
               const bp = blueprintRuns(a).length
@@ -165,6 +165,30 @@ export default function ManageApps() {
                       {a.name}
                       {a.is_hidden && <Badge tone="warn">ẩn</Badge>}
                     </span>
+                  </Cell>
+                  <Cell>
+                    {a.family_code ? (
+                      <span className="flex items-center gap-1.5">
+                        <Mono>{a.family_code}</Mono>
+                        <Badge tone={a.family_role === 'master' ? 'good' : undefined}>
+                          {a.family_role === 'master' ? 'master' : `#${a.family_seq ?? '?'}`}
+                        </Badge>
+                      </span>
+                    ) : (
+                      <span className="text-neutral-400">—</span>
+                    )}
+                  </Cell>
+                  <Cell>
+                    <button
+                      disabled={hide.isPending}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        hide.mutate({ id: a.id, hidden: !a.is_hidden })
+                      }}
+                      className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
+                    >
+                      {a.is_hidden ? 'Hiện' : 'Ẩn'}
+                    </button>
                   </Cell>
                   <Cell>
                     {(a.platform ?? 'android') === 'ios'
@@ -205,18 +229,6 @@ export default function ManageApps() {
                   </Cell>
                   <Cell className="text-neutral-500">{localTime(a.created_at)}</Cell>
                   <Cell className="text-neutral-500">{localTime(appLastUpdate(a))}</Cell>
-                  <Cell>
-                    <button
-                      disabled={hide.isPending}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        hide.mutate({ id: a.id, hidden: !a.is_hidden })
-                      }}
-                      className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-neutral-700"
-                    >
-                      {a.is_hidden ? 'Hiện' : 'Ẩn'}
-                    </button>
-                  </Cell>
                 </Row>
               )
             })}

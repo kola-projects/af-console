@@ -3,7 +3,17 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
-## 3.34.4 — 2026-09-15
+## 3.34.5 — 2026-09-18
+
+**Quản lý app: khôi phục nút Ẩn ra trước + thêm cột Family + siết ẩn app đã đánh dấu.** Ba tinh chỉnh cho
+trang `/manage-apps` (và các surface chọn app):
+- **Nút Ẩn/Hiện đưa lên đầu bảng.** Từ 3.34.0/3.34.1 sáu cột tích hợp (Funnel/Host/ASO/Legal/Landing/Git) đẩy
+  nút Ẩn xuống **cột cuối (thứ 17)**, phải cuộn ngang mới thấy — người dùng tưởng đã mất. Nay chuyển thành **cột
+  thứ 4** (ngay sau App/Family), luôn hiển thị không cần cuộn.
+- **Thêm cột Family** (`family_code` + badge `master`/`#seq`) vào bảng quản lý — trước chỉ có ở danh mục `/apps`;
+  dữ liệu đã sẵn trong `appsWithRuns`, nay hiển thị.
+- **Luôn ẩn app đã đánh dấu ẩn** khỏi mọi surface chọn app: danh mục `/apps` và `AppSearchSelect` đã lọc từ trước;
+  bổ sung lọc `!is_hidden` cho picker chọn app trong **Ads Builder**.
 
 **Host phân loại theo slot ad màn nội dung (đồng bộ AF v5.45.1).** Cột Host ads giờ đúng cho app tích hợp host mà
 lock không khai: scan nhận slot ad thật trong màn Home-trở-đi (Compose/XML), gate base-leftover. `HostCell` dùng

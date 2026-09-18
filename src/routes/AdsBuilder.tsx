@@ -309,7 +309,7 @@ function Wizard({ planId, onClose }: { planId?: number; onClose: () => void }) {
         <h2 className="text-base font-semibold">Chọn app đã gen</h2>
         <p className="mt-1 mb-4 text-sm text-neutral-500">App nên có <span className="font-mono">blueprint/adzones</span> (build ≥ v5.12.0) để soạn phần Home-trở-đi.</p>
         <div className="flex flex-wrap gap-2">
-          {(appsQ.data ?? []).filter((a) => latestAdzonesRun(a)).map((a) => (
+          {(appsQ.data ?? []).filter((a) => !a.is_hidden && latestAdzonesRun(a)).map((a) => (
             <button key={a.id} onClick={() => setApp(a)}
               className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left ${app?.id === a.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-950' : 'border-neutral-300 dark:border-neutral-700'}`}>
               <AppIcon app={a} />
