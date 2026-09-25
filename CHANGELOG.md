@@ -3,6 +3,18 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.35.0 — 2026-09-25
+
+**Thêm /competitors — sổ đánh giá app đối thủ (ae.sh / appEvaluate).** Cho MỌI role đọc.
+- Route `/competitors` (danh sách gom theo package; tìm theo tên · package · developer · tag · category;
+  lọc category/tag/kiếm tiền; sort) và `/competitors/:package` (chi tiết dựng theo phong cách report:
+  hero, stat tiles, thanh phiên theo version, tab Tổng quan · Màn hình (gallery + lightbox) · Findings
+  (lọc theo loại/category, mở evidence) · Người dùng nói gì (CHỈ review đóng góp cải tiến — bỏ seeding
+  và than-ads chung chung) · Cơ hội · Báo cáo (markdown)).
+- Đọc qua view `v_competitors` / `v_competitor_sessions` / `v_competitor_findings` (migration AF 0043);
+  ảnh evidence từ bucket private `competitors` qua signed URL (`competitorImageUrl`).
+- Nav "Competitors" (icon Radar) ở cả ADMIN_NAV lẫn MEMBER_NAV.
+
 ## 3.34.9 — 2026-09-18
 
 **Cột "Ẩn" về cuối bảng /manage-apps.** Có 2 checkbox lọc hiển thị rồi nên nút Ẩn/Hiện không cần ở đầu nữa —

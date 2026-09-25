@@ -24,6 +24,8 @@ import Ads from './routes/Ads'
 import AdsBuilder from './routes/AdsBuilder'
 import AdsAppDetail from './routes/AdsAppDetail'
 import AdsScenarioDetail from './routes/AdsScenarioDetail'
+import Competitors from './routes/Competitors'
+import CompetitorDetail from './routes/CompetitorDetail'
 
 const qc = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 } },
@@ -65,6 +67,8 @@ export default function App() {
             {/* Công khai cho mọi user còn hiệu lực (RLS lọc dữ liệu) */}
             <Route path="apps" element={<Apps />} />
             <Route path="apps/:id" element={<AppDetail />} />
+            <Route path="competitors" element={<Competitors />} />
+            <Route path="competitors/:package" element={<CompetitorDetail />} />
             <Route path="requests" element={<Requests />} />
             {/* Nội bộ — chỉ admin */}
             <Route path="manage-apps" element={<RequireAdmin><ManageApps /></RequireAdmin>} />

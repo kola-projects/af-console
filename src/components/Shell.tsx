@@ -16,6 +16,7 @@ import {
   Store,
   Users,
   Factory,
+  Radar,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -29,6 +30,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/lessons', label: 'Lessons', icon: GraduationCap },
   { to: '/', label: 'Dashboard', end: true, icon: LayoutDashboard },
   { to: '/apps', label: 'Apps', icon: LayoutGrid },
+  { to: '/competitors', label: 'Competitors', icon: Radar },
   { to: '/manage-apps', label: 'Quản lý app', icon: SlidersHorizontal },
   { to: '/runs', label: 'Runs', icon: Play },
   { to: '/bugs', label: 'Bugs', icon: Bug },
@@ -42,6 +44,7 @@ const ADMIN_NAV: NavItem[] = [
 ]
 const MEMBER_NAV: NavItem[] = [
   { to: '/apps', label: 'Apps', icon: LayoutGrid },
+  { to: '/competitors', label: 'Competitors', icon: Radar },
   { to: '/requests', label: 'Yêu cầu', icon: Inbox },
 ]
 

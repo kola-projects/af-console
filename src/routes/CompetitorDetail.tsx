@@ -1,0 +1,532 @@
+import { useMemo, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import {
+  competitorByPackage,
+  competitorSessions,
+  competitorFindings,
+  competitorEvidence,
+  competitorImageUrl,
+} from '../lib/queries'
+import { Badge, Mono, Empty, Loading, ErrorBox, localTime } from '../components/ui'
+import MarkdownView from './blueprint/MarkdownView'
+import type { CompetitorSession, CompetitorFinding } from '../lib/types'
+
+type Tab = 'overview' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
+const TABS: [Tab, string][] = [
+  ['overview', 'Tổng quan'],
+  ['screens', 'Màn hình'],
+  ['findings', 'Findings'],
+  ['voc', 'Người dùng nói gì'],
+  ['opportunities', 'Cơ hội'],
+  ['report', 'Báo cáo'],
+]
+
+const KIND: Record<string, { label: string; cls: string }> = {
+  FACT: { label: 'FACT', cls: 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900' },
+  USER_SIGNAL: { label: 'USER SIGNAL', cls: 'bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300' },
+  INFERENCE: { label: 'INFERENCE', cls: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200' },
+  RECOMMENDATION: { label: 'RECOMMENDATION', cls: 'border border-dashed border-neutral-400 text-neutral-600 dark:text-neutral-300' },
+}
+
+function num(o: Record<string, unknown> | null | undefined, k: string): string {
+  const v = (o ?? {})[k]
+  return v === undefined || v === null ? '—' : String(v)
+}
+
+/** Ảnh evidence: nạp signed URL async theo storage_key. */
+function EvImg({ storageKey, alt, onClick, className }: { storageKey: string; alt: string; onClick?: () => void; className?: string }) {
+  const q = useQuery({
+    queryKey: ['comp-img', storageKey],
+    queryFn: () => competitorImageUrl(storageKey),
+    staleTime: 50 * 60_000,
+  })
+  if (!q.data)
+    return <span className={`block animate-pulse bg-neutral-200 dark:bg-neutral-800 ${className ?? ''}`} style={{ aspectRatio: '9/19' }} />
+  return <img src={q.data} alt={alt} onClick={onClick} className={className} />
+}
+
+function ScoreRow({ scores }: { scores: Record<string, number> }) {
+  const order: [string, string][] = [
+    ['product_value', 'Giá trị sản phẩm'],
+    ['ui_ux', 'UI/UX'],
+    ['content', 'Nội dung'],
+    ['monetization_pressure', 'Áp lực kiếm tiền (5=gắt)'],
+    ['onboarding_friction', 'Ma sát onboarding (5=nặng)'],
+  ]
+  return (
+    <div className="flex flex-col gap-2">
+      {order.map(([k, label]) => {
+        const v = Number(scores[k] ?? 0)
+        const hard = k === 'monetization_pressure' || k === 'onboarding_friction'
+        return (
+          <div key={k} className="text-xs">
+            <div className="flex justify-between">
+              <span>{label}</span>
+              <b>{v || '—'}</b>
+            </div>
+            <div className="mt-0.5 h-1.5 overflow-hidden rounded bg-neutral-100 dark:bg-neutral-800">
+              <span className={`block h-full ${hard ? 'bg-amber-500' : 'bg-primary-600'}`} style={{ width: `${(v / 5) * 100}%` }} />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function CompetitorDetail() {
+  const pkg = decodeURIComponent(useParams().package ?? '')
+  const [params] = useSearchParams()
+  const initTab = params.get('tab') as Tab | null
+  const [tab, setTab] = useState<Tab>(TABS.some(([t]) => t === initTab) ? (initTab as Tab) : 'overview')
+  const [zoom, setZoom] = useState<string | null>(null)
+  const [sessId, setSessId] = useState<number | null>(null)
+  const [findCat, setFindCat] = useState('')
+  const [findType, setFindType] = useState('')
+
+  const compQ = useQuery({ queryKey: ['competitor', pkg], queryFn: () => competitorByPackage(pkg), enabled: !!pkg })
+  const sessQ = useQuery({ queryKey: ['competitor-sessions', pkg], queryFn: () => competitorSessions(pkg), enabled: !!pkg })
+
+  const sessions = useMemo(() => sessQ.data ?? [], [sessQ.data])
+  const sess: CompetitorSession | undefined = useMemo(
+    () => sessions.find((s) => s.id === sessId) ?? sessions[0],
+    [sessions, sessId],
+  )
+
+  const findQ = useQuery({ queryKey: ['competitor-findings', sess?.id], queryFn: () => competitorFindings(sess!.id), enabled: !!sess })
+  const evQ = useQuery({ queryKey: ['competitor-evidence', sess?.id], queryFn: () => competitorEvidence(sess!.id), enabled: !!sess })
+
+  if (compQ.isLoading || sessQ.isLoading) return <Loading />
+  if (compQ.error) return <ErrorBox error={compQ.error} />
+  const c = compQ.data
+  if (!c) return <Empty>Không thấy đối thủ này.</Empty>
+
+  const listing = (sess?.listing ?? {}) as Record<string, unknown>
+  const summary = (sess?.summary ?? {}) as Record<string, unknown>
+  const mon = (sess?.monetization ?? {}) as Record<string, unknown>
+  const cov = (sess?.coverage ?? {}) as Record<string, number>
+  const metrics = (sess?.metrics ?? {}) as Record<string, unknown>
+  const findings = findQ.data ?? []
+  const evidence = evQ.data ?? []
+  const evByCode = new Map(evidence.map((e) => [e.code ?? '', e]))
+  const scores = (sess?.scores ?? {}) as Record<string, number>
+  const reviewImp = ((sess?.extra as Record<string, unknown>)?.review_improvement ?? null) as
+    | { counts?: Record<string, number>; themes?: Array<Record<string, unknown>> }
+    | null
+
+  const listArr = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : [])
+  const findCats = [...new Set(findings.map((f) => f.category))].sort()
+  const shownFindings = findings.filter((f) => (!findCat || f.category === findCat) && (!findType || f.type === findType))
+  const opportunities = findings.filter((f) => f.category === 'opportunity')
+
+  // ảnh feature app-owned (loại ad + store), có top_act nếu cần — dùng screens có evidence code S##
+  const screenShots = evidence.filter((e) => e.kind === 'screenshot')
+
+  return (
+    <div className="max-w-5xl">
+      <div className="text-xs text-neutral-500">
+        <Link to="/competitors" className="no-underline hover:underline">
+          Competitors
+        </Link>{' '}
+        / <Mono>{pkg}</Mono>
+      </div>
+
+      {/* HERO */}
+      <div className="mt-3 flex items-start gap-4">
+        {c.icon_url ? (
+          <img src={c.icon_url} alt="" referrerPolicy="no-referrer" className="h-16 w-16 flex-none rounded-2xl border border-neutral-200 object-cover dark:border-neutral-800" />
+        ) : (
+          <span className="h-16 w-16 flex-none rounded-2xl bg-gradient-to-br from-primary-200 to-primary-50 dark:from-primary-900 dark:to-primary-950" />
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="text-xl font-semibold">{c.name ?? pkg}</h1>
+            <span className="text-sm text-neutral-500">{c.developer}</span>
+            <Mono className="text-xs text-neutral-500">{pkg}</Mono>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+            {c.category_play && <Badge>{c.category_play}</Badge>}
+            {(c.tags ?? []).map((t) => (
+              <Badge key={t}>{t}</Badge>
+            ))}
+            <span className="text-neutral-500">
+              {listing.score ? `${Number(listing.score).toFixed(1)}★` : ''} · {String(listing.installs ?? '')}
+            </span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-3 text-xs">
+            {c.store_url && (
+              <a href={c.store_url} target="_blank" rel="noreferrer">
+                Google Play ↗
+              </a>
+            )}
+            {typeof listing.privacyPolicy === 'string' && (
+              <a href={listing.privacyPolicy} target="_blank" rel="noreferrer">
+                Privacy policy ↗
+              </a>
+            )}
+            {(c.related_app_codes ?? []).length > 0 && (
+              <span className="text-neutral-500">App AF liên quan: {(c.related_app_codes ?? []).join(', ')}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* STAT TILES */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {[
+          [String(findings.length), 'findings'],
+          [String(screenShots.length), 'ảnh màn'],
+          [num(listing, 'reviews'), 'review store'],
+          [String(listArr(mon.ad_networks).length), 'mạng ads'],
+          [`${Number(cov._overall ?? 0)}%`, 'coverage'],
+          [`${Number(metrics.cold_start_median_ms ?? 0) || '—'}`, 'cold start (ms)'],
+        ].map(([v, l], i) => (
+          <div key={i} className="flex min-w-[96px] flex-col rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900">
+            <b className="text-lg tabular-nums">{v}</b>
+            <span className="text-[10px] uppercase tracking-wide text-neutral-500">{l}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* SESSION SELECTOR */}
+      {sessions.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-neutral-500">Phiên đánh giá:</span>
+          {sessions.map((s) => {
+            const active = s.id === (sess?.id ?? -1)
+            return (
+              <button
+                key={s.id}
+                onClick={() => setSessId(s.id)}
+                className={`rounded-lg border px-3 py-1.5 text-left text-xs ${
+                  active
+                    ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300'
+                    : 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-900'
+                }`}
+              >
+                <span className="block font-semibold">
+                  <Mono>{s.app_version ?? '?'}</Mono>
+                  {s.install_status && s.install_status !== 'installed' ? ` · ${s.install_status}` : ''}
+                </span>
+                <span className="block">
+                  {localTime(s.evaluated_at)} · {s.research_type} · {s.device ?? ''}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* TABS */}
+      <nav className="mt-4 flex flex-wrap gap-1 border-b border-neutral-200 text-sm dark:border-neutral-800">
+        {TABS.map(([t, label]) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`-mb-px border-b-2 px-3 py-2 ${
+              tab === t
+                ? 'border-primary-600 font-medium text-primary-700 dark:text-primary-300'
+                : 'border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+            }`}
+          >
+            {label}
+            {t === 'findings' ? ` (${findings.length})` : t === 'opportunities' ? ` (${opportunities.length})` : ''}
+          </button>
+        ))}
+      </nav>
+
+      <div className="mt-5">
+        {tab === 'overview' && (
+          <div className="grid gap-4 md:grid-cols-3">
+            <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800 md:col-span-2">
+              <h2 className="mb-2 text-sm font-semibold">Executive summary</h2>
+              <dl className="grid grid-cols-[130px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+                {[
+                  ['positioning', 'Positioning'],
+                  ['target_user', 'Target user'],
+                  ['core_value', 'Core value'],
+                  ['activation', 'Activation'],
+                  ['monetization_model', 'Monetization'],
+                  ['paywall_strategy', 'Paywall'],
+                  ['ads_strategy', 'Ads'],
+                  ['retention', 'Retention'],
+                ].map(([k, label]) => (
+                  <div key={k} className="contents">
+                    <dt className="text-neutral-500">{label}</dt>
+                    <dd>{typeof summary[k] === 'string' ? (summary[k] as string) : '—'}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {[
+                  ['strengths', 'Điểm mạnh', 'text-green-700 dark:text-green-400'],
+                  ['weaknesses', 'Điểm yếu', 'text-red-700 dark:text-red-400'],
+                  ['pain_points', 'Pain point', 'text-amber-700 dark:text-amber-400'],
+                ].map(([k, label, cls]) => (
+                  <div key={k}>
+                    <div className={`text-[11px] font-semibold uppercase tracking-wide ${cls}`}>{label}</div>
+                    <ul className="mt-1 list-disc pl-4 text-xs">
+                      {listArr(summary[k]).slice(0, 4).map((x, i) => (
+                        <li key={i}>{typeof x === 'string' ? x : JSON.stringify(x)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+            <div className="flex flex-col gap-4">
+              <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Điểm rubric (INFERENCE)</h2>
+                <ScoreRow scores={scores} />
+              </section>
+              <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Kiếm tiền (từ APK)</h2>
+                <div className="flex flex-wrap gap-1">
+                  {listArr(mon.ad_networks).map((n) => (
+                    <Badge key={n} tone="warn">
+                      {n}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="mt-2 text-xs text-neutral-500">
+                  IAP: {listArr(mon.iap_sdks).join(', ') || '—'} · Tracker: {listArr(mon.trackers).join(', ') || '—'}
+                </div>
+              </section>
+              <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Coverage</h2>
+                <div className="flex flex-col gap-1 text-xs">
+                  {Object.entries(cov)
+                    .filter(([k]) => !k.startsWith('_'))
+                    .map(([k, v]) => (
+                      <div key={k} className="grid grid-cols-[110px_1fr_32px] items-center gap-2">
+                        <span className="text-neutral-500">{k}</span>
+                        <span className="h-1.5 overflow-hidden rounded bg-neutral-100 dark:bg-neutral-800">
+                          <span className={`block h-full ${v < 60 ? 'bg-amber-500' : 'bg-primary-600'}`} style={{ width: `${v}%` }} />
+                        </span>
+                        <b className="text-right">{v}%</b>
+                      </div>
+                    ))}
+                </div>
+              </section>
+            </div>
+          </div>
+        )}
+
+        {tab === 'screens' && (
+          <div>
+            <p className="mb-3 text-xs text-neutral-500">Ảnh THẬT các màn đã trải nghiệm (chạm để phóng to). {screenShots.length} ảnh.</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+              {screenShots.map((e) => (
+                <figure key={e.id} className="m-0">
+                  <button
+                    className="block w-full overflow-hidden rounded-xl border border-neutral-200 bg-black p-0 text-left dark:border-neutral-800"
+                    onClick={async () => setZoom(await competitorImageUrl(e.storage_key!))}
+                  >
+                    <EvImg storageKey={e.storage_key!} alt={e.caption ?? ''} className="aspect-[9/19] w-full object-cover object-top" />
+                  </button>
+                  <figcaption className="mt-1 truncate text-[11px] text-neutral-500" title={e.caption ?? ''}>
+                    <Mono>{e.code}</Mono> {e.screen_name ?? ''}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'findings' && (
+          <div>
+            <div className="mb-3 flex flex-wrap gap-2">
+              <select className="rounded border border-neutral-300 bg-transparent px-2 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-950" value={findType} onChange={(e) => setFindType(e.target.value)}>
+                <option value="">Mọi loại</option>
+                <option value="FACT">FACT</option>
+                <option value="USER_SIGNAL">USER SIGNAL</option>
+                <option value="INFERENCE">INFERENCE</option>
+                <option value="RECOMMENDATION">RECOMMENDATION</option>
+              </select>
+              <select className="rounded border border-neutral-300 bg-transparent px-2 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-950" value={findCat} onChange={(e) => setFindCat(e.target.value)}>
+                <option value="">Mọi category</option>
+                {findCats.map((c2) => (
+                  <option key={c2} value={c2}>
+                    {c2}
+                  </option>
+                ))}
+              </select>
+              <span className="ml-auto self-center text-xs text-neutral-500">
+                {shownFindings.length} / {findings.length}
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {shownFindings.map((f) => (
+                <FindingCard key={f.id} f={f} evByCode={evByCode} onZoom={setZoom} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'voc' && (
+          <div>
+            {reviewImp?.counts && (
+              <p className="mb-3 text-xs text-neutral-500">
+                Chỉ giữ review ĐÓNG GÓP CẢI TIẾN: {reviewImp.counts.kept_actionable}/{reviewImp.counts.total} (bỏ seeding{' '}
+                {reviewImp.counts.dropped_seeding}, than-ads chung {reviewImp.counts.dropped_generic_ads}, tiêu cực không actionable{' '}
+                {reviewImp.counts.dropped_generic_neg}).
+              </p>
+            )}
+            {(reviewImp?.themes ?? []).length === 0 ? (
+              <Empty>Chưa có review cải tiến.</Empty>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {(reviewImp?.themes ?? []).map((t, i) => {
+                  const quotes = listArr((t as Record<string, unknown>).quotes as unknown) as unknown as Array<Record<string, unknown>>
+                  return (
+                    <div key={i} className="rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <b className="text-sm">{String((t as Record<string, unknown>).theme ?? '')}</b>
+                        <Badge>{String((t as Record<string, unknown>).category ?? '')}</Badge>
+                        <span className="ml-auto text-xs text-neutral-500">
+                          {String((t as Record<string, unknown>).count ?? '')} review · {String((t as Record<string, unknown>).confidence ?? '')}
+                        </span>
+                      </div>
+                      {typeof (t as Record<string, unknown>).product_direction === 'string' && (
+                        <div className="mt-1 text-xs text-primary-700 dark:text-primary-300">
+                          → {String((t as Record<string, unknown>).product_direction)}
+                        </div>
+                      )}
+                      {(Array.isArray((t as Record<string, unknown>).quotes) ? ((t as Record<string, unknown>).quotes as Array<Record<string, unknown>>) : quotes)
+                        .slice(0, 3)
+                        .map((qq, j) => (
+                          <blockquote key={j} className="mt-2 rounded border-l-2 border-neutral-300 bg-neutral-50 px-3 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-900">
+                            “{String(qq.quote ?? '')}”
+                            <span className="mt-0.5 block text-[10px] text-neutral-500">
+                              ★{String(qq.score ?? '')} · {String(qq.date ?? '').slice(0, 10)} · v{String(qq.version ?? '')}
+                              {typeof qq.url === 'string' && (
+                                <>
+                                  {' · '}
+                                  <a href={qq.url} target="_blank" rel="noreferrer">
+                                    nguồn ↗
+                                  </a>
+                                </>
+                              )}
+                            </span>
+                          </blockquote>
+                        ))}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'opportunities' && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {opportunities.length === 0 ? (
+              <Empty>Chưa có cơ hội.</Empty>
+            ) : (
+              opportunities.map((o) => {
+                const d = (o.data ?? {}) as Record<string, unknown>
+                const tq = (d.three_questions ?? {}) as Record<string, unknown>
+                return (
+                  <div key={o.id} className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                    <h3 className="text-sm font-semibold">
+                      <Mono className="text-xs text-neutral-500">{o.code}</Mono> {o.title}
+                    </h3>
+                    <p className="mt-1 text-xs">{o.description}</p>
+                    {Boolean(tq.competitor_problem) && (
+                      <div className="mt-2 text-[11px] text-neutral-500">
+                        <div>
+                          <b>Đối thủ:</b> {String(tq.competitor_problem)}
+                        </div>
+                        <div>
+                          <b>Metric:</b> {String(tq.metric ?? '')}
+                        </div>
+                        <div>
+                          <b>User của ta:</b> {String(tq.our_user_problem ?? '')}
+                        </div>
+                      </div>
+                    )}
+                    {Boolean(d.impact) && (
+                      <div className="mt-2 text-[11px] text-neutral-500">
+                        Impact {String(d.impact)} · Effort {String(d.effort ?? '?')} · {String(d.next_action ?? o.status ?? '')}
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
+
+        {tab === 'report' && (sess?.report_md ? <MarkdownView text={sess.report_md} /> : <Empty>Phiên này chưa có report.md.</Empty>)}
+      </div>
+
+      {zoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6" onClick={() => setZoom(null)}>
+          <img src={zoom} alt="" className="max-h-full max-w-full rounded-lg object-contain" />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FindingCard({
+  f,
+  evByCode,
+  onZoom,
+}: {
+  f: CompetitorFinding
+  evByCode: Map<string, { storage_key: string | null; caption: string | null }>
+  onZoom: (u: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const k = KIND[f.type] ?? { label: f.type, cls: '' }
+  const evImgs = (f.evidence_ids ?? []).map((c) => evByCode.get(c)).filter((e): e is NonNullable<typeof e> => !!e && !!e.storage_key)
+  const data = (f.data ?? {}) as Record<string, unknown>
+  return (
+    <div className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+      <div className="flex flex-wrap items-start gap-2">
+        <Mono className="text-[11px] text-neutral-500">{f.code}</Mono>
+        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${k.cls}`}>{k.label}</span>
+        {f.confidence && <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] dark:bg-neutral-800">{f.confidence}</span>}
+        {f.status && <span className="rounded border border-dashed border-neutral-300 px-1.5 py-0.5 text-[10px] text-neutral-500 dark:border-neutral-700">{f.status}</span>}
+        <span className="text-[11px] text-neutral-400">{f.category}</span>
+      </div>
+      <div className="mt-1 text-sm font-medium">{f.title}</div>
+      <div className="mt-0.5 text-xs text-neutral-600 dark:text-neutral-300">{f.description}</div>
+      {(f.evidence_ids ?? []).length > 0 && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+          {(f.evidence_ids ?? []).map((c) => (
+            <Mono key={c} className="rounded bg-primary-50 px-1 text-[10px] text-primary-700 dark:bg-primary-950 dark:text-primary-300">
+              {c}
+            </Mono>
+          ))}
+          {(f.source_codes ?? []).length > 0 && <span className="text-[10px] text-neutral-400">từ {(f.source_codes ?? []).join(', ')}</span>}
+          {(evImgs.length > 0 || Object.keys(data).length > 0) && (
+            <button className="ml-auto text-[11px] text-neutral-500 underline" onClick={() => setOpen((v) => !v)}>
+              {open ? 'ẩn' : 'chi tiết'}
+            </button>
+          )}
+        </div>
+      )}
+      {open && (
+        <div className="mt-2 border-t border-neutral-100 pt-2 dark:border-neutral-900">
+          {evImgs.length > 0 && (
+            <div className="mb-2 flex gap-2 overflow-x-auto">
+              {evImgs.map((e, i) => (
+                <button key={i} className="flex-none overflow-hidden rounded border border-neutral-200 dark:border-neutral-800" onClick={async () => onZoom(await competitorImageUrl(e.storage_key!))}>
+                  <EvImg storageKey={e.storage_key!} alt={e.caption ?? ''} className="h-40 w-auto" />
+                </button>
+              ))}
+            </div>
+          )}
+          {Object.entries(data).map(([kk, vv]) => (
+            <div key={kk} className="text-[11px] text-neutral-500">
+              <b>{kk}:</b> {typeof vv === 'object' ? JSON.stringify(vv) : String(vv)}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

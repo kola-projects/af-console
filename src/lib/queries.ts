@@ -2,6 +2,10 @@ import { zipSync } from 'fflate'
 import { supabase, createEphemeralClient } from './supabase'
 import { b64ToBytes, b64ToDataURL, b64ToText, bytesToB64, mimeOf } from './blueprint'
 import type {
+  Competitor,
+  CompetitorSession,
+  CompetitorFinding,
+  CompetitorEvidence,
   AdPlan,
   AdPlanBody,
   AfVersion,
@@ -1187,3 +1191,41 @@ export async function clearStorePat(id: number) {
   const { error } = await supabase.rpc('clear_store_github_credential', { p_store_id: id })
   if (error) throw new Error(error.message)
 }
+
+// ── [0043] Competitors — đọc qua view, ảnh bucket 'competitors' ─────────────────
+const COMPETITOR_BUCKET = 'competitors'
+
+/** Signed URL cho ảnh/screenshot đối thủ (bucket private 'competitors'). TTL 1h — dùng thẳng <img src>. */
+export async function competitorImageUrl(storageKey: string): Promise<string> {
+  const signed = await supabase.storage.from(COMPETITOR_BUCKET).createSignedUrl(storageKey, 3600)
+  if (signed.error || !signed.data) throw new Error(signed.error?.message ?? 'không tạo được signed URL')
+  return signed.data.signedUrl
+}
+
+/** Danh sách đối thủ đã đánh giá (gom theo package). */
+export const competitors = async () =>
+  unwrap<Competitor[]>(
+    await supabase.from('v_competitors').select('*').order('last_evaluated_at', { ascending: false, nullsFirst: false }),
+  )
+
+/** Một đối thủ theo package_name. */
+export const competitorByPackage = async (pkg: string) =>
+  (unwrap<Competitor[]>(await supabase.from('v_competitors').select('*').eq('package_name', pkg).limit(1)))[0] ?? null
+
+/** Các phiên đánh giá của một đối thủ (mới nhất trước). */
+export const competitorSessions = async (pkg: string) =>
+  unwrap<CompetitorSession[]>(
+    await supabase.from('v_competitor_sessions').select('*').eq('package_name', pkg).order('evaluated_at', { ascending: false }),
+  )
+
+/** Findings của MỘT phiên. */
+export const competitorFindings = async (sessionId: number) =>
+  unwrap<CompetitorFinding[]>(
+    await supabase.from('v_competitor_findings').select('*').eq('session_id', sessionId).order('sort_order'),
+  )
+
+/** Evidence của MỘT phiên (bảng con theo khoá ngoại — RLS cho phép authenticated đọc). */
+export const competitorEvidence = async (sessionId: number) =>
+  unwrap<CompetitorEvidence[]>(
+    await supabase.from('competitor_evidence').select('id,session_id,code,kind,storage_key,content_type,screen_name,caption,source_url').eq('session_id', sessionId).order('id'),
+  )

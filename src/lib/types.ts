@@ -684,3 +684,105 @@ export interface AdPlan {
   updated_at: string
   created_by: string | null
 }
+
+// ── [0043] Competitors — đánh giá app đối thủ (ae.sh / appEvaluate) ──────────────
+/** Điểm rubric 1–5 (INFERENCE) — key tuỳ phiên. */
+export type CompetitorScores = Record<string, number>
+
+/** Một dòng v_competitors (danh tính ổn định, gom theo package_name). */
+export interface Competitor {
+  id: number
+  package_name: string
+  platform: 'android' | 'ios'
+  name: string | null
+  developer: string | null
+  developer_id: string | null
+  store_url: string | null
+  icon_url: string | null
+  category_play: string | null
+  category_id: string | null
+  tags: string[] | null
+  related_app_codes: string[] | null
+  sessions_count: number
+  first_evaluated_at: string | null
+  last_evaluated_at: string | null
+  created_at: string
+  latest_session_id: number | null
+  latest_app_version: string | null
+  latest_evaluated_at: string | null
+  latest_scores: CompetitorScores | null
+  latest_monetization: Record<string, unknown> | null
+  latest_listing: Record<string, unknown> | null
+  latest_install_status: string | null
+  latest_coverage: Record<string, number> | null
+}
+
+/** Một lần đánh giá (append-only). */
+export interface CompetitorSession {
+  id: number
+  competitor_id: number
+  package_name: string
+  competitor_name: string | null
+  developer: string | null
+  platform: 'android' | 'ios'
+  run_id: number | null
+  evaluated_at: string
+  app_version: string | null
+  version_code: string | null
+  research_type: string | null
+  depth: string | null
+  source_kind: string | null
+  source_ref: string | null
+  install_status: string | null
+  device: string | null
+  os_version: string | null
+  country: string | null
+  lang: string | null
+  listing: Record<string, unknown>
+  monetization: Record<string, unknown>
+  scores: CompetitorScores
+  coverage: Record<string, number>
+  summary: Record<string, unknown>
+  metrics: Record<string, unknown>
+  tags: string[] | null
+  report_md: string | null
+  status: string
+  af_version: string | null
+  extra: Record<string, unknown>
+}
+
+/** Một finding/insight/opportunity. */
+export interface CompetitorFinding {
+  id: number
+  session_id: number
+  competitor_id: number
+  package_name: string
+  code: string | null
+  level: number | null
+  category: string
+  subcategory: string | null
+  type: 'FACT' | 'USER_SIGNAL' | 'INFERENCE' | 'RECOMMENDATION'
+  title: string | null
+  description: string | null
+  data: Record<string, unknown>
+  evidence_ids: string[] | null
+  source_codes: string[] | null
+  confidence: 'HIGH' | 'MEDIUM' | 'LOW' | null
+  status: string | null
+  sort_order: number | null
+  app_version: string | null
+  evaluated_at: string
+}
+
+/** Một evidence (ảnh/dump/review) — bytes ở bucket 'competitors'. */
+export interface CompetitorEvidence {
+  id: number
+  session_id: number
+  code: string | null
+  kind: string | null
+  storage_key: string | null
+  content_type: string | null
+  screen_name: string | null
+  caption: string | null
+  source_url: string | null
+}
