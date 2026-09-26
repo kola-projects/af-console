@@ -3,6 +3,10 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.41.2 — 2026-09-26
+
+- Trang So sánh: tên app + eval_id (bảng ① và header ma trận) giờ **bấm được → mở thẳng chi tiết đánh giá** của app đó (`/competitors/<package>`), thêm dấu ↗.
+
 ## 3.41.1 — 2026-09-26
 
 - Trang So sánh: app đánh giá bằng **ae.sh cũ** (chưa có feature matrix) hiện caveat rõ (cột feature `?` — vẫn dùng được định vị/monet/pain), không còn cột `?` trơ không lý do.

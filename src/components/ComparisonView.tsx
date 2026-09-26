@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { CompareData } from '../lib/types'
 import { Badge, Mono } from './ui'
 import MarkdownView from '../routes/blueprint/MarkdownView'
@@ -52,12 +53,28 @@ export default function ComparisonView({ data, analysis }: { data: CompareData; 
             <tbody>
               {A.map((a) => (
                 <tr key={a.eval_id}>
-                  <Td><Mono className="text-[11px] text-primary-700 dark:text-primary-300">{a.eval_id}</Mono></Td>
                   <Td>
-                    <span className="flex items-center gap-2">
-                      {a.icon_url && <img src={a.icon_url} alt="" referrerPolicy="no-referrer" className="h-6 w-6 flex-none rounded-md" />}
-                      <span className="font-medium">{a.name ?? a.package}</span>
-                    </span>
+                    {a.package ? (
+                      <Link to={`/competitors/${encodeURIComponent(a.package)}`} className="no-underline hover:underline">
+                        <Mono className="text-[11px] text-primary-700 dark:text-primary-300">{a.eval_id}</Mono>
+                      </Link>
+                    ) : (
+                      <Mono className="text-[11px] text-primary-700 dark:text-primary-300">{a.eval_id}</Mono>
+                    )}
+                  </Td>
+                  <Td>
+                    {a.package ? (
+                      <Link to={`/competitors/${encodeURIComponent(a.package)}`} className="flex items-center gap-2 no-underline" title="Xem chi tiết đánh giá">
+                        {a.icon_url && <img src={a.icon_url} alt="" referrerPolicy="no-referrer" className="h-6 w-6 flex-none rounded-md" />}
+                        <span className="font-medium underline decoration-neutral-300 underline-offset-2 hover:decoration-neutral-500">{a.name ?? a.package}</span>
+                        <span className="text-[11px] text-neutral-400">↗</span>
+                      </Link>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        {a.icon_url && <img src={a.icon_url} alt="" referrerPolicy="no-referrer" className="h-6 w-6 flex-none rounded-md" />}
+                        <span className="font-medium">{a.name ?? a.package}</span>
+                      </span>
+                    )}
                   </Td>
                   <Td><Mono className="text-[11px]">{a.version ?? '?'}</Mono></Td>
                   <Td>{a.ev_scope === 'full' ? <Badge>Đầy đủ</Badge> : <Badge tone="warn">Chỉ store</Badge>}</Td>
@@ -78,7 +95,17 @@ export default function ComparisonView({ data, analysis }: { data: CompareData; 
             <thead>
               <tr>
                 <Th className="sticky left-0 bg-neutral-50 dark:bg-neutral-950">Feature</Th>
-                {A.map((a) => <Th key={a.eval_id} className="text-center"><Mono className="text-[10px]">{a.eval_id}</Mono></Th>)}
+                {A.map((a) => (
+                  <Th key={a.eval_id} className="text-center">
+                    {a.package ? (
+                      <Link to={`/competitors/${encodeURIComponent(a.package)}`} className="no-underline hover:underline" title={a.name ?? ''}>
+                        <Mono className="text-[10px] text-primary-700 dark:text-primary-300">{a.eval_id}</Mono>
+                      </Link>
+                    ) : (
+                      <Mono className="text-[10px]">{a.eval_id}</Mono>
+                    )}
+                  </Th>
+                ))}
                 <Th>Loại</Th>
               </tr>
             </thead>
