@@ -17,6 +17,7 @@ import {
   Users,
   Factory,
   Radar,
+  GitCompare,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -31,6 +32,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', end: true, icon: LayoutDashboard },
   { to: '/apps', label: 'Apps', icon: LayoutGrid },
   { to: '/competitors', label: 'Competitors', icon: Radar },
+  { to: '/compare', label: 'So sánh', icon: GitCompare },
   { to: '/manage-apps', label: 'Quản lý app', icon: SlidersHorizontal },
   { to: '/runs', label: 'Runs', icon: Play },
   { to: '/bugs', label: 'Bugs', icon: Bug },
@@ -48,6 +50,7 @@ const MEMBER_NAV: NavItem[] = [
   { to: '/requests', label: 'Yêu cầu', icon: Inbox },
 ]
 const COMPETITORS_NAV: NavItem = { to: '/competitors', label: 'Competitors', icon: Radar }
+const COMPARE_NAV: NavItem = { to: '/compare', label: 'So sánh', icon: GitCompare }
 
 export default function Shell({ email }: { email: string }) {
   const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
@@ -60,7 +63,7 @@ export default function Shell({ email }: { email: string }) {
   const nav = isAdmin
     ? ADMIN_NAV
     : me.data?.role === 'ua'
-      ? [MEMBER_NAV[0], COMPETITORS_NAV, ...MEMBER_NAV.slice(1)]
+      ? [MEMBER_NAV[0], COMPETITORS_NAV, COMPARE_NAV, ...MEMBER_NAV.slice(1)]
       : MEMBER_NAV
 
   const appVersion = APP_VERSION

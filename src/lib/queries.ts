@@ -6,6 +6,7 @@ import type {
   CompetitorSession,
   CompetitorFinding,
   CompetitorEvidence,
+  CompetitorComparison,
   AdPlan,
   AdPlanBody,
   AfVersion,
@@ -1237,3 +1238,25 @@ export async function competitorSetTags(pkg: string, tags: string[]): Promise<st
   if (error) throw error
   return (data as string[] | null) ?? []
 }
+
+// ── [0045] Comparisons (compare.sh) ─────────────────────────────────────────
+/** Danh sách bản so sánh đã lưu (nhẹ — không kèm data lớn). */
+export const competitorComparisons = async () =>
+  unwrap<Array<Pick<CompetitorComparison, 'id' | 'slug' | 'name' | 'eval_ids' | 'packages' | 'verdict' | 'created_at' | 'updated_at'>>>(
+    await supabase
+      .from('competitor_comparisons')
+      .select('id,slug,name,eval_ids,packages,verdict,created_at,updated_at')
+      .order('updated_at', { ascending: false }),
+  )
+
+/** Một bản so sánh theo slug (kèm data + analysis_md). */
+export const competitorComparison = async (slug: string) =>
+  (unwrap<CompetitorComparison[]>(
+    await supabase.from('competitor_comparisons').select('*').eq('slug', slug).limit(1),
+  ))[0] ?? null
+
+/** Mọi phiên đánh giá (để builder tương tác dựng ma trận client-side). Số lượng nhỏ. */
+export const allCompetitorSessions = async () =>
+  unwrap<CompetitorSession[]>(
+    await supabase.from('v_competitor_sessions').select('*').order('evaluated_at', { ascending: false }),
+  )

@@ -786,3 +786,78 @@ export interface CompetitorEvidence {
   caption: string | null
   source_url: string | null
 }
+
+// ── [0045] Competitor comparisons (compare.sh) ──────────────────────────────
+export interface CmpFeatureCell { status?: string; access?: string | null; notes?: string | null }
+export interface CmpFeatureRow {
+  key: string
+  label: string
+  present_count: number
+  klass: 'table_stake' | 'differentiator' | 'contested' | 'absent_all'
+  cells: Record<string, CmpFeatureCell>
+}
+export interface CmpApp {
+  eval_id: string
+  session_id: number
+  name: string | null
+  package: string | null
+  developer?: string | null
+  icon_url?: string | null
+  store_url?: string | null
+  version: string | null
+  install_status: string | null
+  ev_scope: string
+  evaluated_at?: string | null
+  tags: string[]
+  category: string | null
+  rating?: number | null
+  ratings?: number | null
+  reviews?: number | null
+  installs?: string | null
+  updated?: string | null
+  scores: Record<string, number>
+  coverage_overall?: number | null
+  summary: Record<string, string | null>
+  strengths: string[]
+  weaknesses: string[]
+  pain_points: string[]
+  monet: {
+    ad_supported?: boolean | null
+    offers_iap?: boolean | null
+    iap_range?: string | null
+    ad_networks: string[]
+    mediation_primary?: string | null
+    ad_formats: string[]
+    bidding_sources: string[]
+    consent_cmp: string[]
+    billing?: string | null
+  }
+  features: Record<string, { key?: string; label?: string; status?: string; access?: string | null; notes?: string | null }>
+}
+export interface CompareData {
+  apps: CmpApp[]
+  feature_matrix: CmpFeatureRow[]
+  feature_summary: {
+    n_with_features: number
+    table_stakes: string[]
+    contested: string[]
+    differentiators: Record<string, string[]>
+  }
+  coherence: { common_tags: string[]; categories: string[]; store_only: string[] }
+  pain_points: { text: string; n: number }[]
+  weaknesses: { text: string; n: number }[]
+  monet_aggressiveness: { eval_id: string; name: string | null; pressure?: number | null; friction?: number | null; ad_networks: number }[]
+  meta?: { name?: string; generated_at?: string; eval_ids?: string[] }
+}
+export interface CompetitorComparison {
+  id: number
+  slug: string
+  name: string | null
+  eval_ids: string[]
+  packages: string[] | null
+  data: CompareData
+  analysis_md: string | null
+  verdict: string | null
+  created_at: string
+  updated_at: string
+}

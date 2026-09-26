@@ -26,6 +26,8 @@ import AdsAppDetail from './routes/AdsAppDetail'
 import AdsScenarioDetail from './routes/AdsScenarioDetail'
 import Competitors from './routes/Competitors'
 import CompetitorDetail from './routes/CompetitorDetail'
+import Compare from './routes/Compare'
+import CompareDetail from './routes/CompareDetail'
 
 const qc = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 } },
@@ -77,6 +79,8 @@ export default function App() {
             <Route path="apps/:id" element={<AppDetail />} />
             <Route path="competitors" element={<RequireRoles roles={['ua', 'admin']}><Competitors /></RequireRoles>} />
             <Route path="competitors/:package" element={<RequireRoles roles={['ua', 'admin']}><CompetitorDetail /></RequireRoles>} />
+            <Route path="compare" element={<RequireRoles roles={['ua', 'admin']}><Compare /></RequireRoles>} />
+            <Route path="compare/:slug" element={<RequireRoles roles={['ua', 'admin']}><CompareDetail /></RequireRoles>} />
             <Route path="requests" element={<Requests />} />
             {/* Nội bộ — chỉ admin */}
             <Route path="manage-apps" element={<RequireAdmin><ManageApps /></RequireAdmin>} />

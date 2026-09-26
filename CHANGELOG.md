@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.41.0 — 2026-09-26
+
+- **Trang So sánh mới** (`/compare`, UA+Admin): so sánh nhiều đánh giá đối thủ cùng dòng — ma trận tính năng (tự phân loại table-stake/khác biệt/tranh chấp), định vị, điểm rubric, monetization (+ xếp hạng độ gắt), pain-point & điểm yếu gộp cohort, và phần diễn giải agent (whitespace/đề xuất khác biệt).
+- Hai chế độ: **builder tương tác** (tick app → ma trận client-side, xem nhanh) + **bản đã lưu** do `compare.sh` sinh. Nav "So sánh" thêm cho UA+Admin.
+- Backend: lệnh AF `compare.sh` (+ tools/compare_build.py, compare_push.py) + migration **0045_competitor_comparisons**.
+
 ## 3.40.1 — 2026-09-26
 
 - Đổi nhãn tab + ô thống kê **"Findings" → "Phát hiện"** (rõ nghĩa hơn); giữ id/route cũ.
