@@ -116,14 +116,23 @@ export default function CompetitorDetail() {
   const evidence = evQ.data ?? []
   const evByCode = new Map(evidence.map((e) => [e.code ?? '', e]))
   const scores = (sess?.scores ?? {}) as Record<string, number>
-  const reviewImp = ((sess?.extra as Record<string, unknown>)?.review_improvement ?? null) as
-    | { counts?: Record<string, number>; themes?: Array<Record<string, unknown>> }
-    | null
   const extra = (sess?.extra ?? {}) as Record<string, unknown>
+  const reviewImp = (extra.review_improvement ?? null) as
+    | {
+        status?: string
+        reason?: string
+        kept_count?: number
+        dropped_counts?: Record<string, number>
+        kept?: Array<{ score?: number; version?: string; text?: string; n?: number; theme?: string }>
+      }
+    | null
   const manifest = (extra.coverage_manifest ?? null) as CoverageManifest | null
   const features = ((extra.features ?? (summary.features as unknown) ?? []) as FeatureRow[])
 
   const listArr = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : [])
+  // ad_networks/iap_sdks/trackers được lưu dạng OBJECT {name: {...}} — lấy tên; hỗ trợ cả array cũ
+  const keyList = (v: unknown): string[] =>
+    Array.isArray(v) ? (v as string[]) : v && typeof v === 'object' ? Object.keys(v as object) : []
   const findCats = [...new Set(findings.map((f) => f.category))].sort()
   const shownFindings = findings.filter((f) => (!findCat || f.category === findCat) && (!findType || f.type === findType))
   const opportunities = findings.filter((f) => f.category === 'opportunity')
@@ -203,7 +212,10 @@ export default function CompetitorDetail() {
           [String(findings.length), 'findings'],
           [String(screenShots.length), 'ảnh màn'],
           [num(listing, 'reviews'), 'review store'],
-          [String(listArr(mon.ad_networks).length), 'mạng ads'],
+          [
+            String(Array.isArray(mon.ad_networks) ? mon.ad_networks.length : Object.keys((mon.ad_networks ?? {}) as object).length),
+            'mạng ads',
+          ],
           [`${Number(cov._overall ?? 0)}%`, 'coverage'],
           [`${Number(metrics.cold_start_median_ms ?? 0) || '—'}`, 'cold start (ms)'],
         ].map(([v, l], i) => (
@@ -308,14 +320,20 @@ export default function CompetitorDetail() {
               <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
                 <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Kiếm tiền (từ APK)</h2>
                 <div className="flex flex-wrap gap-1">
-                  {listArr(mon.ad_networks).map((n) => (
-                    <Badge key={n} tone="warn">
-                      {n}
-                    </Badge>
-                  ))}
+                  {keyList(mon.ad_networks).length === 0 ? (
+                    <span className="text-xs text-neutral-500">
+                      {sess?.install_status === 'blocked' ? 'Không có APK (app bị chặn cài) → không quét được SDK.' : 'Không phát hiện mạng ads trong APK.'}
+                    </span>
+                  ) : (
+                    keyList(mon.ad_networks).map((n) => (
+                      <Badge key={n} tone="warn">
+                        {n}
+                      </Badge>
+                    ))
+                  )}
                 </div>
                 <div className="mt-2 text-xs text-neutral-500">
-                  IAP: {listArr(mon.iap_sdks).join(', ') || '—'} · Tracker: {listArr(mon.trackers).join(', ') || '—'}
+                  IAP: {keyList(mon.iap_sdks).join(', ') || '—'} · Tracker: {keyList(mon.trackers).join(', ') || '—'}
                 </div>
               </section>
               <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
@@ -426,6 +444,15 @@ export default function CompetitorDetail() {
 
         {tab === 'screens' && (
           <div>
+            {screenShots.length === 0 ? (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm dark:border-amber-900 dark:bg-amber-950">
+                <b>⛔ Không có ảnh trải nghiệm</b>
+                <div className="mt-0.5 text-xs text-neutral-600 dark:text-neutral-400">
+                  Lý do: {sess?.install_status === 'blocked' ? 'app không cài được từ Play (Tier B store-only) nên không có ảnh trải nghiệm thiết bị.' : 'phiên này chưa gắn ảnh màn.'}
+                </div>
+              </div>
+            ) : (
+              <>
             <p className="mb-3 text-xs text-neutral-500">Ảnh THẬT các màn đã trải nghiệm (chạm để phóng to). {screenShots.length} ảnh.</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
               {screenShots.map((e) => (
@@ -442,6 +469,8 @@ export default function CompetitorDetail() {
                 </figure>
               ))}
             </div>
+              </>
+            )}
           </div>
         )}
 
@@ -477,56 +506,63 @@ export default function CompetitorDetail() {
 
         {tab === 'voc' && (
           <div>
-            {reviewImp?.counts && (
-              <p className="mb-3 text-xs text-neutral-500">
-                Chỉ giữ review ĐÓNG GÓP CẢI TIẾN: {reviewImp.counts.kept_actionable}/{reviewImp.counts.total} (bỏ seeding{' '}
-                {reviewImp.counts.dropped_seeding}, than-ads chung {reviewImp.counts.dropped_generic_ads}, tiêu cực không actionable{' '}
-                {reviewImp.counts.dropped_generic_neg}).
-              </p>
-            )}
-            {(reviewImp?.themes ?? []).length === 0 ? (
-              <Empty>Chưa có review cải tiến.</Empty>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {(reviewImp?.themes ?? []).map((t, i) => {
-                  const quotes = listArr((t as Record<string, unknown>).quotes as unknown) as unknown as Array<Record<string, unknown>>
-                  return (
-                    <div key={i} className="rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <b className="text-sm">{String((t as Record<string, unknown>).theme ?? '')}</b>
-                        <Badge>{String((t as Record<string, unknown>).category ?? '')}</Badge>
-                        <span className="ml-auto text-xs text-neutral-500">
-                          {String((t as Record<string, unknown>).count ?? '')} review · {String((t as Record<string, unknown>).confidence ?? '')}
-                        </span>
+            {(() => {
+              const kept = reviewImp?.kept ?? []
+              const dc = reviewImp?.dropped_counts ?? {}
+              const dropped = (dc.seeding ?? 0) + (dc.generic_ads ?? 0) + (dc.generic_negative ?? 0)
+              if (kept.length === 0) {
+                const reason =
+                  reviewImp?.reason ??
+                  (reviewImp?.status === 'NO_REVIEWS' || reviewImp?.status === 'NOT_OBSERVED'
+                    ? 'Store không trả review để phân tích (app mới / in-development / locale).'
+                    : 'Chưa lọc được review đóng góp cải tiến.')
+                return (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm dark:border-amber-900 dark:bg-amber-950">
+                    <b>⛔ Không có Voice of Customer</b>
+                    <div className="mt-0.5 text-xs text-neutral-600 dark:text-neutral-400">Lý do: {reason}</div>
+                    {dropped > 0 && (
+                      <div className="mt-0.5 text-[11px] text-neutral-500">
+                        (Đã lọc bỏ {dropped}: seeding {dc.seeding ?? 0}, ads-chung {dc.generic_ads ?? 0}, tiêu cực rỗng {dc.generic_negative ?? 0})
                       </div>
-                      {typeof (t as Record<string, unknown>).product_direction === 'string' && (
-                        <div className="mt-1 text-xs text-primary-700 dark:text-primary-300">
-                          → {String((t as Record<string, unknown>).product_direction)}
+                    )}
+                  </div>
+                )
+              }
+              const byTheme = new Map<string, typeof kept>()
+              for (const r of kept) {
+                const k = r.theme ?? 'khác'
+                byTheme.set(k, [...(byTheme.get(k) ?? []), r])
+              }
+              return (
+                <>
+                  <p className="mb-3 text-xs text-neutral-500">
+                    Chỉ giữ review ĐÓNG GÓP CẢI TIẾN: <b>{kept.length}</b> review (đã bỏ {dropped}: seeding {dc.seeding ?? 0}, ads-chung{' '}
+                    {dc.generic_ads ?? 0}, tiêu cực rỗng {dc.generic_negative ?? 0}).
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    {[...byTheme.entries()].map(([theme, rs]) => (
+                      <div key={theme} className="rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <b className="text-sm">{theme.replace(/_/g, ' ')}</b>
+                          <Badge>{rs.length} review</Badge>
                         </div>
-                      )}
-                      {(Array.isArray((t as Record<string, unknown>).quotes) ? ((t as Record<string, unknown>).quotes as Array<Record<string, unknown>>) : quotes)
-                        .slice(0, 3)
-                        .map((qq, j) => (
-                          <blockquote key={j} className="mt-2 rounded border-l-2 border-neutral-300 bg-neutral-50 px-3 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-900">
-                            “{String(qq.quote ?? '')}”
+                        {rs.slice(0, 5).map((r, j) => (
+                          <blockquote
+                            key={j}
+                            className="mt-2 rounded border-l-2 border-neutral-300 bg-neutral-50 px-3 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-900"
+                          >
+                            “{r.text}”
                             <span className="mt-0.5 block text-[10px] text-neutral-500">
-                              ★{String(qq.score ?? '')} · {String(qq.date ?? '').slice(0, 10)} · v{String(qq.version ?? '')}
-                              {typeof qq.url === 'string' && (
-                                <>
-                                  {' · '}
-                                  <a href={qq.url} target="_blank" rel="noreferrer">
-                                    nguồn ↗
-                                  </a>
-                                </>
-                              )}
+                              ★{r.score ?? '?'} · v{r.version ?? '?'} · review #{r.n ?? '?'}
                             </span>
                           </blockquote>
                         ))}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            })()}
           </div>
         )}
 

@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.36.1 — 2026-09-26
+
+Sửa các khu vực dữ liệu trống không có lý do trên competitor detail:
+- **VoC**: đọc đúng schema `review_improvement.kept` (trước đọc `themes` sai) — nhóm review theo theme; nếu rỗng hiện RÕ lý do (NO_REVIEWS…).
+- **Kiếm tiền / stat mạng ads**: `ad_networks/iap_sdks/trackers` lưu dạng object → đếm/hiện đúng (trước hiện 0/trống).
+- **Màn hình**: app Tier B (bị chặn cài) hiện lý do "không có ảnh trải nghiệm" thay vì grid trống.
+
 ## 3.36.0 — 2026-09-26
 
 Trang competitor detail hiện kết quả checklist ae.sh (đồng bộ AF v5.74.0):
