@@ -138,6 +138,9 @@ export function buildCompare(apps: CmpApp[], name = ''): CompareData {
     : []
   const categories = [...new Set(apps.map((a) => a.category).filter(Boolean) as string[])].sort()
   const store_only = apps.filter((a) => a.ev_scope === 'store_only').map((a) => a.eval_id)
+  const no_features = apps
+    .filter((a) => Object.keys(a.features).length === 0 && a.ev_scope !== 'store_only')
+    .map((a) => a.eval_id)
 
   const agg = (field: 'pain_points' | 'weaknesses') => {
     const c = new Map<string, number>()
@@ -159,7 +162,7 @@ export function buildCompare(apps: CmpApp[], name = ''): CompareData {
     apps,
     feature_matrix,
     feature_summary: { n_with_features: n, table_stakes, contested, differentiators },
-    coherence: { common_tags, categories, store_only },
+    coherence: { common_tags, categories, store_only, no_features },
     pain_points: agg('pain_points'),
     weaknesses: agg('weaknesses'),
     monet_aggressiveness,

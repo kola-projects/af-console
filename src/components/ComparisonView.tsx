@@ -37,6 +37,11 @@ export default function ComparisonView({ data, analysis }: { data: CompareData; 
           ℹ {coh.store_only.length} app <b>store_only</b> (không cài được) → cột feature = <Mono>?</Mono>: {coh.store_only.join(', ')}
         </div>
       )}
+      {(coh.no_features?.length ?? 0) > 0 && (
+        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
+          ℹ {coh.no_features!.length} app đánh giá bằng <b>ae.sh cũ</b> (chưa có feature matrix) → cột feature = <Mono>?</Mono>; định vị / monetization / pain-point vẫn dùng được: {coh.no_features!.join(', ')}
+        </div>
+      )}
 
       {/* ① App */}
       <section>

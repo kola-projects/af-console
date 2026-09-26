@@ -3,6 +3,10 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.41.1 — 2026-09-26
+
+- Trang So sánh: app đánh giá bằng **ae.sh cũ** (chưa có feature matrix) hiện caveat rõ (cột feature `?` — vẫn dùng được định vị/monet/pain), không còn cột `?` trơ không lý do.
+
 ## 3.41.0 — 2026-09-26
 
 - **Trang So sánh mới** (`/compare`, UA+Admin): so sánh nhiều đánh giá đối thủ cùng dòng — ma trận tính năng (tự phân loại table-stake/khác biệt/tranh chấp), định vị, điểm rubric, monetization (+ xếp hạng độ gắt), pain-point & điểm yếu gộp cohort, và phần diễn giải agent (whitespace/đề xuất khác biệt).

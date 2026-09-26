@@ -843,7 +843,7 @@ export interface CompareData {
     contested: string[]
     differentiators: Record<string, string[]>
   }
-  coherence: { common_tags: string[]; categories: string[]; store_only: string[] }
+  coherence: { common_tags: string[]; categories: string[]; store_only: string[]; no_features?: string[] }
   pain_points: { text: string; n: number }[]
   weaknesses: { text: string; n: number }[]
   monet_aggressiveness: { eval_id: string; name: string | null; pressure?: number | null; friction?: number | null; ad_networks: number }[]
