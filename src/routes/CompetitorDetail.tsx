@@ -12,10 +12,11 @@ import { Badge, Mono, Empty, Loading, ErrorBox, localTime, Table, Row, Cell } fr
 import MarkdownView from './blueprint/MarkdownView'
 import type { CompetitorSession, CompetitorFinding } from '../lib/types'
 
-type Tab = 'overview' | 'coverage' | 'features' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
+type Tab = 'overview' | 'coverage' | 'monet' | 'features' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
 const TABS: [Tab, string][] = [
   ['overview', 'Tổng quan'],
   ['coverage', 'Độ phủ'],
+  ['monet', 'Kiếm tiền'],
   ['features', 'Tính năng'],
   ['screens', 'Màn hình'],
   ['findings', 'Findings'],
@@ -128,6 +129,11 @@ export default function CompetitorDetail() {
     | null
   const manifest = (extra.coverage_manifest ?? null) as CoverageManifest | null
   const features = ((extra.features ?? (summary.features as unknown) ?? []) as FeatureRow[])
+  const evalId = (extra.eval_id as string | undefined) ?? (sess ? `S${sess.id}` : '')
+  const adNetworks = mon.ad_networks as Record<string, { count?: number }> | string[] | undefined
+  const adUnits = (mon.ad_units ?? {}) as Record<string, number>
+  const adPlacements = findings.filter((f) => f.category === 'ad_placement')
+  const iapFindings = findings.filter((f) => f.category === 'pricing' || f.category === 'paywall')
 
   const listArr = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : [])
   // ad_networks/iap_sdks/trackers được lưu dạng OBJECT {name: {...}} — lấy tên; hỗ trợ cả array cũ
@@ -159,6 +165,11 @@ export default function CompetitorDetail() {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <h1 className="text-xl font-semibold">{c.name ?? pkg}</h1>
+            {evalId && (
+              <span className="rounded bg-primary-100 px-1.5 py-0.5 font-mono text-xs font-semibold text-primary-800 dark:bg-primary-950 dark:text-primary-300" title="Mã đánh giá (dùng để tham chiếu)">
+                {evalId}
+              </span>
+            )}
             <span className="text-sm text-neutral-500">{c.developer}</span>
             <Mono className="text-xs text-neutral-500">{pkg}</Mono>
           </div>
@@ -407,6 +418,106 @@ export default function CompetitorDetail() {
               </>
             )}
           </div>
+        )}
+
+        {tab === 'monet' && (
+          (() => {
+            const nets: [string, number][] = Array.isArray(adNetworks)
+              ? (adNetworks as string[]).map((n) => [n, 0])
+              : Object.entries((adNetworks ?? {}) as Record<string, { count?: number }>).map(([n, v]) => [n, v?.count ?? 0])
+            nets.sort((a, b) => b[1] - a[1])
+            const units = Object.entries(adUnits).sort((a, b) => (b[1] as number) - (a[1] as number))
+            const blocked = sess?.install_status === 'blocked'
+            return (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    [mon.ad_supported ? '✓ Có' : '—', 'Ads'],
+                    [mon.offers_iap === false ? 'Không' : mon.offers_iap ? '✓ Có' : '—', 'IAP'],
+                    [String(nets.length), 'mạng ads'],
+                    [String(units.length), 'ad unit'],
+                    [String(mon.iap_range ?? '—'), 'dải giá IAP'],
+                  ].map(([v, l], i) => (
+                    <div key={i} className="flex min-w-[92px] flex-col rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900">
+                      <b className="text-sm tabular-nums">{v}</b>
+                      <span className="text-[10px] uppercase tracking-wide text-neutral-500">{l}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">Mạng quảng cáo (mediation, từ census APK)</h2>
+                  {nets.length === 0 ? (
+                    <p className="text-xs text-neutral-500">{blocked ? 'App bị chặn cài → không có APK để quét SDK.' : 'Không phát hiện mạng ads trong APK.'}</p>
+                  ) : (
+                    <Table head={['Mạng', 'Số tham chiếu trong code']}>
+                      {nets.map(([n, cnt]) => (
+                        <Row key={n}>
+                          <Cell><Badge tone="warn">{n}</Badge></Cell>
+                          <Cell><span className="tabular-nums text-neutral-600 dark:text-neutral-300">{cnt || '—'}</span></Cell>
+                        </Row>
+                      ))}
+                    </Table>
+                  )}
+                </section>
+
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-1 text-sm font-semibold">Ad unit (AdMob) tìm thấy trong APK</h2>
+                  <p className="mb-2 text-[11px] text-neutral-500">ID unit + số lần tham chiếu (APK chỉ chứa ID, không có tên đặt trên dashboard; loại inter/banner/rewarded suy từ tab Vị trí bên dưới).</p>
+                  {units.length === 0 ? (
+                    <p className="text-xs text-neutral-500">{blocked ? 'Không có APK (app bị chặn cài).' : 'Không tách được ad unit từ static analysis.'}</p>
+                  ) : (
+                    <Table head={['Ad unit ID', 'Ref']}>
+                      {units.map(([u, cnt]) => (
+                        <Row key={u}>
+                          <Cell><Mono className="text-[11px]">{u}</Mono></Cell>
+                          <Cell><span className="tabular-nums text-neutral-500">{cnt}</span></Cell>
+                        </Row>
+                      ))}
+                    </Table>
+                  )}
+                </section>
+
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">Vị trí / thời điểm quảng cáo QUAN SÁT ({adPlacements.length})</h2>
+                  {adPlacements.length === 0 ? (
+                    <p className="text-xs text-neutral-500">{blocked ? 'Không trải nghiệm được (app bị chặn cài).' : 'Chưa ghi nhận vị trí ad.'}</p>
+                  ) : (
+                    <ul className="flex flex-col gap-2">
+                      {adPlacements.map((f) => (
+                        <li key={f.id} className="text-xs">
+                          <Mono className="text-[10px] text-neutral-400">{f.code}</Mono> <b>{f.title}</b>
+                          <span className="block text-neutral-600 dark:text-neutral-400">{f.description}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">IAP / Gói trả phí ({iapFindings.length})</h2>
+                  <p className="mb-2 text-xs text-neutral-500">
+                    offersIAP: <b>{mon.offers_iap === false ? 'Không' : mon.offers_iap ? 'Có' : '—'}</b>
+                    {mon.iap_range ? <> · dải giá store: <b>{String(mon.iap_range)}</b></> : null}
+                  </p>
+                  {mon.offers_iap === false ? (
+                    <p className="text-xs text-neutral-500">App không bán IAP (mô hình chỉ quảng cáo / rewarded).</p>
+                  ) : iapFindings.length === 0 ? (
+                    <p className="text-xs text-neutral-500">{blocked ? 'Không quan sát được gói (app bị chặn cài); chỉ có dải giá store ở trên.' : 'Chưa ghi nhận gói cụ thể (xem dải giá store).'}</p>
+                  ) : (
+                    <ul className="flex flex-col gap-2">
+                      {iapFindings.map((f) => (
+                        <li key={f.id} className="text-xs">
+                          <Mono className="text-[10px] text-neutral-400">{f.code}</Mono> <b>{f.title}</b>
+                          <span className="block text-neutral-600 dark:text-neutral-400">{f.description}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </div>
+            )
+          })()
         )}
 
         {tab === 'features' && (

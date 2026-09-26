@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.37.0 — 2026-09-26
+
+- **Mã đánh giá (eval_id)** ổn định theo package+version (vd `EV-7DA56`) hiện ở hero — để dễ tham chiếu khi trao đổi.
+- **Tab Kiếm tiền** (mới): tổng quan Ads/IAP + bảng **mạng quảng cáo** (mediation, ref count) + bảng **ad unit AdMob** (ID + ref
+  từ static analysis) + **vị trí/thời điểm quảng cáo quan sát** (từ finding ad_placement) + **IAP/gói** (dải giá store + gói
+  quan sát từ finding pricing/paywall). Mọi khu trống đều nêu lý do (app bị chặn cài / không có IAP).
+
 ## 3.36.2 — 2026-09-26
 
 Overview: list điểm mạnh/yếu/pain rỗng hiện '—' (trỏ tab Findings) thay vì trống im lặng.
