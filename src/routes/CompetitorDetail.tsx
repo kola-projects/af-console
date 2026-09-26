@@ -497,39 +497,6 @@ export default function CompetitorDetail() {
                 </div>
 
                 <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-                  <h2 className="mb-2 text-sm font-semibold">Mạng quảng cáo (mediation, từ census APK)</h2>
-                  {nets.length === 0 ? (
-                    <p className="text-xs text-neutral-500">{blocked ? 'App bị chặn cài → không có APK để quét SDK.' : 'Không phát hiện mạng ads trong APK.'}</p>
-                  ) : (
-                    <Table head={['Mạng', 'Số tham chiếu trong code']}>
-                      {nets.map(([n, cnt]) => (
-                        <Row key={n}>
-                          <Cell><Badge tone="warn">{n}</Badge></Cell>
-                          <Cell><span className="tabular-nums text-neutral-600 dark:text-neutral-300">{cnt || '—'}</span></Cell>
-                        </Row>
-                      ))}
-                    </Table>
-                  )}
-                </section>
-
-                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-                  <h2 className="mb-1 text-sm font-semibold">Ad unit (AdMob) tìm thấy trong APK</h2>
-                  <p className="mb-2 text-[11px] text-neutral-500">ID unit + số lần tham chiếu (APK chỉ chứa ID, không có tên đặt trên dashboard; loại inter/banner/rewarded suy từ tab Vị trí bên dưới).</p>
-                  {units.length === 0 ? (
-                    <p className="text-xs text-neutral-500">{blocked ? 'Không có APK (app bị chặn cài).' : 'Không tách được ad unit từ static analysis.'}</p>
-                  ) : (
-                    <Table head={['Ad unit ID', 'Ref']}>
-                      {units.map(([u, cnt]) => (
-                        <Row key={u}>
-                          <Cell><Mono className="text-[11px]">{u}</Mono></Cell>
-                          <Cell><span className="tabular-nums text-neutral-500">{cnt}</span></Cell>
-                        </Row>
-                      ))}
-                    </Table>
-                  )}
-                </section>
-
-                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
                   <h2 className="mb-2 text-sm font-semibold">Vị trí / thời điểm quảng cáo QUAN SÁT ({adPlacements.length})</h2>
                   {adPlacements.length === 0 ? (
                     <p className="text-xs text-neutral-500">{blocked ? 'Không trải nghiệm được (app bị chặn cài).' : 'Chưa ghi nhận vị trí ad.'}</p>
@@ -687,6 +654,49 @@ export default function CompetitorDetail() {
                     )}
                   </section>
                 ) : null}
+
+                {/* Dữ liệu thô APK — ít giá trị đọc nhanh, để cuối làm tham khảo/đối chiếu */}
+                <div className="mt-2 border-t border-dashed border-neutral-200 pt-3 dark:border-neutral-800">
+                  <h2 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Số liệu thô từ APK (tham khảo)</h2>
+                  <p className="mt-0.5 text-[11px] text-neutral-500">Trích máy móc từ static analysis — dùng để đối chiếu, không phải để đọc nhanh.</p>
+                </div>
+
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-1 text-sm font-semibold">Mạng quảng cáo (mediation, từ census APK)</h2>
+                  <p className="mb-2 text-[11px] text-neutral-500">
+                    <b>Số tham chiếu</b> = số lần lớp/chuỗi của SDK mạng đó xuất hiện trong code APK đã dịch ngược. Là ước lượng độ tích hợp:
+                    số cao (vd ironSource/AppLovin) = mạng CHỦ ĐẠO; số thấp (1–5) = adapter đi kèm mediation, có thể không thực sự bật.
+                  </p>
+                  {nets.length === 0 ? (
+                    <p className="text-xs text-neutral-500">{blocked ? 'App bị chặn cài → không có APK để quét SDK.' : 'Không phát hiện mạng ads trong APK.'}</p>
+                  ) : (
+                    <Table head={['Mạng', 'Số tham chiếu trong code']}>
+                      {nets.map(([n, cnt]) => (
+                        <Row key={n}>
+                          <Cell><Badge tone="warn">{n}</Badge></Cell>
+                          <Cell><span className="tabular-nums text-neutral-600 dark:text-neutral-300">{cnt || '—'}</span></Cell>
+                        </Row>
+                      ))}
+                    </Table>
+                  )}
+                </section>
+
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-1 text-sm font-semibold">Ad unit (AdMob) tìm thấy trong APK</h2>
+                  <p className="mb-2 text-[11px] text-neutral-500">ID unit + số lần tham chiếu (APK chỉ chứa ID, không có tên đặt trên dashboard; loại inter/banner/rewarded suy từ mục Vị trí ở trên).</p>
+                  {units.length === 0 ? (
+                    <p className="text-xs text-neutral-500">{blocked ? 'Không có APK (app bị chặn cài).' : 'Không tách được ad unit từ static analysis.'}</p>
+                  ) : (
+                    <Table head={['Ad unit ID', 'Ref']}>
+                      {units.map(([u, cnt]) => (
+                        <Row key={u}>
+                          <Cell><Mono className="text-[11px]">{u}</Mono></Cell>
+                          <Cell><span className="tabular-nums text-neutral-500">{cnt}</span></Cell>
+                        </Row>
+                      ))}
+                    </Table>
+                  )}
+                </section>
               </div>
             )
           })()

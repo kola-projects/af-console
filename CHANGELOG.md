@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.39.2 — 2026-09-26
+
+- Tab Kiếm tiền: dời 2 bảng thô (**Mạng quảng cáo** + **Ad unit AdMob**) xuống CUỐI tab dưới nhóm "Số liệu thô từ APK (tham khảo)" — phần trên giờ ưu tiên nội dung diễn giải (vị trí ads, IAP, bidding, phân luồng).
+- Giải thích ngay dưới bảng: **Số tham chiếu** = số lần lớp/chuỗi SDK mạng đó xuất hiện trong code APK dịch ngược (ước lượng độ tích hợp: cao = mạng chủ đạo; 1–5 = adapter đi kèm mediation, có thể không bật).
+
 ## 3.39.1 — 2026-09-26
 
 - Competitor detail: đổi thứ tự tab (Tổng quan · Tính năng · Kiếm tiền · Màn hình · Findings · Người dùng nói gì · Cơ hội · Báo cáo · **Logs**); tab 'Độ phủ' đổi tên thành **Logs**.
