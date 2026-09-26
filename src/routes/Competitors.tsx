@@ -80,7 +80,8 @@ export default function Competitors() {
   const [cat, setCat] = useState('')
   const [tag, setTag] = useState('')
   const [mon, setMon] = useState('')
-  const [scope, setScope] = useState('') // ev_scope: '' | 'full' | 'store_only'
+  const [showFull, setShowFull] = useState(true) // ev_scope=full (Đầy đủ) — mặc định BẬT
+  const [showStoreOnly, setShowStoreOnly] = useState(false) // ev_scope=store_only (Chỉ store) — mặc định TẮT
   const [sort, setSort] = useState<'recent' | 'name' | 'rating'>('recent')
 
   const cats = useMemo(
@@ -97,10 +98,10 @@ export default function Competitors() {
     const filtered = (q.data ?? []).filter((c) => {
       if (cat && c.category_play !== cat) return false
       if (tag && !(c.tags ?? []).includes(tag)) return false
-      if (scope) {
+      {
         const isFull = c.latest_install_status === 'installed'
-        if (scope === 'full' && !isFull) return false
-        if (scope === 'store_only' && isFull) return false
+        if (isFull && !showFull) return false
+        if (!isFull && !showStoreOnly) return false
       }
       if (mon) {
         const f = monFlags(c.latest_monetization)
@@ -126,7 +127,7 @@ export default function Competitors() {
       }
       return (b.last_evaluated_at ?? b.created_at).localeCompare(a.last_evaluated_at ?? a.created_at)
     })
-  }, [q.data, search, cat, tag, mon, scope, sort])
+  }, [q.data, search, cat, tag, mon, showFull, showStoreOnly, sort])
 
   if (q.isLoading) return <Loading />
   if (q.error) return <ErrorBox error={q.error} />
@@ -172,11 +173,20 @@ export default function Competitors() {
           <option value="iap">Có IAP</option>
           <option value="sub">Có Subscription</option>
         </select>
-        <select className={selectCls} value={scope} onChange={(e) => setScope(e.target.value)} title="Mức đánh giá (ev_scope)">
-          <option value="">Mọi mức đánh giá</option>
-          <option value="full">Đầy đủ (cài + trải nghiệm)</option>
-          <option value="store_only">Chỉ store (không cài được)</option>
-        </select>
+        <div
+          className="flex items-center gap-3 rounded border border-neutral-300 px-2.5 py-1.5 text-sm dark:border-neutral-700"
+          title="Lọc theo mức đánh giá (ev_scope). Mặc định: chỉ hiện app Đầy đủ."
+        >
+          <span className="text-neutral-500">Mức:</span>
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <input type="checkbox" checked={showFull} onChange={(e) => setShowFull(e.target.checked)} />
+            Đầy đủ
+          </label>
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <input type="checkbox" checked={showStoreOnly} onChange={(e) => setShowStoreOnly(e.target.checked)} />
+            Chỉ store
+          </label>
+        </div>
         <select className={selectCls} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
           <option value="recent">Đánh giá gần nhất</option>
           <option value="name">Tên</option>
@@ -191,7 +201,7 @@ export default function Competitors() {
         </div>
       ) : (
         <div className="mt-4">
-          <Table head={['App', 'Package', 'Category', 'Tag', 'Kiếm tiền', 'Rating · Installs', 'Điểm', 'Phiên']}>
+          <Table head={['App', 'Mức', 'Category', 'Tag', 'Kiếm tiền', 'Rating · Installs', 'Điểm', 'Phiên']}>
             {rows.map((c) => {
               const f = monFlags(c.latest_monetization)
               const listing = (c.latest_listing ?? {}) as Record<string, unknown>
@@ -205,17 +215,33 @@ export default function Competitors() {
                           {c.name ?? c.package_name}
                         </span>
                         <span className="block truncate text-[11px] text-neutral-500">{c.developer ?? '—'}</span>
+                        <Mono className="block truncate text-[10px] text-neutral-400">{c.package_name}</Mono>
                       </span>
                     </span>
                   </Cell>
                   <Cell>
-                    <Mono className="text-[11px] text-neutral-500">{c.package_name}</Mono>
+                    {c.latest_install_status === 'installed' ? (
+                      <Badge>Đầy đủ</Badge>
+                    ) : (
+                      <Badge tone="warn">Chỉ store</Badge>
+                    )}
                   </Cell>
                   <Cell>{c.category_play ? <Badge>{c.category_play}</Badge> : <span className="text-neutral-400">—</span>}</Cell>
                   <Cell>
                     <span className="flex flex-wrap gap-1">
                       {(c.tags ?? []).slice(0, 3).map((t) => (
-                        <Badge key={t}>{t}</Badge>
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setTag((cur) => (cur === t ? '' : t))
+                          }}
+                          className={`cursor-pointer rounded-full transition ${tag === t ? 'ring-1 ring-primary-500' : 'hover:opacity-70'}`}
+                          title={tag === t ? `Bỏ lọc tag: ${t}` : `Lọc theo tag: ${t}`}
+                        >
+                          <Badge>{t}</Badge>
+                        </button>
                       ))}
                     </span>
                   </Cell>

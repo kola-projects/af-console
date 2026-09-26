@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.40.0 — 2026-09-26
+
+- Competitors (list): **PackageName** chuyển xuống dưới developer trong cột App (bỏ cột Package riêng); thêm cột **Mức** (ev_scope: Đầy đủ / Chỉ store); filter mức đánh giá đổi từ dropdown sang **2 checkbox** (mặc định TÍCH "Đầy đủ", BỎ TÍCH "Chỉ store" → mặc định chỉ hiện app đã cài); **chip tag bấm được** để lọc nhanh theo tag (bấm lại để bỏ lọc).
+- Competitor detail: **sửa tag ngay trên trang** (thêm bằng ô nhập/Enter, bỏ bằng ×) — lưu qua RPC `competitor_set_tags` (chỉ UA/Admin active, server chuẩn hoá trim/lowercase/khử trùng/≤20). Cần migration AF **0044_competitor_tags_rpc** (đã áp DB).
+
 ## 3.39.2 — 2026-09-26
 
 - Tab Kiếm tiền: dời 2 bảng thô (**Mạng quảng cáo** + **Ad unit AdMob**) xuống CUỐI tab dưới nhóm "Số liệu thô từ APK (tham khảo)" — phần trên giờ ưu tiên nội dung diễn giải (vị trí ads, IAP, bidding, phân luồng).

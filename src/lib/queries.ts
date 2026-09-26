@@ -1229,3 +1229,11 @@ export const competitorEvidence = async (sessionId: number) =>
   unwrap<CompetitorEvidence[]>(
     await supabase.from('competitor_evidence').select('id,session_id,code,kind,storage_key,content_type,screen_name,caption,source_url').eq('session_id', sessionId).order('id'),
   )
+
+/** [0044] Đặt lại toàn bộ tag của một đối thủ (RPC security definer — chỉ UA/Admin active).
+ *  Server tự chuẩn hoá (trim/lowercase/khử trùng/≤20) và trả về mảng đã lưu. */
+export async function competitorSetTags(pkg: string, tags: string[]): Promise<string[]> {
+  const { data, error } = await supabase.rpc('competitor_set_tags', { p_package: pkg, p_tags: tags })
+  if (error) throw error
+  return (data as string[] | null) ?? []
+}

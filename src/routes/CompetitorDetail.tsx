@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   competitorByPackage,
   competitorSessions,
   competitorFindings,
   competitorEvidence,
   competitorImageUrl,
+  competitorSetTags,
 } from '../lib/queries'
 import { Badge, Mono, Empty, Loading, ErrorBox, localTime, Table, Row, Cell } from '../components/ui'
 import MarkdownView from './blueprint/MarkdownView'
@@ -206,9 +207,6 @@ export default function CompetitorDetail() {
               </span>
             )}
             {c.category_play && <Badge>{c.category_play}</Badge>}
-            {(c.tags ?? []).map((t) => (
-              <Badge key={t}>{t}</Badge>
-            ))}
             <span className="text-neutral-500">
               {listing.score ? `${Number(listing.score).toFixed(1)}★` : ''} · {String(listing.installs ?? '')}
             </span>
@@ -233,6 +231,7 @@ export default function CompetitorDetail() {
               <span className="text-neutral-500">App AF liên quan: {(c.related_app_codes ?? []).join(', ')}</span>
             )}
           </div>
+          <TagEditor pkg={pkg} tags={c.tags ?? []} />
         </div>
       </div>
 
@@ -909,6 +908,83 @@ export default function CompetitorDetail() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6" onClick={() => setZoom(null)}>
           <img src={zoom} alt="" className="max-h-full max-w-full rounded-lg object-contain" />
         </div>
+      )}
+    </div>
+  )
+}
+
+/** Sửa tag đối thủ ngay trên trang detail (UA/Admin). Lưu qua RPC competitor_set_tags —
+ *  server chuẩn hoá (trim/lowercase/khử trùng/≤20). Optimistic + đồng bộ lại theo kết quả server. */
+function TagEditor({ pkg, tags }: { pkg: string; tags: string[] }) {
+  const qc = useQueryClient()
+  const [local, setLocal] = useState<string[]>(tags)
+  const [draft, setDraft] = useState('')
+  useEffect(() => setLocal(tags), [tags])
+
+  const mut = useMutation({
+    mutationFn: (next: string[]) => competitorSetTags(pkg, next),
+    onSuccess: (saved) => {
+      setLocal(saved)
+      qc.invalidateQueries({ queryKey: ['competitor', pkg] })
+      qc.invalidateQueries({ queryKey: ['competitors'] })
+    },
+  })
+
+  const add = () => {
+    const t = draft.trim().toLowerCase()
+    setDraft('')
+    if (!t || local.includes(t)) return
+    const next = [...local, t]
+    setLocal(next)
+    mut.mutate(next)
+  }
+  const remove = (t: string) => {
+    const next = local.filter((x) => x !== t)
+    setLocal(next)
+    mut.mutate(next)
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      <span className="text-[11px] text-neutral-500">Tags:</span>
+      {local.length === 0 && <span className="text-[11px] text-neutral-400">chưa có</span>}
+      {local.map((t) => (
+        <span key={t} className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] dark:bg-neutral-800">
+          {t}
+          <button
+            type="button"
+            onClick={() => remove(t)}
+            className="leading-none text-neutral-400 hover:text-red-600"
+            title={`Bỏ tag ${t}`}
+            aria-label={`Bỏ tag ${t}`}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            add()
+          }
+        }}
+        placeholder="+ thêm tag"
+        maxLength={40}
+        className="w-28 rounded border border-dashed border-neutral-300 bg-transparent px-1.5 py-0.5 text-[11px] outline-none focus:border-neutral-500 dark:border-neutral-700"
+      />
+      {draft.trim() && (
+        <button type="button" onClick={add} className="rounded bg-primary-600 px-1.5 py-0.5 text-[11px] text-white">
+          Thêm
+        </button>
+      )}
+      {mut.isPending && <span className="text-[11px] text-neutral-400">đang lưu…</span>}
+      {mut.isError && (
+        <span className="text-[11px] text-red-600" title={(mut.error as Error)?.message}>
+          lỗi lưu tag
+        </span>
       )}
     </div>
   )
