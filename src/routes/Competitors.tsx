@@ -80,6 +80,7 @@ export default function Competitors() {
   const [cat, setCat] = useState('')
   const [tag, setTag] = useState('')
   const [mon, setMon] = useState('')
+  const [scope, setScope] = useState('') // ev_scope: '' | 'full' | 'store_only'
   const [sort, setSort] = useState<'recent' | 'name' | 'rating'>('recent')
 
   const cats = useMemo(
@@ -96,6 +97,11 @@ export default function Competitors() {
     const filtered = (q.data ?? []).filter((c) => {
       if (cat && c.category_play !== cat) return false
       if (tag && !(c.tags ?? []).includes(tag)) return false
+      if (scope) {
+        const isFull = c.latest_install_status === 'installed'
+        if (scope === 'full' && !isFull) return false
+        if (scope === 'store_only' && isFull) return false
+      }
       if (mon) {
         const f = monFlags(c.latest_monetization)
         if (mon === 'ads' && !f.ads) return false
@@ -120,7 +126,7 @@ export default function Competitors() {
       }
       return (b.last_evaluated_at ?? b.created_at).localeCompare(a.last_evaluated_at ?? a.created_at)
     })
-  }, [q.data, search, cat, tag, mon, sort])
+  }, [q.data, search, cat, tag, mon, scope, sort])
 
   if (q.isLoading) return <Loading />
   if (q.error) return <ErrorBox error={q.error} />
@@ -165,6 +171,11 @@ export default function Competitors() {
           <option value="ads">Có Ads</option>
           <option value="iap">Có IAP</option>
           <option value="sub">Có Subscription</option>
+        </select>
+        <select className={selectCls} value={scope} onChange={(e) => setScope(e.target.value)} title="Mức đánh giá (ev_scope)">
+          <option value="">Mọi mức đánh giá</option>
+          <option value="full">Đầy đủ (cài + trải nghiệm)</option>
+          <option value="store_only">Chỉ store (không cài được)</option>
         </select>
         <select className={selectCls} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
           <option value="recent">Đánh giá gần nhất</option>

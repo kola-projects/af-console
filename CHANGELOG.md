@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.39.0 — 2026-09-26
+
+- Competitors: thêm filter theo **mức đánh giá** (ev_scope: Đầy đủ / Chỉ store).
+- Quyền xem Competitors (list + detail) giới hạn **chỉ UA + Admin** (route guard + ẩn nav với role khác). RLS enforcement sâu = migration 0044 (đang chờ duyệt).
+
 ## 3.38.3 — 2026-09-26
 
 Đổi khái niệm 'tier' → 'ev_scope' (full=Đầy đủ / store_only=Chỉ store); AFC đọc ev_scope, fallback A/B cũ.

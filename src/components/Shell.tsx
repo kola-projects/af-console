@@ -42,11 +42,12 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/stores', label: 'Stores', icon: Store },
   { to: '/users', label: 'Users', icon: Users },
 ]
+// Competitors: chỉ UA + Admin xem (không có trong nav member/dev/aso)
 const MEMBER_NAV: NavItem[] = [
   { to: '/apps', label: 'Apps', icon: LayoutGrid },
-  { to: '/competitors', label: 'Competitors', icon: Radar },
   { to: '/requests', label: 'Yêu cầu', icon: Inbox },
 ]
+const COMPETITORS_NAV: NavItem = { to: '/competitors', label: 'Competitors', icon: Radar }
 
 export default function Shell({ email }: { email: string }) {
   const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
@@ -55,7 +56,12 @@ export default function Shell({ email }: { email: string }) {
   const pending = useQuery({ queryKey: ['promotion'], queryFn: promotionCandidates, enabled: isAdmin })
   const newTags = useQuery({ queryKey: ['tags'], queryFn: tags, enabled: isAdmin })
   const newTagCount = newTags.data?.filter((t) => t.status === 'new').length ?? 0
-  const nav = isAdmin ? ADMIN_NAV : MEMBER_NAV
+  // UA thấy Competitors (chèn sau Apps); Admin đã có sẵn trong ADMIN_NAV.
+  const nav = isAdmin
+    ? ADMIN_NAV
+    : me.data?.role === 'ua'
+      ? [MEMBER_NAV[0], COMPETITORS_NAV, ...MEMBER_NAV.slice(1)]
+      : MEMBER_NAV
 
   const appVersion = APP_VERSION
   const [latestVersion, setLatestVersion] = useState<string>('')

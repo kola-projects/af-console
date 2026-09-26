@@ -41,6 +41,14 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+/** Chặn theo danh sách role. Competitors: chỉ UA + Admin được xem (list + detail). */
+function RequireRoles({ roles, children }: { roles: string[]; children: React.ReactNode }) {
+  const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
+  if (me.isLoading) return null
+  if (!me.data || !roles.includes(me.data.role)) return <Navigate to="/apps" replace />
+  return <>{children}</>
+}
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [ready, setReady] = useState(false)
@@ -67,8 +75,8 @@ export default function App() {
             {/* Công khai cho mọi user còn hiệu lực (RLS lọc dữ liệu) */}
             <Route path="apps" element={<Apps />} />
             <Route path="apps/:id" element={<AppDetail />} />
-            <Route path="competitors" element={<Competitors />} />
-            <Route path="competitors/:package" element={<CompetitorDetail />} />
+            <Route path="competitors" element={<RequireRoles roles={['ua', 'admin']}><Competitors /></RequireRoles>} />
+            <Route path="competitors/:package" element={<RequireRoles roles={['ua', 'admin']}><CompetitorDetail /></RequireRoles>} />
             <Route path="requests" element={<Requests />} />
             {/* Nội bộ — chỉ admin */}
             <Route path="manage-apps" element={<RequireAdmin><ManageApps /></RequireAdmin>} />
