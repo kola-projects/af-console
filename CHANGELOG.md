@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.38.1 — 2026-09-26
+
+- Mã đánh giá (eval_id) hiện thêm trong bộ chọn phiên.
+- Dữ liệu consent/CMP đã sửa false-positive (chỉ còn Google UMP + IAB TCF cho nhóm app emoji).
+
 ## 3.38.0 — 2026-09-26
 
 Tab Kiếm tiền đào SÂU + evaluate_time + Play link rõ:

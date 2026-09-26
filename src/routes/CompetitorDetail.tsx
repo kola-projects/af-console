@@ -268,6 +268,11 @@ export default function CompetitorDetail() {
                 }`}
               >
                 <span className="block font-semibold">
+                  {((s.extra as Record<string, unknown> | undefined)?.eval_id as string | undefined) && (
+                    <Mono className="mr-1 text-primary-700 dark:text-primary-300">
+                      {(s.extra as Record<string, unknown>).eval_id as string}
+                    </Mono>
+                  )}
                   <Mono>{s.app_version ?? '?'}</Mono>
                   {s.install_status && s.install_status !== 'installed' ? ` · ${s.install_status}` : ''}
                 </span>
