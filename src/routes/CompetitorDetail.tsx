@@ -130,6 +130,9 @@ export default function CompetitorDetail() {
   const manifest = (extra.coverage_manifest ?? null) as CoverageManifest | null
   const features = ((extra.features ?? (summary.features as unknown) ?? []) as FeatureRow[])
   const evalId = (extra.eval_id as string | undefined) ?? (sess ? `S${sess.id}` : '')
+  const tierLabel = (t?: string) => (t === 'A' ? 'Đầy đủ' : t === 'B' ? 'Chỉ store' : (t ?? '—'))
+  const tierTip = (t?: string) =>
+    t === 'A' ? 'Cài được + trải nghiệm thật + mổ APK' : t === 'B' ? 'Không cài được — chỉ dữ liệu store (Play)' : ''
   const adNetworks = mon.ad_networks as Record<string, { count?: number }> | string[] | undefined
   const adUnits = (mon.ad_units ?? {}) as Record<string, number>
   const adPlacements = findings.filter((f) => f.category === 'ad_placement')
@@ -197,7 +200,7 @@ export default function CompetitorDetail() {
                 }`}
                 title="Kết quả kiểm độ phủ 36 tiêu chí"
               >
-                {manifest.verdict === 'VALID' ? '✓' : '✗'} {manifest.verdict} · Tier {manifest.tier}
+                {manifest.verdict === 'VALID' ? '✓' : '✗'} {manifest.verdict} · <span title={tierTip(manifest.tier)}>{tierLabel(manifest.tier)}</span>
               </span>
             )}
             {c.category_play && <Badge>{c.category_play}</Badge>}
@@ -403,7 +406,7 @@ export default function CompetitorDetail() {
                       : 'border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950'
                   }`}
                 >
-                  <b>VERDICT: {manifest.verdict}</b> — Tier {manifest.tier} · {manifest.pass} PASS · {manifest.blocked} BLOCKED · {manifest.na} N/A · {manifest.missing} THIẾU
+                  <b>VERDICT: {manifest.verdict}</b> — <span title={tierTip(manifest.tier)}>Mức đánh giá: <b>{tierLabel(manifest.tier)}</b></span> · {manifest.pass} PASS · {manifest.blocked} BLOCKED · {manifest.na} N/A · {manifest.missing} THIẾU
                   <div className="mt-0.5 text-[11px] text-neutral-500">Quy trình: {manifest.ae_version} · AF {manifest.af_version}</div>
                 </div>
                 <p className="mb-2 text-xs text-neutral-500">
