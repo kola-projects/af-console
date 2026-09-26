@@ -3,6 +3,14 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.36.0 — 2026-09-26
+
+Trang competitor detail hiện kết quả checklist ae.sh (đồng bộ AF v5.74.0):
+- Badge **VERDICT** (VALID/FAIL · Tier A/B) ở hero + dòng phiên bản quy trình ae.sh.
+- Tab **Độ phủ**: bảng 36 tiêu chí với trạng thái ✅PASS/⛔BLOCKED(lý do)/➖N/A/❌THIẾU.
+- Tab **Tính năng**: feature matrix chuẩn hoá (key/label/có?/truy cập/ghi chú) để so sánh chéo app cùng dòng.
+- Đọc từ `competitor_sessions.extra.coverage_manifest` + `.features`.
+
 ## 3.35.0 — 2026-09-25
 
 **Thêm /competitors — sổ đánh giá app đối thủ (ae.sh / appEvaluate).** Cho MỌI role đọc.

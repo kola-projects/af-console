@@ -8,19 +8,24 @@ import {
   competitorEvidence,
   competitorImageUrl,
 } from '../lib/queries'
-import { Badge, Mono, Empty, Loading, ErrorBox, localTime } from '../components/ui'
+import { Badge, Mono, Empty, Loading, ErrorBox, localTime, Table, Row, Cell } from '../components/ui'
 import MarkdownView from './blueprint/MarkdownView'
 import type { CompetitorSession, CompetitorFinding } from '../lib/types'
 
-type Tab = 'overview' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
+type Tab = 'overview' | 'coverage' | 'features' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
 const TABS: [Tab, string][] = [
   ['overview', 'Tổng quan'],
+  ['coverage', 'Độ phủ'],
+  ['features', 'Tính năng'],
   ['screens', 'Màn hình'],
   ['findings', 'Findings'],
   ['voc', 'Người dùng nói gì'],
   ['opportunities', 'Cơ hội'],
   ['report', 'Báo cáo'],
 ]
+type ManifestRow = { id: string; name: string; block: string; status: string; reason?: string | null }
+type CoverageManifest = { ae_version?: string; af_version?: string; tier?: string; verdict?: string; pass?: number; blocked?: number; na?: number; missing?: number; manifest?: ManifestRow[] }
+type FeatureRow = { key?: string; label?: string; status?: string; access?: string; notes?: string }
 
 const KIND: Record<string, { label: string; cls: string }> = {
   FACT: { label: 'FACT', cls: 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900' },
@@ -114,6 +119,9 @@ export default function CompetitorDetail() {
   const reviewImp = ((sess?.extra as Record<string, unknown>)?.review_improvement ?? null) as
     | { counts?: Record<string, number>; themes?: Array<Record<string, unknown>> }
     | null
+  const extra = (sess?.extra ?? {}) as Record<string, unknown>
+  const manifest = (extra.coverage_manifest ?? null) as CoverageManifest | null
+  const features = ((extra.features ?? (summary.features as unknown) ?? []) as FeatureRow[])
 
   const listArr = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : [])
   const findCats = [...new Set(findings.map((f) => f.category))].sort()
@@ -146,6 +154,18 @@ export default function CompetitorDetail() {
             <Mono className="text-xs text-neutral-500">{pkg}</Mono>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+            {manifest?.verdict && (
+              <span
+                className={`rounded px-1.5 py-0.5 font-semibold ${
+                  manifest.verdict === 'VALID'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300'
+                    : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                }`}
+                title="Kết quả kiểm độ phủ 36 tiêu chí"
+              >
+                {manifest.verdict === 'VALID' ? '✓' : '✗'} {manifest.verdict} · Tier {manifest.tier}
+              </span>
+            )}
             {c.category_play && <Badge>{c.category_play}</Badge>}
             {(c.tags ?? []).map((t) => (
               <Badge key={t}>{t}</Badge>
@@ -154,6 +174,11 @@ export default function CompetitorDetail() {
               {listing.score ? `${Number(listing.score).toFixed(1)}★` : ''} · {String(listing.installs ?? '')}
             </span>
           </div>
+          {manifest?.ae_version && (
+            <div className="mt-1 text-[11px] text-neutral-400">
+              Quy trình: {manifest.ae_version} · {manifest.pass} PASS · {manifest.blocked} BLOCKED · {manifest.na} N/A · {manifest.missing} THIẾU
+            </div>
+          )}
           <div className="mt-1.5 flex flex-wrap gap-3 text-xs">
             {c.store_url && (
               <a href={c.store_url} target="_blank" rel="noreferrer">
@@ -310,6 +335,92 @@ export default function CompetitorDetail() {
                 </div>
               </section>
             </div>
+          </div>
+        )}
+
+        {tab === 'coverage' && (
+          <div>
+            {!manifest ? (
+              <Empty>Phiên này chưa có bảng độ phủ (đánh giá bằng bản ae.sh cũ).</Empty>
+            ) : (
+              <>
+                <div
+                  className={`mb-3 rounded-lg border px-3 py-2 text-sm ${
+                    manifest.verdict === 'VALID'
+                      ? 'border-green-300 bg-green-50 dark:border-green-900 dark:bg-green-950'
+                      : 'border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950'
+                  }`}
+                >
+                  <b>VERDICT: {manifest.verdict}</b> — Tier {manifest.tier} · {manifest.pass} PASS · {manifest.blocked} BLOCKED · {manifest.na} N/A · {manifest.missing} THIẾU
+                  <div className="mt-0.5 text-[11px] text-neutral-500">Quy trình: {manifest.ae_version} · AF {manifest.af_version}</div>
+                </div>
+                <p className="mb-2 text-xs text-neutral-500">
+                  36 tiêu chí cố định. Tiêu chí bị chặn luôn nêu rõ lý do (không bỏ trống). ✅ PASS · ⛔ BLOCKED · ➖ N/A · ❌ THIẾU.
+                </p>
+                <Table head={['#', 'Tiêu chí', 'Khối', 'Trạng thái', 'Lý do']}>
+                  {(manifest.manifest ?? []).map((m) => (
+                    <Row key={m.id}>
+                      <Cell><Mono className="text-[11px]">{m.id}</Mono></Cell>
+                      <Cell>{m.name}</Cell>
+                      <Cell><span className="text-[11px] text-neutral-500">{m.block}</span></Cell>
+                      <Cell>
+                        <span
+                          className={
+                            m.status === 'PASS'
+                              ? 'text-green-700 dark:text-green-400'
+                              : m.status === 'BLOCKED'
+                                ? 'text-amber-700 dark:text-amber-400'
+                                : m.status === 'THIẾU'
+                                  ? 'text-red-700 dark:text-red-400'
+                                  : 'text-neutral-500'
+                          }
+                        >
+                          {m.status === 'PASS' ? '✅' : m.status === 'BLOCKED' ? '⛔' : m.status === 'N/A' ? '➖' : '❌'} {m.status}
+                        </span>
+                      </Cell>
+                      <Cell><span className="text-[11px] text-neutral-500">{m.reason ?? ''}</span></Cell>
+                    </Row>
+                  ))}
+                </Table>
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === 'features' && (
+          <div>
+            {features.length === 0 ? (
+              <Empty>Phiên này chưa có danh sách tính năng chuẩn hoá.</Empty>
+            ) : (
+              <>
+                <p className="mb-2 text-xs text-neutral-500">
+                  Danh sách tính năng CHUẨN HOÁ (key dùng chung để so sánh chéo các app cùng dòng). {features.length} tính năng.
+                </p>
+                <Table head={['Feature key', 'Tên', 'Có?', 'Truy cập', 'Ghi chú']}>
+                  {features.map((f, i) => (
+                    <Row key={f.key ?? i}>
+                      <Cell><Mono className="text-[11px]">{f.key}</Mono></Cell>
+                      <Cell>{f.label}</Cell>
+                      <Cell>
+                        <span
+                          className={
+                            f.status === 'present'
+                              ? 'text-green-700 dark:text-green-400'
+                              : f.status === 'absent'
+                                ? 'text-neutral-400'
+                                : 'text-amber-700 dark:text-amber-400'
+                          }
+                        >
+                          {f.status === 'present' ? '✓ có' : f.status === 'absent' ? '— không' : '? chưa rõ'}
+                        </span>
+                      </Cell>
+                      <Cell><span className="text-[11px] text-neutral-500">{f.access}</span></Cell>
+                      <Cell><span className="text-[11px] text-neutral-500">{f.notes}</span></Cell>
+                    </Row>
+                  ))}
+                </Table>
+              </>
+            )}
           </div>
         )}
 
