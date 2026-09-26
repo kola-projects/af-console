@@ -134,6 +134,20 @@ export default function CompetitorDetail() {
   const adUnits = (mon.ad_units ?? {}) as Record<string, number>
   const adPlacements = findings.filter((f) => f.category === 'ad_placement')
   const iapFindings = findings.filter((f) => f.category === 'pricing' || f.category === 'paywall')
+  const monet = (mon.monet ?? {}) as {
+    ad_formats?: string[]
+    consent_cmp?: string[]
+    billing?: { library?: string; api?: string[]; has_subscription_baseplan?: boolean }
+    offers_iap_signals?: string[]
+    ad_config_keys?: string[]
+    ad_config_hosts?: string[]
+    attribution_sdks?: string[]
+    mediation_primary?: string
+    mediation?: Array<{ name: string; refs: number }>
+    bidding_sources?: Array<{ name: string; refs?: number }>
+    user_routing?: { config_platform?: string[]; ab_testing_sdk?: string[]; segmentation_signals?: string[]; routing_keys?: string[] }
+  }
+  const bidding = mon.bidding as { mediation_primary?: string } | undefined
 
   const listArr = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : [])
   // ad_networks/iap_sdks/trackers được lưu dạng OBJECT {name: {...}} — lấy tên; hỗ trợ cả array cũ
@@ -194,15 +208,15 @@ export default function CompetitorDetail() {
               {listing.score ? `${Number(listing.score).toFixed(1)}★` : ''} · {String(listing.installs ?? '')}
             </span>
           </div>
-          {manifest?.ae_version && (
-            <div className="mt-1 text-[11px] text-neutral-400">
-              Quy trình: {manifest.ae_version} · {manifest.pass} PASS · {manifest.blocked} BLOCKED · {manifest.na} N/A · {manifest.missing} THIẾU
-            </div>
-          )}
+          <div className="mt-1 text-[11px] text-neutral-400">
+            {sess?.evaluated_at && <>Đánh giá lúc: <b className="text-neutral-500 dark:text-neutral-400">{localTime(sess.evaluated_at)}</b> · </>}
+            {sess?.device ?? ''} · app v<Mono>{sess?.app_version ?? '?'}</Mono>
+            {manifest?.ae_version && <> · {manifest.ae_version} · {manifest.pass} PASS · {manifest.blocked} BLOCKED · {manifest.na} N/A · {manifest.missing} THIẾU</>}
+          </div>
           <div className="mt-1.5 flex flex-wrap gap-3 text-xs">
             {c.store_url && (
-              <a href={c.store_url} target="_blank" rel="noreferrer">
-                Google Play ↗
+              <a href={c.store_url} target="_blank" rel="noreferrer" className="font-medium">
+                ↗ Play Store
               </a>
             )}
             {typeof listing.privacyPolicy === 'string' && (
@@ -515,6 +529,127 @@ export default function CompetitorDetail() {
                     </ul>
                   )}
                 </section>
+
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">Mediation & Bidding (static)</h2>
+                  {!monet.mediation && !bidding && sess?.install_status === 'blocked' ? (
+                    <p className="text-xs text-neutral-500">App bị chặn cài → không có APK để phân tích.</p>
+                  ) : (
+                    <div className="flex flex-col gap-1.5 text-xs">
+                      <div>
+                        <span className="text-neutral-500">Mediation chính: </span>
+                        <b>{monet.mediation_primary ?? '—'}</b>
+                        {(monet.mediation ?? []).length > 1 && (
+                          <span className="text-neutral-500"> (+ {(monet.mediation ?? []).slice(1).map((m) => m.name).join(', ')})</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-neutral-500">Nguồn bidding: </span>
+                        {(monet.bidding_sources ?? []).length === 0 ? (
+                          <span className="text-neutral-400">không phát hiện</span>
+                        ) : (
+                          (monet.bidding_sources ?? []).map((b) => (
+                            <Badge key={b.name} tone="warn">
+                              {b.name}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                      <div className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">
+                        ⚠ Thứ tự waterfall + eCPM floor + cờ bidding/waterfall từng mạng: cần bắt mạng lúc chạy (config server) — nâng cấp sau.
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                {(() => {
+                  const chip = (label: string, items?: string[], empty = '—') => (
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="text-neutral-500">{label}: </span>
+                      {(items ?? []).length === 0 ? (
+                        <span className="text-neutral-400">{empty}</span>
+                      ) : (
+                        (items ?? []).map((x) => <Badge key={x}>{x}</Badge>)
+                      )}
+                    </div>
+                  )
+                  const blocked = sess?.install_status === 'blocked'
+                  if (blocked) return null
+                  return (
+                    <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                      <h2 className="mb-2 text-sm font-semibold">Chi tiết kỹ thuật monetization (static APK)</h2>
+                      <div className="flex flex-col gap-2 text-xs">
+                        {chip('Định dạng quảng cáo', monet.ad_formats)}
+                        {chip('Consent / CMP', monet.consent_cmp, 'không thấy')}
+                        {chip('Attribution/analytics', monet.attribution_sdks)}
+                        <div>
+                          <span className="text-neutral-500">Billing/IAP: </span>
+                          <b>{monet.billing?.library ?? '—'}</b>
+                          {monet.billing?.api?.length ? <span className="text-neutral-500"> · {monet.billing.api.join(', ')}</span> : null}
+                          {monet.billing?.has_subscription_baseplan ? <Badge>có subscription base plan</Badge> : null}
+                        </div>
+                        {(monet.offers_iap_signals ?? []).length > 0 && (
+                          <div>
+                            <span className="text-neutral-500">Chuỗi premium/unlock: </span>
+                            <span className="font-mono text-[11px] text-neutral-600 dark:text-neutral-400">
+                              {(monet.offers_iap_signals ?? []).slice(0, 12).join(' · ')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  )
+                })()}
+
+                {monet.user_routing && sess?.install_status !== 'blocked' && (
+                  <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                    <h2 className="mb-1 text-sm font-semibold">Phân luồng user / A-B / segmentation (static)</h2>
+                    <p className="mb-2 text-[11px] text-neutral-500">Chỉ dò được HẠ TẦNG + key; giá trị segment/variant thực nằm ở config server (runtime).</p>
+                    <div className="flex flex-col gap-1.5 text-xs">
+                      <div>
+                        <span className="text-neutral-500">Nền tảng config: </span>
+                        <b>{(monet.user_routing.config_platform ?? []).join(', ') || '—'}</b>
+                        {(monet.user_routing.ab_testing_sdk ?? []).length > 0 && (
+                          <span className="text-neutral-500"> · A/B SDK: {(monet.user_routing.ab_testing_sdk ?? []).join(', ')}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-neutral-500">Tín hiệu segmentation: </span>
+                        {(monet.user_routing.segmentation_signals ?? []).length === 0 ? (
+                          <span className="text-neutral-400">không thấy</span>
+                        ) : (
+                          (monet.user_routing.segmentation_signals ?? []).map((s) => <Badge key={s}>{s}</Badge>)
+                        )}
+                      </div>
+                      {(monet.user_routing.routing_keys ?? []).length > 0 && (
+                        <div>
+                          <span className="text-neutral-500">Cờ config (remote): </span>
+                          <span className="font-mono text-[11px] text-neutral-600 dark:text-neutral-400">
+                            {(monet.user_routing.routing_keys ?? []).slice(0, 20).join(' · ')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {(monet.ad_config_hosts?.length || monet.ad_config_keys?.length) && sess?.install_status !== 'blocked' ? (
+                  <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                    <h2 className="mb-2 text-sm font-semibold">Endpoint & cờ cấu hình ad (static)</h2>
+                    {(monet.ad_config_hosts ?? []).length > 0 && (
+                      <div className="mb-1 text-xs">
+                        <span className="text-neutral-500">Host config ad: </span>
+                        <span className="font-mono text-[11px] text-neutral-600 dark:text-neutral-400">{(monet.ad_config_hosts ?? []).slice(0, 15).join(' · ')}</span>
+                      </div>
+                    )}
+                    {(monet.ad_config_keys ?? []).length > 0 && (
+                      <div className="text-xs">
+                        <span className="text-neutral-500">Key cấu hình ad/consent: </span>
+                        <span className="font-mono text-[11px] text-neutral-600 dark:text-neutral-400">{(monet.ad_config_keys ?? []).slice(0, 25).join(' · ')}</span>
+                      </div>
+                    )}
+                  </section>
+                ) : null}
               </div>
             )
           })()

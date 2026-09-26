@@ -3,6 +3,15 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.38.0 — 2026-09-26
+
+Tab Kiếm tiền đào SÂU + evaluate_time + Play link rõ:
+- **Mediation & Bidding**: platform mediation chính (ironSource LevelPlay/AppLovin MAX) + nguồn bidding (Amazon APS/TAM, BidMachine). Ghi rõ waterfall/eCPM cần runtime.
+- **Chi tiết kỹ thuật monet**: định dạng ad (banner/native/interstitial/rewarded/app-open), consent/CMP (UMP + IAB TCF), billing (Play Billing v5 ProductDetails), chuỗi premium/unlock, attribution SDK.
+- **Phân luồng user / A-B / segmentation**: Firebase Remote Config, install-referrer/campaign, geo/EEA-DMA routing, cờ config remote.
+- **Endpoint & cờ cấu hình ad**: host config ad + key ad/consent.
+- Hero thêm **thời điểm đánh giá** + link **Play Store** rõ hơn.
+
 ## 3.37.0 — 2026-09-26
 
 - **Mã đánh giá (eval_id)** ổn định theo package+version (vd `EV-7DA56`) hiện ở hero — để dễ tham chiếu khi trao đổi.
