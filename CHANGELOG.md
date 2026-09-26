@@ -3,6 +3,10 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.38.3 — 2026-09-26
+
+Đổi khái niệm 'tier' → 'ev_scope' (full=Đầy đủ / store_only=Chỉ store); AFC đọc ev_scope, fallback A/B cũ.
+
 ## 3.38.2 — 2026-09-26
 
 Đổi nhãn 'Tier A/B' → 'Đầy đủ' / 'Chỉ store' (rõ nghĩa hơn) ở badge + tab Độ phủ; giữ mã A/B bên trong.
