@@ -19,7 +19,7 @@ const TABS: [Tab, string][] = [
   ['features', 'Tính năng'],
   ['monet', 'Kiếm tiền'],
   ['screens', 'Màn hình'],
-  ['findings', 'Findings'],
+  ['findings', 'Phát hiện'],
   ['voc', 'Người dùng nói gì'],
   ['opportunities', 'Cơ hội'],
   ['report', 'Báo cáo'],
@@ -238,32 +238,37 @@ export default function CompetitorDetail() {
       {/* STAT TILES — ô trống LUÔN nêu lý do (không để '—' trơ) */}
       <div className="mt-4 flex flex-wrap gap-2">
         {([
-          [String(findings.length), 'findings', ''],
-          [String(screenShots.length), 'ảnh màn', ''],
-          [
-            num(listing, 'reviews'),
-            'review store',
-            listing.reviews == null
-              ? 'Play chưa xếp hạng app này — store trả score/ratings/reviews = null (app mới hoặc chưa đủ lượt đánh giá).'
-              : '',
-          ],
-          [
-            String(Array.isArray(mon.ad_networks) ? mon.ad_networks.length : Object.keys((mon.ad_networks ?? {}) as object).length),
-            'mạng ads',
-            '',
-          ],
-          [`${Number(cov._overall ?? 0)}%`, 'coverage', ''],
-          [
-            `${Number(metrics.cold_start_median_ms ?? 0) || '—'}`,
-            'cold start (ms)',
-            metrics.cold_start_median_ms == null
-              ? 'Chưa đo trong phiên này (D11 Performance) — cần chạy am start -W khi trải nghiệm; báo cáo ghi NOT MEASURED.'
-              : '',
-          ],
-        ] as [string, string, string][]).map(([v, l, why], i) => (
+          { v: String(findings.length), l: 'phát hiện' },
+          { v: String(screenShots.length), l: 'ảnh màn' },
+          {
+            v: num(listing, 'reviews'),
+            l: 'review store',
+            why:
+              listing.reviews == null
+                ? 'Play chưa xếp hạng app này — store trả score/ratings/reviews = null (app mới hoặc chưa đủ lượt đánh giá).'
+                : '',
+          },
+          {
+            v: String(Array.isArray(mon.ad_networks) ? mon.ad_networks.length : Object.keys((mon.ad_networks ?? {}) as object).length),
+            l: 'mạng ads',
+          },
+          {
+            v: `${Number(cov._overall ?? 0)}%`,
+            l: 'coverage',
+            tip: 'ĐỘ SÂU khảo sát — trung bình 10 mảng (store · first-open · tính năng · ads · giá · thông báo · giữ chân · review · cập nhật · premium), mỗi mảng 0–100%. KHÁC với "VALID · 36 PASS" ở trên: đó là checklist mọi tiêu chí đạt/chặn. Coverage thấp là do vài mảng bị chặn trần (thông báo cần dõi dài ngày, premium không mua được…). Chi tiết từng mảng ở tab Tổng quan.',
+          },
+          {
+            v: `${Number(metrics.cold_start_median_ms ?? 0) || '—'}`,
+            l: 'cold start (ms)',
+            why:
+              metrics.cold_start_median_ms == null
+                ? 'Chưa đo trong phiên này (D11 Performance) — cần chạy am start -W khi trải nghiệm; báo cáo ghi NOT MEASURED.'
+                : '',
+          },
+        ] as { v: string; l: string; why?: string; tip?: string }[]).map(({ v, l, why, tip }, i) => (
           <div
             key={i}
-            title={why || undefined}
+            title={why || tip || undefined}
             className={`flex min-w-[96px] flex-col rounded-lg border bg-neutral-50 px-3 py-2 dark:bg-neutral-900 ${
               why ? 'border-amber-300 dark:border-amber-900' : 'border-neutral-200 dark:border-neutral-800'
             }`}
@@ -272,6 +277,7 @@ export default function CompetitorDetail() {
             <span className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-neutral-500">
               {l}
               {why && <span className="text-amber-600 dark:text-amber-400" title={why}>ⓘ</span>}
+              {!why && tip && <span className="cursor-help text-neutral-400" title={tip}>ⓘ</span>}
             </span>
             {why && <span className="mt-0.5 text-[9px] normal-case leading-tight text-amber-700 dark:text-amber-500">{why.split(' — ')[0]}</span>}
           </div>
@@ -328,7 +334,7 @@ export default function CompetitorDetail() {
                     <div className={`text-[11px] font-semibold uppercase tracking-wide ${cls}`}>{label}</div>
                     <ul className="mt-1 list-disc pl-4 text-xs">
                       {listArr(summary[k]).length === 0 ? (
-                        <li className="list-none pl-0 text-neutral-400">— (xem tab Findings)</li>
+                        <li className="list-none pl-0 text-neutral-400">— (xem tab Phát hiện)</li>
                       ) : (
                         listArr(summary[k])
                           .slice(0, 4)

@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.40.1 — 2026-09-26
+
+- Đổi nhãn tab + ô thống kê **"Findings" → "Phát hiện"** (rõ nghĩa hơn); giữ id/route cũ.
+- Ô **coverage** thêm ⓘ giải thích: coverage = ĐỘ SÂU khảo sát trung bình 10 mảng (0–100% mỗi mảng), KHÁC với "VALID · 36 PASS" (checklist đạt/chặn) — coverage thấp là do vài mảng bị chặn trần (thông báo cần dõi dài ngày, premium không mua được…).
+
 ## 3.40.0 — 2026-09-26
 
 - Competitors (list): **PackageName** chuyển xuống dưới developer trong cột App (bỏ cột Package riêng); thêm cột **Mức** (ev_scope: Đầy đủ / Chỉ store); filter mức đánh giá đổi từ dropdown sang **2 checkbox** (mặc định TÍCH "Đầy đủ", BỎ TÍCH "Chỉ store" → mặc định chỉ hiện app đã cài); **chip tag bấm được** để lọc nhanh theo tag (bấm lại để bỏ lọc).
