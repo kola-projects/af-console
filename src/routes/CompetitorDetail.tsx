@@ -15,14 +15,14 @@ import type { CompetitorSession, CompetitorFinding } from '../lib/types'
 type Tab = 'overview' | 'coverage' | 'monet' | 'features' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
 const TABS: [Tab, string][] = [
   ['overview', 'Tổng quan'],
-  ['coverage', 'Độ phủ'],
-  ['monet', 'Kiếm tiền'],
   ['features', 'Tính năng'],
+  ['monet', 'Kiếm tiền'],
   ['screens', 'Màn hình'],
   ['findings', 'Findings'],
   ['voc', 'Người dùng nói gì'],
   ['opportunities', 'Cơ hội'],
   ['report', 'Báo cáo'],
+  ['coverage', 'Logs'], // 'Logs' = nhật ký đánh giá: phiên + bảng độ phủ 36 tiêu chí
 ]
 type ManifestRow = { id: string; name: string; block: string; status: string; reason?: string | null }
 type CoverageManifest = { ae_version?: string; af_version?: string; ev_scope?: string; tier?: string; verdict?: string; pass?: number; blocked?: number; na?: number; missing?: number; manifest?: ManifestRow[] }
@@ -236,59 +236,48 @@ export default function CompetitorDetail() {
         </div>
       </div>
 
-      {/* STAT TILES */}
+      {/* STAT TILES — ô trống LUÔN nêu lý do (không để '—' trơ) */}
       <div className="mt-4 flex flex-wrap gap-2">
-        {[
-          [String(findings.length), 'findings'],
-          [String(screenShots.length), 'ảnh màn'],
-          [num(listing, 'reviews'), 'review store'],
+        {([
+          [String(findings.length), 'findings', ''],
+          [String(screenShots.length), 'ảnh màn', ''],
+          [
+            num(listing, 'reviews'),
+            'review store',
+            listing.reviews == null
+              ? 'Play chưa xếp hạng app này — store trả score/ratings/reviews = null (app mới hoặc chưa đủ lượt đánh giá).'
+              : '',
+          ],
           [
             String(Array.isArray(mon.ad_networks) ? mon.ad_networks.length : Object.keys((mon.ad_networks ?? {}) as object).length),
             'mạng ads',
+            '',
           ],
-          [`${Number(cov._overall ?? 0)}%`, 'coverage'],
-          [`${Number(metrics.cold_start_median_ms ?? 0) || '—'}`, 'cold start (ms)'],
-        ].map(([v, l], i) => (
-          <div key={i} className="flex min-w-[96px] flex-col rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900">
+          [`${Number(cov._overall ?? 0)}%`, 'coverage', ''],
+          [
+            `${Number(metrics.cold_start_median_ms ?? 0) || '—'}`,
+            'cold start (ms)',
+            metrics.cold_start_median_ms == null
+              ? 'Chưa đo trong phiên này (D11 Performance) — cần chạy am start -W khi trải nghiệm; báo cáo ghi NOT MEASURED.'
+              : '',
+          ],
+        ] as [string, string, string][]).map(([v, l, why], i) => (
+          <div
+            key={i}
+            title={why || undefined}
+            className={`flex min-w-[96px] flex-col rounded-lg border bg-neutral-50 px-3 py-2 dark:bg-neutral-900 ${
+              why ? 'border-amber-300 dark:border-amber-900' : 'border-neutral-200 dark:border-neutral-800'
+            }`}
+          >
             <b className="text-lg tabular-nums">{v}</b>
-            <span className="text-[10px] uppercase tracking-wide text-neutral-500">{l}</span>
+            <span className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-neutral-500">
+              {l}
+              {why && <span className="text-amber-600 dark:text-amber-400" title={why}>ⓘ</span>}
+            </span>
+            {why && <span className="mt-0.5 text-[9px] normal-case leading-tight text-amber-700 dark:text-amber-500">{why.split(' — ')[0]}</span>}
           </div>
         ))}
       </div>
-
-      {/* SESSION SELECTOR */}
-      {sessions.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-neutral-500">Phiên đánh giá:</span>
-          {sessions.map((s) => {
-            const active = s.id === (sess?.id ?? -1)
-            return (
-              <button
-                key={s.id}
-                onClick={() => setSessId(s.id)}
-                className={`rounded-lg border px-3 py-1.5 text-left text-xs ${
-                  active
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300'
-                    : 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-900'
-                }`}
-              >
-                <span className="block font-semibold">
-                  {((s.extra as Record<string, unknown> | undefined)?.eval_id as string | undefined) && (
-                    <Mono className="mr-1 text-primary-700 dark:text-primary-300">
-                      {(s.extra as Record<string, unknown>).eval_id as string}
-                    </Mono>
-                  )}
-                  <Mono>{s.app_version ?? '?'}</Mono>
-                  {s.install_status && s.install_status !== 'installed' ? ` · ${s.install_status}` : ''}
-                </span>
-                <span className="block">
-                  {localTime(s.evaluated_at)} · {s.research_type} · {s.device ?? ''}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      )}
 
       {/* TABS */}
       <nav className="mt-4 flex flex-wrap gap-1 border-b border-neutral-200 text-sm dark:border-neutral-800">
@@ -397,6 +386,44 @@ export default function CompetitorDetail() {
 
         {tab === 'coverage' && (
           <div>
+            {/* Phiên đánh giá (di từ hero xuống Logs) — chọn phiên để xem toàn bộ tab */}
+            {sessions.length > 0 && (
+              <section className="mb-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                <h2 className="mb-2 text-sm font-semibold">Phiên đánh giá ({sessions.length})</h2>
+                <p className="mb-2 text-[11px] text-neutral-500">
+                  Mỗi phiên bản app = một lần đánh giá độc lập (không ghi đè lịch sử). Chọn một phiên để mọi tab hiển thị theo phiên đó.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {sessions.map((s) => {
+                    const active = s.id === (sess?.id ?? -1)
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => setSessId(s.id)}
+                        className={`rounded-lg border px-3 py-1.5 text-left text-xs ${
+                          active
+                            ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300'
+                            : 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-900'
+                        }`}
+                      >
+                        <span className="block font-semibold">
+                          {((s.extra as Record<string, unknown> | undefined)?.eval_id as string | undefined) && (
+                            <Mono className="mr-1 text-primary-700 dark:text-primary-300">
+                              {(s.extra as Record<string, unknown>).eval_id as string}
+                            </Mono>
+                          )}
+                          <Mono>{s.app_version ?? '?'}</Mono>
+                          {s.install_status && s.install_status !== 'installed' ? ` · ${s.install_status}` : ''}
+                        </span>
+                        <span className="block">
+                          {localTime(s.evaluated_at)} · {s.research_type} · {s.device ?? ''}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
             {!manifest ? (
               <Empty>Phiên này chưa có bảng độ phủ (đánh giá bằng bản ae.sh cũ).</Empty>
             ) : (

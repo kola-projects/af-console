@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.39.1 — 2026-09-26
+
+- Competitor detail: đổi thứ tự tab (Tổng quan · Tính năng · Kiếm tiền · Màn hình · Findings · Người dùng nói gì · Cơ hội · Báo cáo · **Logs**); tab 'Độ phủ' đổi tên thành **Logs**.
+- Chuyển khối **Phiên đánh giá** (session selector) từ hero xuống trong tab **Logs** — Logs giờ = nhật ký đánh giá (phiên + bảng độ phủ 36 tiêu chí).
+- Ô thống kê **review store** và **cold start** khi trống LUÔN nêu lý do (viền + ⓘ + dòng lý do): review store null = Play chưa xếp hạng app; cold start null = phiên chưa đo D11 (NOT MEASURED). Hết cảnh '—' trơ không lý do.
+
 ## 3.39.0 — 2026-09-26
 
 - Competitors: thêm filter theo **mức đánh giá** (ev_scope: Đầy đủ / Chỉ store).
