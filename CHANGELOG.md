@@ -3,6 +3,10 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.36.2 — 2026-09-26
+
+Overview: list điểm mạnh/yếu/pain rỗng hiện '—' (trỏ tab Findings) thay vì trống im lặng.
+
 ## 3.36.1 — 2026-09-26
 
 Sửa các khu vực dữ liệu trống không có lý do trên competitor detail:

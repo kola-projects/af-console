@@ -304,9 +304,13 @@ export default function CompetitorDetail() {
                   <div key={k}>
                     <div className={`text-[11px] font-semibold uppercase tracking-wide ${cls}`}>{label}</div>
                     <ul className="mt-1 list-disc pl-4 text-xs">
-                      {listArr(summary[k]).slice(0, 4).map((x, i) => (
-                        <li key={i}>{typeof x === 'string' ? x : JSON.stringify(x)}</li>
-                      ))}
+                      {listArr(summary[k]).length === 0 ? (
+                        <li className="list-none pl-0 text-neutral-400">— (xem tab Findings)</li>
+                      ) : (
+                        listArr(summary[k])
+                          .slice(0, 4)
+                          .map((x, i) => <li key={i}>{typeof x === 'string' ? x : JSON.stringify(x)}</li>)
+                      )}
                     </ul>
                   </div>
                 ))}
