@@ -13,12 +13,13 @@ import { Badge, Mono, Empty, Loading, ErrorBox, localTime, Table, Row, Cell } fr
 import MarkdownView from './blueprint/MarkdownView'
 import type { CompetitorSession, CompetitorFinding, UxScorecard } from '../lib/types'
 
-type Tab = 'overview' | 'coverage' | 'monet' | 'features' | 'ux' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
+type Tab = 'overview' | 'coverage' | 'monet' | 'features' | 'ux' | 'aso' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
 const TABS: [Tab, string][] = [
   ['overview', 'Tổng quan'],
   ['features', 'Tính năng'],
   ['ux', 'UI/UX'],
   ['monet', 'Kiếm tiền'],
+  ['aso', 'ASO'],
   ['screens', 'Màn hình'],
   ['findings', 'Phát hiện'],
   ['voc', 'Người dùng nói gì'],
@@ -819,6 +820,161 @@ export default function CompetitorDetail() {
               </>
             )}
           </div>
+        )}
+
+        {tab === 'aso' && (
+          (() => {
+            const title = (listing.title as string) ?? c.name ?? ''
+            const summary = (listing.summary as string) ?? ''
+            const description = (listing.description as string) ?? ''
+            const shots = (listing.screenshots as string[] | undefined) ?? []
+            const video = listing.video as string | undefined
+            const hist = (listing.histogram as Record<string, number> | number[] | undefined) ?? undefined
+            const score = Number(listing.score ?? 0)
+            const ratings = Number(listing.ratings ?? 0)
+            const reviews = Number(listing.reviews ?? 0)
+            const updated = listing.updated as string | undefined
+            const recent = listing.recentChanges as string | undefined
+            const daysAgo = updated ? Math.round((Date.now() - new Date(updated).getTime()) / 86400000) : null
+            // keyword density (top từ trong description, bỏ stopword)
+            const stop = new Set('the a an and or to of in on for your you with is are it this that make made your app can will be as at by from more all new not so if get use using into out up down over under just like'.split(' '))
+            const words = (summary + ' ' + description).toLowerCase().replace(/<[^>]+>/g, ' ').replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length >= 4 && !stop.has(w))
+            const freq = new Map<string, number>()
+            for (const w of words) freq.set(w, (freq.get(w) ?? 0) + 1)
+            const topKw = [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15)
+            // histogram bars (5→1)
+            const histArr: number[] = Array.isArray(hist) ? hist.slice().reverse() : hist ? [5, 4, 3, 2, 1].map((k) => Number((hist as Record<string, number>)[String(k)] ?? 0)) : []
+            const histMax = Math.max(1, ...histArr)
+            // ASO scorecard (0–5)
+            const dims: { key: string; label: string; score: number; note: string }[] = [
+              { key: 'title', label: 'Tiêu đề', score: title.length === 0 ? 0 : title.length <= 30 ? 5 : title.length <= 50 ? 3 : 2, note: `${title.length} ký tự (Play tối ưu ≤30)` },
+              { key: 'short_desc', label: 'Mô tả ngắn', score: summary ? (summary.length <= 80 ? 5 : 3) : 0, note: summary ? `${summary.length} ký tự (≤80)` : 'thiếu' },
+              { key: 'long_desc', label: 'Mô tả dài', score: description.length >= 2000 ? 5 : description.length >= 800 ? 4 : description.length >= 300 ? 3 : description ? 2 : 0, note: `${description.length} ký tự` },
+              { key: 'screenshots', label: 'Ảnh store', score: shots.length >= 8 ? 5 : shots.length >= 4 ? 4 : shots.length >= 2 ? 3 : shots.length ? 2 : 0, note: `${shots.length} ảnh` },
+              { key: 'video', label: 'Video quảng cáo', score: video ? 5 : 0, note: video ? 'có' : 'không có' },
+              { key: 'rating', label: 'Điểm sao', score: score >= 4.5 ? 5 : score >= 4.0 ? 4 : score >= 3.5 ? 3 : score > 0 ? 2 : 0, note: score ? `${score.toFixed(2)}★` : 'chưa xếp hạng' },
+              { key: 'reviews', label: 'Lượt đánh giá', score: ratings >= 100000 ? 5 : ratings >= 10000 ? 4 : ratings >= 1000 ? 3 : ratings ? 2 : 0, note: `${ratings.toLocaleString()} ratings · ${reviews.toLocaleString()} reviews` },
+              { key: 'freshness', label: 'Độ mới', score: daysAgo == null ? 0 : daysAgo <= 30 ? 5 : daysAgo <= 90 ? 4 : daysAgo <= 180 ? 3 : 2, note: daysAgo == null ? '—' : `cập nhật ${daysAgo} ngày trước` },
+            ]
+            const asoOverall = Math.round(dims.reduce((s, d) => s + d.score, 0) / dims.length)
+            return (
+              <div className="flex flex-col gap-4">
+                {/* overall + scorecard */}
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <div className="mb-3 flex items-baseline gap-2">
+                    <span className="text-3xl font-bold tabular-nums">{asoOverall}</span>
+                    <span className="text-sm text-neutral-500">/5 ASO scorecard</span>
+                    <span className="ml-auto text-[11px] text-neutral-400">Tính từ metadata + tài sản store (deterministic)</span>
+                  </div>
+                  <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                    {dims.map((d) => (
+                      <div key={d.key} className="text-xs">
+                        <div className="flex justify-between">
+                          <span>{d.label} <span className="text-neutral-400">· {d.note}</span></span>
+                          <b>{d.score}</b>
+                        </div>
+                        <div className="mt-0.5 h-1.5 overflow-hidden rounded bg-neutral-100 dark:bg-neutral-800">
+                          <span className={`block h-full ${d.score <= 2 ? 'bg-amber-500' : d.score >= 4 ? 'bg-green-500' : 'bg-primary-600'}`} style={{ width: `${(d.score / 5) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* metadata */}
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">Metadata (niêm yết Play)</h2>
+                  <dl className="grid grid-cols-[130px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+                    <dt className="text-neutral-500">Tiêu đề <span className="text-neutral-400">({title.length})</span></dt>
+                    <dd className="font-medium">{title || '—'}</dd>
+                    <dt className="text-neutral-500">Developer</dt>
+                    <dd>{c.developer ?? '—'}</dd>
+                    <dt className="text-neutral-500">Category</dt>
+                    <dd>{c.category_play ?? '—'} · {String(listing.contentRating ?? '—')}</dd>
+                    <dt className="text-neutral-500">Mô tả ngắn <span className="text-neutral-400">({summary.length})</span></dt>
+                    <dd>{summary || '—'}</dd>
+                    <dt className="text-neutral-500">Privacy policy</dt>
+                    <dd>{typeof listing.privacyPolicy === 'string' ? <a href={listing.privacyPolicy} target="_blank" rel="noreferrer" className="text-primary-700 dark:text-primary-300">có link ↗</a> : '— (thiếu)'}</dd>
+                  </dl>
+                  {description && (
+                    <details className="mt-3">
+                      <summary className="cursor-pointer text-xs text-neutral-500">Mô tả dài ({description.length} ký tự)</summary>
+                      <div className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-neutral-50 p-2 text-[11px] text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">{description.replace(/<[^>]+>/g, '')}</div>
+                    </details>
+                  )}
+                </section>
+
+                {/* keyword density */}
+                {topKw.length > 0 && (
+                  <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                    <h2 className="mb-1 text-sm font-semibold">Từ khoá nổi bật (mật độ trong mô tả)</h2>
+                    <p className="mb-2 text-[11px] text-neutral-500">Từ lặp nhiều nhất — gợi ý keyword ASO app đang nhắm.</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {topKw.map(([w, n]) => (
+                        <span key={w} className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs dark:bg-neutral-800" style={{ fontSize: `${Math.min(15, 10 + n)}px` }}>
+                          {w} <span className="text-neutral-400">{n}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* ratings + histogram */}
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">Điểm & phân bố sao</h2>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold tabular-nums">{score ? score.toFixed(2) : '—'}</div>
+                      <div className="text-[11px] text-neutral-500">{ratings.toLocaleString()} ratings</div>
+                      <div className="text-[11px] text-neutral-500">{reviews.toLocaleString()} reviews · {String(listing.installs ?? '—')}</div>
+                    </div>
+                    {histArr.length === 5 && (
+                      <div className="min-w-[180px] flex-1">
+                        {[5, 4, 3, 2, 1].map((star, i) => (
+                          <div key={star} className="flex items-center gap-2 text-[11px]">
+                            <span className="w-3 text-neutral-500">{star}</span>
+                            <span className="h-2 flex-1 overflow-hidden rounded bg-neutral-100 dark:bg-neutral-800">
+                              <span className="block h-full bg-amber-500" style={{ width: `${(histArr[i] / histMax) * 100}%` }} />
+                            </span>
+                            <span className="w-14 text-right tabular-nums text-neutral-500">{histArr[i].toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* freshness */}
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">Độ mới & What's New</h2>
+                  <div className="text-xs text-neutral-600 dark:text-neutral-300">
+                    Phiên bản <b>{String(listing.version ?? '?')}</b> · cập nhật <b>{updated ?? '—'}</b>{daysAgo != null && <> ({daysAgo} ngày trước)</>} · phát hành {String(listing.released ?? '—')}
+                  </div>
+                  {recent && (
+                    <div className="mt-2 rounded bg-neutral-50 p-2 text-[11px] text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
+                      <b>What's New:</b> {recent}
+                    </div>
+                  )}
+                </section>
+
+                {/* marketing assets — store screenshots */}
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">Tài sản marketing ({shots.length} ảnh{video ? ' + video' : ''})</h2>
+                  {shots.length === 0 ? (
+                    <p className="text-xs text-neutral-500">Không lấy được ảnh store.</p>
+                  ) : (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {shots.map((u, i) => (
+                        <button key={i} onClick={() => setZoom(u)} className="flex-none overflow-hidden rounded-lg border border-neutral-200 bg-black dark:border-neutral-800">
+                          <img src={u} alt="" referrerPolicy="no-referrer" className="h-48 w-auto object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+            )
+          })()
         )}
 
         {tab === 'screens' && (

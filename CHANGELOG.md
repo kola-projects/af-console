@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.43.0 — 2026-09-27
+
+- Competitor detail: **tab ASO mới** (cạnh Kiếm tiền) — ASO scorecard (tiêu đề/mô tả/ảnh store/video/điểm/lượt đánh giá/độ mới), metadata niêm yết Play, **từ khoá nổi bật** (mật độ mô tả), điểm & phân bố sao (histogram), What's New, và tài sản marketing (ảnh store).
+- Backend: ae_push lưu thêm field ASO (title/summary/description/screenshots/video/headerImage) vào listing (AF v5.78.x).
+
 ## 3.42.1 — 2026-09-27
 
 - Competitor detail: thêm **tab UI/UX** (cạnh Tính năng) — scorecard đầy đủ: UX tổng + từng chiều (thẻ có điểm/thanh/ghi chú), nguồn chấm (device_observed / stored).
