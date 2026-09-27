@@ -11,7 +11,7 @@ import {
 } from '../lib/queries'
 import { Badge, Mono, Empty, Loading, ErrorBox, localTime, Table, Row, Cell } from '../components/ui'
 import MarkdownView from './blueprint/MarkdownView'
-import type { CompetitorSession, CompetitorFinding } from '../lib/types'
+import type { CompetitorSession, CompetitorFinding, UxScorecard } from '../lib/types'
 
 type Tab = 'overview' | 'coverage' | 'monet' | 'features' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
 const TABS: [Tab, string][] = [
@@ -129,6 +129,7 @@ export default function CompetitorDetail() {
       }
     | null
   const manifest = (extra.coverage_manifest ?? null) as CoverageManifest | null
+  const ux = (extra.ux ?? null) as UxScorecard | null
   const features = ((extra.features ?? (summary.features as unknown) ?? []) as FeatureRow[])
   const evalId = (extra.eval_id as string | undefined) ?? (sess ? `S${sess.id}` : '')
   // ev_scope: 'full' | 'store_only' (chuẩn mới); fallback nhãn cũ 'A'/'B'
@@ -350,6 +351,32 @@ export default function CompetitorDetail() {
                 <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Điểm rubric (INFERENCE)</h2>
                 <ScoreRow scores={scores} />
               </section>
+              {ux && (ux.dimensions?.length ?? 0) > 0 && (
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <h2 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">UI/UX scorecard</h2>
+                    <span className="text-xs">
+                      Tổng <b className={ux.overall >= 4 ? 'text-green-700 dark:text-green-400' : ux.overall <= 2 ? 'text-red-600 dark:text-red-400' : ''}>{ux.overall}</b>/5
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {ux.dimensions.map((d) => (
+                      <div key={d.key} className="text-xs" title={d.note ?? ''}>
+                        <div className="flex justify-between">
+                          <span className="cursor-help">{d.label}{d.note ? <span className="text-neutral-400"> ⓘ</span> : null}</span>
+                          <b>{d.score}</b>
+                        </div>
+                        <div className="mt-0.5 h-1.5 overflow-hidden rounded bg-neutral-100 dark:bg-neutral-800">
+                          <span className={`block h-full ${d.score <= 2 ? 'bg-red-500' : d.score >= 4 ? 'bg-green-500' : 'bg-primary-600'}`} style={{ width: `${(d.score / 5) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[10px] text-neutral-400">
+                    {ux.basis === 'device_observed' ? 'Chấm từ quan sát thiết bị thật.' : 'Chấm từ dữ liệu đánh giá đã lưu (INFERENCE).'} Chiều 'Ít ma sát': 5 = mượt, 1 = ads/dark-pattern phá trải nghiệm.
+                  </p>
+                </section>
+              )}
               <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
                 <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Kiếm tiền (từ APK)</h2>
                 <div className="flex flex-wrap gap-1">

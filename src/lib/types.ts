@@ -833,10 +833,14 @@ export interface CmpApp {
     billing?: string | null
   }
   features: Record<string, { key?: string; label?: string; status?: string; access?: string | null; notes?: string | null }>
+  ux?: UxScorecard | null
 }
+export interface CmpUxRow { key: string; label: string; cells: Record<string, number>; notes?: Record<string, string> }
 export interface CompareData {
   apps: CmpApp[]
   feature_matrix: CmpFeatureRow[]
+  ux_matrix?: CmpUxRow[]
+  ux_overall?: { eval_id: string; name: string | null; overall: number | null; basis?: string | null }[]
   feature_summary: {
     n_with_features: number
     table_stakes: string[]
@@ -861,3 +865,7 @@ export interface CompetitorComparison {
   created_at: string
   updated_at: string
 }
+
+// ── UX scorecard (ae.sh UI/UX, extra.ux) ────────────────────────────────────
+export interface UxDimension { key: string; label: string; score: number; note?: string }
+export interface UxScorecard { overall: number; basis?: string; dimensions: UxDimension[] }

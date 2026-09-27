@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.42.0 — 2026-09-27
+
+- **UI/UX scorecard** (8 chiều cố định 0–5: thẩm mỹ · bố cục · điều hướng · tương tác/motion · nhất quán · dễ đọc · onboarding · ít-ma-sát).
+- Competitor detail (Tổng quan): thẻ **UI/UX scorecard** với thanh từng chiều + tổng; ô ⓘ ghi chú, chiều 'ít ma sát' 5=mượt.
+- So sánh (/compare): thêm mục **④′ UI/UX scorecard** — ma trận chiều × app + xếp hạng UX tổng (ô ≤2 đỏ, ≥4 xanh, hover xem note).
+- Backend: `summary.ux` (extra.ux) + tiêu chí **F2** trong checklist ae.sh (AF v5.78.0).
+
 ## 3.41.2 — 2026-09-26
 
 - Trang So sánh: tên app + eval_id (bảng ① và header ma trận) giờ **bấm được → mở thẳng chi tiết đánh giá** của app đó (`/competitors/<package>`), thêm dấu ↗.

@@ -181,6 +181,46 @@ export default function ComparisonView({ data, analysis }: { data: CompareData; 
         </div>
       </section>
 
+      {/* ④' UI/UX scorecard */}
+      {(data.ux_matrix?.length ?? 0) > 0 && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold">④′ UI/UX scorecard (0–5, cao = tốt)</h2>
+          <p className="mb-2 text-[11px] text-neutral-500">Di chuột vào ô để xem ghi chú. Ô ≤2 = điểm yếu UX (đỏ), ≥4 = mạnh (xanh).</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr>
+                  <Th>Chiều</Th>
+                  {A.map((a) => <Th key={a.eval_id} className="text-center"><Mono className="text-[10px]">{a.eval_id}</Mono></Th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {data.ux_matrix!.map((row) => (
+                  <tr key={row.key}>
+                    <Td className="font-medium">{row.label}</Td>
+                    {evs.map((ev) => {
+                      const v = row.cells[ev]
+                      const cls = v == null ? 'text-neutral-300' : v <= 2 ? 'font-bold text-red-600 dark:text-red-400' : v >= 4 ? 'font-bold text-green-700 dark:text-green-400' : 'text-neutral-600 dark:text-neutral-300'
+                      return <Td key={ev} className="text-center"><span className={cls} title={row.notes?.[ev] ?? ''}>{v ?? '—'}</span></Td>
+                    })}
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-neutral-200 dark:border-neutral-800">
+                  <Td className="font-semibold">Tổng UX</Td>
+                  {evs.map((ev) => {
+                    const o = data.ux_overall?.find((u) => u.eval_id === ev)
+                    return <Td key={ev} className="text-center font-bold">{o?.overall ?? '—'}</Td>
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-1 text-[10px] text-neutral-400">
+            Nguồn: {data.ux_overall?.some((u) => u.basis === 'device_observed') ? 'device_observed (quan sát thật) + from_stored_evaluation' : 'from_stored_evaluation'}.
+          </p>
+        </section>
+      )}
+
       {/* ⑤ Monet */}
       <section>
         <h2 className="mb-2 text-sm font-semibold">⑤ Monetization</h2>

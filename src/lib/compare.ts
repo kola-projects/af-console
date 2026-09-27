@@ -88,6 +88,7 @@ export function sessionToApp(s: CompetitorSession, comp?: Competitor): CmpApp {
     pain_points: strArr(summ.pain_points),
     monet: monetOf(s),
     features,
+    ux: (ex.ux as CmpApp['ux']) ?? null,
   }
 }
 
@@ -158,9 +159,34 @@ export function buildCompare(apps: CmpApp[], name = ''): CompareData {
     }))
     .sort((a, b) => (b.pressure ?? 0) - (a.pressure ?? 0) || (b.friction ?? 0) - (a.friction ?? 0))
 
+  // UX scorecard matrix
+  const uxOrder: string[] = []
+  const uxLabels: Record<string, string> = {}
+  for (const a of apps)
+    for (const d of a.ux?.dimensions ?? []) {
+      if (!uxOrder.includes(d.key)) uxOrder.push(d.key)
+      if (!uxLabels[d.key]) uxLabels[d.key] = d.label ?? d.key
+    }
+  const ux_matrix = uxOrder.map((k) => {
+    const cells: Record<string, number> = {}
+    const notes: Record<string, string> = {}
+    for (const a of apps)
+      for (const d of a.ux?.dimensions ?? [])
+        if (d.key === k) {
+          cells[a.eval_id] = d.score
+          if (d.note) notes[a.eval_id] = d.note
+        }
+    return { key: k, label: uxLabels[k], cells, notes }
+  })
+  const ux_overall = apps
+    .map((a) => ({ eval_id: a.eval_id, name: a.name, overall: a.ux?.overall ?? null, basis: a.ux?.basis ?? null }))
+    .sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0))
+
   return {
     apps,
     feature_matrix,
+    ux_matrix,
+    ux_overall,
     feature_summary: { n_with_features: n, table_stakes, contested, differentiators },
     coherence: { common_tags, categories, store_only, no_features },
     pain_points: agg('pain_points'),
