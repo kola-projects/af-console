@@ -13,10 +13,11 @@ import { Badge, Mono, Empty, Loading, ErrorBox, localTime, Table, Row, Cell } fr
 import MarkdownView from './blueprint/MarkdownView'
 import type { CompetitorSession, CompetitorFinding, UxScorecard } from '../lib/types'
 
-type Tab = 'overview' | 'coverage' | 'monet' | 'features' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
+type Tab = 'overview' | 'coverage' | 'monet' | 'features' | 'ux' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
 const TABS: [Tab, string][] = [
   ['overview', 'Tổng quan'],
   ['features', 'Tính năng'],
+  ['ux', 'UI/UX'],
   ['monet', 'Kiếm tiền'],
   ['screens', 'Màn hình'],
   ['findings', 'Phát hiện'],
@@ -766,6 +767,55 @@ export default function CompetitorDetail() {
                     </Row>
                   ))}
                 </Table>
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === 'ux' && (
+          <div>
+            {!ux || (ux.dimensions?.length ?? 0) === 0 ? (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm dark:border-amber-900 dark:bg-amber-950">
+                <b>⛔ Chưa chấm UI/UX scorecard</b>
+                <div className="mt-0.5 text-xs text-neutral-600 dark:text-neutral-400">Phiên này đánh giá trước khi có UI/UX scorecard (F2) — chạy lại ae.sh để chấm.</div>
+              </div>
+            ) : (
+              <>
+                <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold tabular-nums">{ux.overall}</span>
+                    <span className="text-sm text-neutral-500">/5 UX tổng</span>
+                  </div>
+                  <div className="text-xs text-neutral-500">
+                    {ux.basis === 'device_observed' ? '✓ Chấm từ quan sát thiết bị thật' : 'Chấm từ dữ liệu đánh giá đã lưu (INFERENCE)'} · {ux.dimensions.length} chiều · thang 0–5, cao = tốt.
+                    <div className="mt-0.5">Chiều <b>Ít ma sát</b>: 5 = mượt, 1 = ads/dark-pattern phá trải nghiệm.</div>
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {ux.dimensions.map((d) => (
+                    <div key={d.key} className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{d.label}</span>
+                        <span
+                          className={`rounded px-2 py-0.5 text-sm font-bold ${
+                            d.score <= 2
+                              ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
+                              : d.score >= 4
+                                ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300'
+                                : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300'
+                          }`}
+                        >
+                          {d.score}/5
+                        </span>
+                      </div>
+                      <div className="mt-1.5 h-2 overflow-hidden rounded bg-neutral-100 dark:bg-neutral-800">
+                        <span className={`block h-full ${d.score <= 2 ? 'bg-red-500' : d.score >= 4 ? 'bg-green-500' : 'bg-primary-600'}`} style={{ width: `${(d.score / 5) * 100}%` }} />
+                      </div>
+                      {d.note && <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-400">{d.note}</p>}
+                      <Mono className="mt-1 block text-[10px] text-neutral-400">{d.key}</Mono>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
           </div>

@@ -3,6 +3,10 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.42.1 — 2026-09-27
+
+- Competitor detail: thêm **tab UI/UX** (cạnh Tính năng) — scorecard đầy đủ: UX tổng + từng chiều (thẻ có điểm/thanh/ghi chú), nguồn chấm (device_observed / stored).
+
 ## 3.42.0 — 2026-09-27
 
 - **UI/UX scorecard** (8 chiều cố định 0–5: thẩm mỹ · bố cục · điều hướng · tương tác/motion · nhất quán · dễ đọc · onboarding · ít-ma-sát).
