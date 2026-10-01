@@ -685,9 +685,27 @@ export interface AdPlan {
   created_by: string | null
 }
 
-// ── [0043] Competitors — đánh giá app đối thủ (ae.sh / appEvaluate) ──────────────
+// ── [0043] Competitors — đánh giá app (đối thủ & app của ta; ae.sh/ev / appEvaluate) ──
 /** Điểm rubric 1–5 (INFERENCE) — key tuỳ phiên. */
 export type CompetitorScores = Record<string, number>
+
+/** Một đề xuất cải tiến (chỉ cho app của ta — own-app). Ghi ở session.summary.improvements. */
+export interface Improvement {
+  area: 'feature' | 'ui_ux' | 'content' | 'monetization_ops'
+  priority: 'high' | 'med' | 'low'
+  title: string
+  detail: string
+}
+
+/** session.summary — executive summary (positioning/target_user/…) + (own-app) improvements.
+ *  Giữ index signature để code cũ đọc key tuỳ ý (summary[k]) không vỡ. */
+export interface CompetitorSummary {
+  /** true = đây là app của chúng ta (eval pusher set), song song với tag 'own-app'. */
+  own_app?: boolean
+  /** Đề xuất cải tiến — chỉ có ở app của ta. */
+  improvements?: Improvement[]
+  [key: string]: unknown
+}
 
 /** Một dòng v_competitors (danh tính ổn định, gom theo package_name). */
 export interface Competitor {
@@ -742,7 +760,7 @@ export interface CompetitorSession {
   monetization: Record<string, unknown>
   scores: CompetitorScores
   coverage: Record<string, number>
-  summary: Record<string, unknown>
+  summary: CompetitorSummary
   metrics: Record<string, unknown>
   tags: string[] | null
   report_md: string | null

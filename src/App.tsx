@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Session } from '@supabase/supabase-js'
 import { useQuery } from '@tanstack/react-query'
@@ -43,12 +43,19 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-/** Chặn theo danh sách role. Competitors: chỉ UA + Admin được xem (list + detail). */
+/** Chặn theo danh sách role. Evaluations: chỉ UA + Admin được xem (list + detail). */
 function RequireRoles({ roles, children }: { roles: string[]; children: React.ReactNode }) {
   const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
   if (me.isLoading) return null
   if (!me.data || !roles.includes(me.data.role)) return <Navigate to="/apps" replace />
   return <>{children}</>
+}
+
+/** Redirect cũ → mới, giữ nguyên :package: /competitors/:package → /evaluations/:package.
+ *  (Trang Evaluations đổi tên từ Competitors; link/bookmark cũ vẫn chạy.) */
+function RedirectCompetitorDetail() {
+  const pkg = useParams().package
+  return <Navigate to={`/evaluations/${pkg ? encodeURIComponent(pkg) : ''}`} replace />
 }
 
 export default function App() {
@@ -77,8 +84,11 @@ export default function App() {
             {/* Công khai cho mọi user còn hiệu lực (RLS lọc dữ liệu) */}
             <Route path="apps" element={<Apps />} />
             <Route path="apps/:id" element={<AppDetail />} />
-            <Route path="competitors" element={<RequireRoles roles={['ua', 'admin']}><Competitors /></RequireRoles>} />
-            <Route path="competitors/:package" element={<RequireRoles roles={['ua', 'admin']}><CompetitorDetail /></RequireRoles>} />
+            <Route path="evaluations" element={<RequireRoles roles={['ua', 'admin']}><Competitors /></RequireRoles>} />
+            <Route path="evaluations/:package" element={<RequireRoles roles={['ua', 'admin']}><CompetitorDetail /></RequireRoles>} />
+            {/* Đường dẫn cũ — redirect sang /evaluations (giữ link/bookmark cũ) */}
+            <Route path="competitors" element={<Navigate to="/evaluations" replace />} />
+            <Route path="competitors/:package" element={<RedirectCompetitorDetail />} />
             <Route path="compare" element={<RequireRoles roles={['ua', 'admin']}><Compare /></RequireRoles>} />
             <Route path="compare/:slug" element={<RequireRoles roles={['ua', 'admin']}><CompareDetail /></RequireRoles>} />
             <Route path="requests" element={<Requests />} />

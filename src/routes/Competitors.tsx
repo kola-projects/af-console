@@ -136,9 +136,9 @@ export default function Competitors() {
     <div>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-lg">Competitors</h1>
+          <h1 className="text-lg">Evaluations</h1>
           <p className="mt-1 text-sm text-neutral-500">
-            App đối thủ đã trải nghiệm bằng <Mono>ae.sh</Mono> — gom theo package, mỗi phiên bản một lần đánh giá, không ghi đè lịch sử.
+            App đã đánh giá (đối thủ &amp; app của chúng ta) — gom theo package, mỗi phiên bản một lần đánh giá, không ghi đè lịch sử.
           </p>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function Competitors() {
 
       {rows.length === 0 ? (
         <div className="mt-6">
-          <Empty>Chưa có app đối thủ nào khớp bộ lọc.</Empty>
+          <Empty>Chưa có app nào khớp bộ lọc.</Empty>
         </div>
       ) : (
         <div className="mt-4">
@@ -206,7 +206,7 @@ export default function Competitors() {
               const f = monFlags(c.latest_monetization)
               const listing = (c.latest_listing ?? {}) as Record<string, unknown>
               return (
-                <Row key={c.id} onClick={() => navigate(`/competitors/${encodeURIComponent(c.package_name)}`)}>
+                <Row key={c.id} onClick={() => navigate(`/evaluations/${encodeURIComponent(c.package_name)}`)}>
                   <Cell>
                     <span className="flex items-center gap-2.5">
                       <CompIcon c={c} />

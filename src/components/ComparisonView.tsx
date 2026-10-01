@@ -55,7 +55,7 @@ export default function ComparisonView({ data, analysis }: { data: CompareData; 
                 <tr key={a.eval_id}>
                   <Td>
                     {a.package ? (
-                      <Link to={`/competitors/${encodeURIComponent(a.package)}`} className="no-underline hover:underline">
+                      <Link to={`/evaluations/${encodeURIComponent(a.package)}`} className="no-underline hover:underline">
                         <Mono className="text-[11px] text-primary-700 dark:text-primary-300">{a.eval_id}</Mono>
                       </Link>
                     ) : (
@@ -64,7 +64,7 @@ export default function ComparisonView({ data, analysis }: { data: CompareData; 
                   </Td>
                   <Td>
                     {a.package ? (
-                      <Link to={`/competitors/${encodeURIComponent(a.package)}`} className="flex items-center gap-2 no-underline" title="Xem chi tiết đánh giá">
+                      <Link to={`/evaluations/${encodeURIComponent(a.package)}`} className="flex items-center gap-2 no-underline" title="Xem chi tiết đánh giá">
                         {a.icon_url && <img src={a.icon_url} alt="" referrerPolicy="no-referrer" className="h-6 w-6 flex-none rounded-md" />}
                         <span className="font-medium underline decoration-neutral-300 underline-offset-2 hover:decoration-neutral-500">{a.name ?? a.package}</span>
                         <span className="text-[11px] text-neutral-400">↗</span>
@@ -98,7 +98,7 @@ export default function ComparisonView({ data, analysis }: { data: CompareData; 
                 {A.map((a) => (
                   <Th key={a.eval_id} className="text-center">
                     {a.package ? (
-                      <Link to={`/competitors/${encodeURIComponent(a.package)}`} className="no-underline hover:underline" title={a.name ?? ''}>
+                      <Link to={`/evaluations/${encodeURIComponent(a.package)}`} className="no-underline hover:underline" title={a.name ?? ''}>
                         <Mono className="text-[10px] text-primary-700 dark:text-primary-300">{a.eval_id}</Mono>
                       </Link>
                     ) : (

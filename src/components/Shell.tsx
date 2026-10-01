@@ -31,7 +31,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/lessons', label: 'Lessons', icon: GraduationCap },
   { to: '/', label: 'Dashboard', end: true, icon: LayoutDashboard },
   { to: '/apps', label: 'Apps', icon: LayoutGrid },
-  { to: '/competitors', label: 'Competitors', icon: Radar },
+  { to: '/evaluations', label: 'Evaluations', icon: Radar },
   { to: '/compare', label: 'So sánh', icon: GitCompare },
   { to: '/manage-apps', label: 'Quản lý app', icon: SlidersHorizontal },
   { to: '/runs', label: 'Runs', icon: Play },
@@ -44,12 +44,12 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/stores', label: 'Stores', icon: Store },
   { to: '/users', label: 'Users', icon: Users },
 ]
-// Competitors: chỉ UA + Admin xem (không có trong nav member/dev/aso)
+// Evaluations (đánh giá app — đối thủ & app của ta): chỉ UA + Admin xem (không có trong nav member/dev/aso)
 const MEMBER_NAV: NavItem[] = [
   { to: '/apps', label: 'Apps', icon: LayoutGrid },
   { to: '/requests', label: 'Yêu cầu', icon: Inbox },
 ]
-const COMPETITORS_NAV: NavItem = { to: '/competitors', label: 'Competitors', icon: Radar }
+const COMPETITORS_NAV: NavItem = { to: '/evaluations', label: 'Evaluations', icon: Radar }
 const COMPARE_NAV: NavItem = { to: '/compare', label: 'So sánh', icon: GitCompare }
 
 export default function Shell({ email }: { email: string }) {
@@ -59,7 +59,7 @@ export default function Shell({ email }: { email: string }) {
   const pending = useQuery({ queryKey: ['promotion'], queryFn: promotionCandidates, enabled: isAdmin })
   const newTags = useQuery({ queryKey: ['tags'], queryFn: tags, enabled: isAdmin })
   const newTagCount = newTags.data?.filter((t) => t.status === 'new').length ?? 0
-  // UA thấy Competitors (chèn sau Apps); Admin đã có sẵn trong ADMIN_NAV.
+  // UA thấy Evaluations (chèn sau Apps); Admin đã có sẵn trong ADMIN_NAV.
   const nav = isAdmin
     ? ADMIN_NAV
     : me.data?.role === 'ua'

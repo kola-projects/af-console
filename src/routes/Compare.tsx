@@ -53,7 +53,7 @@ export default function Compare() {
 
   return (
     <div className="max-w-5xl">
-      <h1 className="text-lg">So sánh đối thủ</h1>
+      <h1 className="text-lg">So sánh đánh giá</h1>
       <p className="mt-1 text-sm text-neutral-500">
         Ma trận tính năng · monetization · định vị · pain-point giữa nhiều đánh giá cùng dòng. Bản lưu do <Mono>compare.sh</Mono> sinh; hoặc tự chọn app để xem nhanh (ad-hoc).
       </p>

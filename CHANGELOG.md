@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.44.0 — 2026-10-01
+
+- **Đổi tên "Competitors" → "Evaluations"** (nav + tiêu đề + breadcrumb). Route `/evaluations` (+ `/evaluations/:package`); `/competitors*` redirect sang route mới (giữ link cũ). Bảng DB giữ nguyên tên `competitors*` (chỉ đổi nhãn hiển thị) — nay gom cả app đối thủ LẪN app của chúng ta.
+- **App của chúng ta + "Đề xuất cải tiến":** eval có tag `own-app` (hoặc `summary.own_app`) hiện badge **"★ App của chúng ta"**; trang chi tiết thêm mục **"🚀 Đề xuất cải tiến"** render `summary.improvements` (nhóm theo Tính năng / UI-UX / Nội dung / Monetization & Vận hành, chip ưu tiên Cao/Vừa/Thấp). Ẩn khi không có.
+- Types: thêm `Improvement` + `CompetitorSummary` (own_app?/improvements?). Đồng bộ với AF v5.79.x (evaluate.sh/ev — eval iOS: Chimomo id6747741618 là eval `own-app` đầu tiên).
+
 ## 3.43.0 — 2026-09-27
 
 - Competitor detail: **tab ASO mới** (cạnh Kiếm tiền) — ASO scorecard (tiêu đề/mô tả/ảnh store/video/điểm/lượt đánh giá/độ mới), metadata niêm yết Play, **từ khoá nổi bật** (mật độ mô tả), điểm & phân bố sao (histogram), What's New, và tài sản marketing (ảnh store).

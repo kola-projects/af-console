@@ -11,7 +11,7 @@ import {
 } from '../lib/queries'
 import { Badge, Mono, Empty, Loading, ErrorBox, localTime, Table, Row, Cell } from '../components/ui'
 import MarkdownView from './blueprint/MarkdownView'
-import type { CompetitorSession, CompetitorFinding, UxScorecard } from '../lib/types'
+import type { CompetitorSession, CompetitorFinding, UxScorecard, CompetitorSummary, Improvement } from '../lib/types'
 
 type Tab = 'overview' | 'coverage' | 'monet' | 'features' | 'ux' | 'aso' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
 const TABS: [Tab, string][] = [
@@ -36,6 +36,19 @@ const KIND: Record<string, { label: string; cls: string }> = {
   USER_SIGNAL: { label: 'USER SIGNAL', cls: 'bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300' },
   INFERENCE: { label: 'INFERENCE', cls: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200' },
   RECOMMENDATION: { label: 'RECOMMENDATION', cls: 'border border-dashed border-neutral-400 text-neutral-600 dark:text-neutral-300' },
+}
+
+/** Đề xuất cải tiến (own-app): nhóm theo area, chip ưu tiên có màu. */
+const IMP_AREAS: [Improvement['area'], string][] = [
+  ['feature', 'Tính năng'],
+  ['ui_ux', 'UI-UX'],
+  ['content', 'Nội dung'],
+  ['monetization_ops', 'Monetization & Vận hành'],
+]
+const IMP_PRIO: Record<string, { label: string; cls: string }> = {
+  high: { label: 'Cao', cls: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' },
+  med: { label: 'Vừa', cls: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300' },
+  low: { label: 'Thấp', cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
 }
 
 function num(o: Record<string, unknown> | null | undefined, k: string): string {
@@ -109,10 +122,10 @@ export default function CompetitorDetail() {
   if (compQ.isLoading || sessQ.isLoading) return <Loading />
   if (compQ.error) return <ErrorBox error={compQ.error} />
   const c = compQ.data
-  if (!c) return <Empty>Không thấy đối thủ này.</Empty>
+  if (!c) return <Empty>Không thấy đánh giá này.</Empty>
 
   const listing = (sess?.listing ?? {}) as Record<string, unknown>
-  const summary = (sess?.summary ?? {}) as Record<string, unknown>
+  const summary = (sess?.summary ?? {}) as CompetitorSummary
   const mon = (sess?.monetization ?? {}) as Record<string, unknown>
   const cov = (sess?.coverage ?? {}) as Record<string, number>
   const metrics = (sess?.metrics ?? {}) as Record<string, unknown>
@@ -169,11 +182,24 @@ export default function CompetitorDetail() {
   // ảnh feature app-owned (loại ad + store), có top_act nếu cần — dùng screens có evidence code S##
   const screenShots = evidence.filter((e) => e.kind === 'screenshot')
 
+  // App của ta (own-app): tag 'own-app', hoặc summary/competitor có own_app:true. Khi đó hiện đề xuất cải tiến.
+  const isOwnApp =
+    (c.tags ?? []).includes('own-app') ||
+    summary.own_app === true ||
+    (c as { own_app?: boolean }).own_app === true
+  const improvements: Improvement[] = Array.isArray(summary.improvements) ? summary.improvements : []
+  const impByArea = new Map<Improvement['area'], Improvement[]>()
+  for (const imp of improvements) {
+    const a = imp?.area
+    if (!a) continue
+    impByArea.set(a, [...(impByArea.get(a) ?? []), imp])
+  }
+
   return (
     <div className="max-w-5xl">
       <div className="text-xs text-neutral-500">
-        <Link to="/competitors" className="no-underline hover:underline">
-          Competitors
+        <Link to="/evaluations" className="no-underline hover:underline">
+          Evaluations
         </Link>{' '}
         / <Mono>{pkg}</Mono>
       </div>
@@ -188,6 +214,11 @@ export default function CompetitorDetail() {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <h1 className="text-xl font-semibold">{c.name ?? pkg}</h1>
+            {isOwnApp && (
+              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800 ring-1 ring-green-300 dark:bg-green-950 dark:text-green-300 dark:ring-green-800" title="Đây là app của chúng ta (tag own-app) — không phải đối thủ">
+                ★ App của chúng ta
+              </span>
+            )}
             {evalId && (
               <span className="rounded bg-primary-100 px-1.5 py-0.5 font-mono text-xs font-semibold text-primary-800 dark:bg-primary-950 dark:text-primary-300" title="Mã đánh giá (dùng để tham chiếu)">
                 {evalId}
@@ -286,6 +317,36 @@ export default function CompetitorDetail() {
           </div>
         ))}
       </div>
+
+      {/* ĐỀ XUẤT CẢI TIẾN — chỉ app của ta (own-app), đặt nổi bật ngay đầu trang */}
+      {improvements.length > 0 && (
+        <section className="mt-4 rounded-xl border border-primary-200 bg-primary-50/40 p-4 dark:border-primary-900 dark:bg-primary-950/20">
+          <h2 className="mb-3 text-sm font-semibold">🚀 Đề xuất cải tiến ({improvements.length})</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {IMP_AREAS.filter(([area]) => impByArea.has(area)).map(([area, label]) => (
+              <div key={area}>
+                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{label}</div>
+                <ul className="flex flex-col gap-2">
+                  {(impByArea.get(area) ?? []).map((imp, i) => {
+                    const prio = IMP_PRIO[imp.priority] ?? IMP_PRIO.low
+                    return (
+                      <li key={i} className="rounded-lg border border-neutral-200 bg-white p-2.5 dark:border-neutral-800 dark:bg-neutral-900">
+                        <div className="flex items-start gap-2">
+                          <span className={`mt-0.5 flex-none rounded px-1.5 py-0.5 text-[10px] font-bold ${prio.cls}`} title={`Ưu tiên: ${prio.label}`}>
+                            {prio.label}
+                          </span>
+                          <b className="text-sm">{imp.title}</b>
+                        </div>
+                        {imp.detail && <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-300">{imp.detail}</p>}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* TABS */}
       <nav className="mt-4 flex flex-wrap gap-1 border-b border-neutral-200 text-sm dark:border-neutral-800">
