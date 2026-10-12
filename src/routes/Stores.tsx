@@ -30,6 +30,7 @@ type FormState = {
   github_repo: string
   website_url: string
   play_console_url: string
+  connection_type: '' | 'genlogin' | 'vps'
   enabled: boolean
 }
 
@@ -44,6 +45,7 @@ function emptyForm(): FormState {
     github_repo: '',
     website_url: '',
     play_console_url: '',
+    connection_type: '',
     enabled: true,
   }
 }
@@ -59,6 +61,7 @@ function fromRow(s: StoreRow): FormState {
     github_repo: s.github_repo ?? '',
     website_url: s.website_url ?? '',
     play_console_url: s.play_console_url ?? '',
+    connection_type: s.connection_type ?? '',
     enabled: s.enabled,
   }
 }
@@ -75,6 +78,7 @@ function toInput(f: FormState): StoreInput {
     github_repo: f.github_repo.trim() || null,
     website_url: f.website_url.trim() || null,
     play_console_url: f.play_console_url.trim() || null,
+    connection_type: f.connection_type || null,
     enabled: f.enabled,
     extra,
   }
@@ -208,6 +212,22 @@ function StoreForm({
           onChange={(e) => set('play_console_url', e.target.value)}
         />
       </div>
+      <div>
+        <label className="block text-xs text-neutral-500">Kết nối (connection_type)</label>
+        <select
+          className={input}
+          value={f.connection_type}
+          onChange={(e) => set('connection_type', e.target.value as FormState['connection_type'])}
+        >
+          <option value="">— chưa cấu hình —</option>
+          <option value="genlogin">GenLogin</option>
+          <option value="vps">VPS</option>
+        </select>
+        <p className="mt-1 text-[11px] text-neutral-400">
+          Chi tiết GenLogin (profile id, proxy) nạp qua <Mono>af_db store-extra-merge</Mono> / scan, không
+          nhập ở đây.
+        </p>
+      </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={f.enabled} onChange={(e) => set('enabled', e.target.checked)} />
         Enabled
@@ -302,6 +322,27 @@ function PatModal({ store, onClose }: { store: StoreRow; onClose: () => void }) 
   )
 }
 
+function ConnCell({ store: s }: { store: StoreRow }) {
+  if (s.connection_type === 'genlogin') {
+    const g = (s.extra?.['genlogin'] ?? {}) as Record<string, unknown>
+    const pid = g['play_profile_id']
+    const proxy = g['proxy'] as string | undefined
+    return (
+      <div>
+        <Badge tone="good">GenLogin</Badge>
+        {(pid || proxy) && (
+          <div className="mt-0.5 text-[11px] text-neutral-500">
+            {pid ? <Mono>#{String(pid)}</Mono> : null}
+            {proxy ? <span className="ml-1">{proxy}</span> : null}
+          </div>
+        )}
+      </div>
+    )
+  }
+  if (s.connection_type === 'vps') return <Badge tone="warn">VPS</Badge>
+  return <span className="text-neutral-400">—</span>
+}
+
 export default function Stores() {
   const q = useQuery({ queryKey: ['stores'], queryFn: storesList })
   const qc = useQueryClient()
@@ -341,7 +382,7 @@ export default function Stores() {
       {q.data && q.data.length === 0 && <Empty>Chưa có store nào.</Empty>}
 
       {q.data && q.data.length > 0 && (
-        <Table head={['Mã', 'Tên / Brand', 'Slug', 'GitHub org', 'PAT', 'Apps', 'Trạng thái', '']}>
+        <Table head={['Mã', 'Tên / Brand', 'Slug', 'GitHub org', 'Kết nối', 'PAT', 'Apps', 'Trạng thái', '']}>
           {q.data.map((s) => (
             <Row key={s.id}>
               <Cell>
@@ -356,6 +397,9 @@ export default function Stores() {
               </Cell>
               <Cell>
                 <Mono>{(s.extra?.['github_org'] as string) ?? s.github_repo ?? '—'}</Mono>
+              </Cell>
+              <Cell>
+                <ConnCell store={s} />
               </Cell>
               <Cell>
                 {s.github_pat_configured ? (

@@ -1129,6 +1129,8 @@ export type StoreRow = {
   play_console_url: string | null
   enabled: boolean
   github_pat_configured: boolean
+  /** Cách kết nối store cho tự động hoá Play/Firebase: genlogin (chi tiết ở extra.genlogin) | vps. [0052] */
+  connection_type: 'genlogin' | 'vps' | null
   extra: Record<string, unknown>
   app_count: number
   created_at: string
@@ -1145,6 +1147,7 @@ export type StoreInput = {
   website_url?: string | null
   play_console_url?: string | null
   enabled?: boolean
+  connection_type?: 'genlogin' | 'vps' | null
   extra?: Record<string, unknown>
 }
 

@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.45.0 — 2026-10-12
+
+- **Stores: cột "Kết nối" (connection_type)** — hiển thị cách kết nối store cho tự động hoá Play/Firebase: badge **GenLogin** (kèm `#profile_id` + proxy host:port đọc từ `extra.genlogin`) · **VPS** · `—` khi chưa cấu hình. Form thêm/sửa store thêm select `connection_type` (chi tiết GenLogin vẫn nạp qua `af_db`, không nhập ở UI).
+- Types: `StoreRow`/`StoreInput` thêm `connection_type`. Đồng bộ AF v5.96.0 (migration 0052/0053: cột `stores.connection_type` + phơi qua `v_stores`; 11 store gắn profile GenLogin).
+
 ## 3.44.0 — 2026-10-01
 
 - **Đổi tên "Competitors" → "Evaluations"** (nav + tiêu đề + breadcrumb). Route `/evaluations` (+ `/evaluations/:package`); `/competitors*` redirect sang route mới (giữ link cũ). Bảng DB giữ nguyên tên `competitors*` (chỉ đổi nhãn hiển thị) — nay gom cả app đối thủ LẪN app của chúng ta.
