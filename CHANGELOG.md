@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.46.0 — 2026-10-13
+
+- **Manage-apps: 4 nâng cấp** — (1) nút **Cột** (⚙) quản lý show/hide + đổi thứ tự cột (lưu `localStorage` `manage-apps-columns`); (2) cột **Go-live** = icon mũi tên xanh (đã go-live) / xám (chưa) từ `apps.go_live`, click mở Play nếu có `store_url`; (3) cột **Dashboard** = link tới `dashboard.stemlabs.site/apps/<pkg>` khi `extra.dashboard_url` có (seed sẵn cho app có trên bdash); (4) cột **Metadata** = hiển thị Discord channel + nút ✏️ mở modal sửa `discord_channel` / Play Store link (`store_url`) / dashboard link (`extra`). Bỏ ô "Store (golive)" cũ (gộp vào modal).
+- queries: `appsWithRuns` select thêm `go_live`; thêm `setAppMeta` (merge vào `extra`, RLS admin). Types: `AppRow.go_live` + `extra.discord_channel`/`dashboard_url`. Bảng refactor sang columns-config.
+- Đồng bộ AF **v5.99.0** (migration 0054: `apps.cicd_integrated` + `go_live` + `go_live_at`; `af_db golive-scan`).
+
 ## 3.45.0 — 2026-10-12
 
 - **Stores: cột "Kết nối" (connection_type)** — hiển thị cách kết nối store cho tự động hoá Play/Firebase: badge **GenLogin** (kèm `#profile_id` + proxy host:port đọc từ `extra.genlogin`) · **VPS** · `—` khi chưa cấu hình. Form thêm/sửa store thêm select `connection_type` (chi tiết GenLogin vẫn nạp qua `af_db`, không nhập ở UI).

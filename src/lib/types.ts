@@ -156,6 +156,8 @@ export interface AppRow {
   } | null
   /** [0040] Trạng thái tích hợp do quét repo (ads/af_version/aso/legal/landing/github). */
   integration?: AppIntegration | null
+  /** [0054] App đã go-live (lên store) chưa — cột thật apps.go_live. */
+  go_live?: boolean | null
   /** `store_url` = link golive Play (admin nhập tay hoặc suy từ packageName);
    *  `icon_url` = URL icon trên CDN Play (play-lh.googleusercontent.com) do tool resolve
    *  từ store_url — AppIcon ưu tiên hiện ảnh này. Cả hai nằm ở `extra` (scan_integration
@@ -168,6 +170,10 @@ export interface AppRow {
     store_url?: string | null
     icon_url?: string | null
     icon_storage_key?: string | null
+    /** Tên kênh Discord của app (metadata admin nhập tay). */
+    discord_channel?: string | null
+    /** Link dashboard (bdash…) của app (seed sẵn cho app có trên dashboard). */
+    dashboard_url?: string | null
   } | null
   runs: AppRunSummary[]
 }

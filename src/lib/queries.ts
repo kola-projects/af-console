@@ -96,7 +96,7 @@ export const appsWithRuns = async () =>
   unwrap<AppRow[]>(
     await supabase
       .from('apps')
-      .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
+      .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration,go_live,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
       .order('created_at', { ascending: false })
       .order('started_at', { referencedTable: 'runs', ascending: false }),
   )
@@ -112,6 +112,23 @@ export async function setAppHidden(id: number, is_hidden: boolean) {
  *  icon_url có sẵn). '' = xoá link. RLS chỉ admin ghi. `extra` không bị scan_integration đụng. */
 export async function setAppStoreUrl(id: number, currentExtra: AppRow['extra'], store_url: string) {
   const extra = { ...(currentExtra ?? {}), store_url: store_url.trim() || null }
+  const { data, error } = await supabase.from('apps').update({ extra }).eq('id', id).select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
+}
+
+/** Admin đặt nhiều field metadata vào apps.extra cùng lúc (discord_channel, store_url,
+ *  dashboard_url…) — merge vào extra, mỗi field trim; rỗng/trắng = null (xoá). RLS chỉ admin
+ *  ghi. `extra` không bị scan_integration đụng. Generic version của setAppStoreUrl. */
+export async function setAppMeta(
+  id: number,
+  currentExtra: AppRow['extra'],
+  patch: Record<string, string | null>,
+) {
+  const extra = { ...(currentExtra ?? {}) } as Record<string, unknown>
+  for (const [k, v] of Object.entries(patch)) {
+    extra[k] = v && v.trim() ? v.trim() : null
+  }
   const { data, error } = await supabase.from('apps').update({ extra }).eq('id', id).select()
   if (error) throw new Error(error.message)
   if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
