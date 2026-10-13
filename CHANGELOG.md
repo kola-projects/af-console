@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.47.0 — 2026-10-13
+
+- **Manage-apps: form sửa TOÀN BỘ metadata** (modal lớn, thay modal 3-field) — `package_name`/`team`/`is_hidden` + `extra`: `github`/`store_url`/`dashboard_url`/`discord_channel`/`source_url`/`source_desc`. Thêm `setAppFull` (gộp update cột apps + merge extra, RLS admin).
+- **Cột "Nguồn"** = tick xanh (GitBranch/Check) khi có `extra.source_url`/`source_desc` (click mở src), `—` khi trống. Thay render `source_kind` cũ (vẫn xem được ở AppDetail).
+- **Search + filter theo TỪNG CỘT**: nút "Lọc cột" bật hàng filter dưới header — text (contains) cho code/app/family/package/nguồn; select (enum) cho platform/team/go-live/funnel/host-ads/aso/legal/landing/ẩn; nút "Xoá lọc". `Table` nhận prop `filterRow`; lọc client-side AND với global search.
+- types: `extra` thêm `source_url`/`source_desc`/`github`.
+
 ## 3.46.0 — 2026-10-13
 
 - **Manage-apps: 4 nâng cấp** — (1) nút **Cột** (⚙) quản lý show/hide + đổi thứ tự cột (lưu `localStorage` `manage-apps-columns`); (2) cột **Go-live** = icon mũi tên xanh (đã go-live) / xám (chưa) từ `apps.go_live`, click mở Play nếu có `store_url`; (3) cột **Dashboard** = link tới `dashboard.stemlabs.site/apps/<pkg>` khi `extra.dashboard_url` có (seed sẵn cho app có trên bdash); (4) cột **Metadata** = hiển thị Discord channel + nút ✏️ mở modal sửa `discord_channel` / Play Store link (`store_url`) / dashboard link (`extra`). Bỏ ô "Store (golive)" cũ (gộp vào modal).

@@ -134,6 +134,29 @@ export async function setAppMeta(
   if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
 }
 
+/** Admin sửa TOÀN BỘ metadata app trong một lần: cột thật ở bảng apps (package_name/team/
+ *  is_hidden) + merge nhiều field vào apps.extra (github/store_url/dashboard_url/discord_channel/
+ *  source_url/source_desc…). extra: field rỗng/trắng = null (xoá). cols: chỉ update field được
+ *  truyền (undefined = giữ nguyên). RLS chỉ admin ghi; `extra` không bị scan_integration đụng. */
+export async function setAppFull(
+  id: number,
+  cols: { package_name?: string | null; team?: string | null; is_hidden?: boolean },
+  currentExtra: AppRow['extra'],
+  extraPatch: Record<string, string | null>,
+) {
+  const extra = { ...(currentExtra ?? {}) } as Record<string, unknown>
+  for (const [k, v] of Object.entries(extraPatch)) {
+    extra[k] = v && v.trim() ? v.trim() : null
+  }
+  const update: Record<string, unknown> = { extra }
+  if (cols.package_name !== undefined) update.package_name = cols.package_name?.trim() || null
+  if (cols.team !== undefined) update.team = cols.team || null
+  if (cols.is_hidden !== undefined) update.is_hidden = cols.is_hidden
+  const { data, error } = await supabase.from('apps').update(update).eq('id', id).select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
+}
+
 /** [0027] Admin gán team cho app (nhãn thống kê; '' = bỏ team). RLS chỉ admin ghi. */
 export async function setAppTeam(id: number, team: string) {
   const { data, error } = await supabase

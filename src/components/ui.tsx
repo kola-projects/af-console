@@ -110,18 +110,37 @@ export function Stat({
   )
 }
 
-export function Table({ head, children }: { head: string[]; children: ReactNode }) {
+export function Table({
+  head,
+  filterRow,
+  children,
+}: {
+  head: string[]
+  /** Hàng filter tuỳ chọn, render thành <tr> thứ 2 trong <thead> — mỗi phần tử một <th>,
+   *  thẳng cột với header. Phải cùng độ dài + thứ tự với `head`. */
+  filterRow?: ReactNode[]
+  children: ReactNode
+}) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-neutral-200 text-left dark:border-neutral-800">
-            {head.map((h) => (
-              <th key={h} className="py-2 pr-4 font-normal text-neutral-500">
+            {head.map((h, i) => (
+              <th key={`${h}-${i}`} className="py-2 pr-4 font-normal text-neutral-500">
                 {h}
               </th>
             ))}
           </tr>
+          {filterRow && (
+            <tr className="border-b border-neutral-200 text-left align-top dark:border-neutral-800">
+              {filterRow.map((node, i) => (
+                <th key={i} className="py-1.5 pr-4 font-normal">
+                  {node}
+                </th>
+              ))}
+            </tr>
+          )}
         </thead>
         <tbody>{children}</tbody>
       </table>

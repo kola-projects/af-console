@@ -3,13 +3,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowUpRight,
+  Check,
   ChevronDown,
   ChevronUp,
+  Filter,
+  GitBranch,
   LayoutDashboard,
   Pencil,
   SlidersHorizontal,
 } from 'lucide-react'
-import { appsWithRuns, setAppHidden, setAppMeta, setAppTeam } from '../lib/queries'
+import { appsWithRuns, setAppFull, setAppHidden, setAppTeam } from '../lib/queries'
 import { appCodeOf, TEAMS, type AppRow } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 import { AppIcon, AppNameLabel, PackageName, appLastUpdate, blueprintRuns } from '../components/appMeta'
@@ -24,6 +27,114 @@ type Col = { id: string; label: string; render: (a: AppRow) => React.ReactNode }
 type ColPref = { id: string; visible: boolean }
 const COLS_KEY = 'manage-apps-columns'
 
+/** Filter theo TỪNG cột. `text` = contains, case-insensitive trên giá trị text của cột.
+ *  `select` = khớp chính xác qua predicate. Cột không có trong map = không lọc được
+ *  (icon/ngày/số) → hàng filter để trống ô đó. Key = Col.id. */
+type ColFilterSpec =
+  | { kind: 'text'; get: (a: AppRow) => string }
+  | { kind: 'select'; options: { value: string; label: string }[]; match: (a: AppRow, v: string) => boolean }
+
+const isScanned = (a: AppRow) => !!a.integration?.checked_at
+const adsStatusOf = (a: AppRow) => a.integration?.ads?.status ?? 'none'
+const hostOnOf = (a: AppRow) => {
+  const ads = a.integration?.ads
+  return adsStatusOf(a) === 'full' || !!ads?.host_wired || ads?.host === 'true' || ads?.adsMode === 'FULL'
+}
+
+const COL_FILTERS: Record<string, ColFilterSpec> = {
+  code: { kind: 'text', get: (a) => appCodeOf(a) ?? '' },
+  app: { kind: 'text', get: (a) => a.name },
+  family: { kind: 'text', get: (a) => a.family_code ?? '' },
+  package: { kind: 'text', get: (a) => a.package_name ?? '' },
+  source: { kind: 'text', get: (a) => `${a.extra?.source_url ?? ''} ${a.extra?.source_desc ?? ''}` },
+  platform: {
+    kind: 'select',
+    options: [
+      { value: '', label: 'tất cả' },
+      { value: 'android', label: '🤖 Android' },
+      { value: 'ios', label: ' iOS' },
+    ],
+    match: (a, v) => (a.platform ?? 'android') === v,
+  },
+  team: {
+    kind: 'select',
+    options: [
+      { value: '', label: 'tất cả' },
+      ...TEAMS.map((t) => ({ value: t, label: t })),
+      { value: '__none__', label: '(chưa gán)' },
+    ],
+    match: (a, v) => (v === '__none__' ? !a.team : a.team === v),
+  },
+  golive: {
+    kind: 'select',
+    options: [
+      { value: '', label: 'tất cả' },
+      { value: 'yes', label: 'đã go-live' },
+      { value: 'no', label: 'chưa' },
+    ],
+    match: (a, v) => (v === 'yes' ? !!a.go_live : !a.go_live),
+  },
+  funnel: {
+    kind: 'select',
+    options: [
+      { value: '', label: 'tất cả' },
+      { value: 'full', label: 'full' },
+      { value: 'funnel', label: 'chỉ funnel' },
+      { value: 'none', label: 'chưa' },
+      { value: 'unscanned', label: 'chưa quét' },
+    ],
+    match: (a, v) => (v === 'unscanned' ? !isScanned(a) : isScanned(a) && adsStatusOf(a) === v),
+  },
+  hostAds: {
+    kind: 'select',
+    options: [
+      { value: '', label: 'tất cả' },
+      { value: 'on', label: '🟢 Có' },
+      { value: 'off', label: 'Tắt' },
+    ],
+    match: (a, v) => (v === 'on' ? hostOnOf(a) : !hostOnOf(a)),
+  },
+  aso: {
+    kind: 'select',
+    options: [
+      { value: '', label: 'tất cả' },
+      { value: 'yes', label: 'có ASO' },
+      { value: 'no', label: 'chưa' },
+    ],
+    match: (a, v) => (v === 'yes' ? !!a.integration?.aso : !a.integration?.aso),
+  },
+  legal: {
+    kind: 'select',
+    options: [
+      { value: '', label: 'tất cả' },
+      { value: 'none', label: 'none' },
+      { value: 'built', label: 'built' },
+      { value: 'staged', label: 'staged' },
+      { value: 'live', label: 'live' },
+    ],
+    match: (a, v) => (a.integration?.legal ?? 'none') === v,
+  },
+  landing: {
+    kind: 'select',
+    options: [
+      { value: '', label: 'tất cả' },
+      { value: 'none', label: 'chưa' },
+      { value: 'built', label: 'built' },
+      { value: 'live', label: 'live' },
+    ],
+    match: (a, v) => (v === 'none' ? !a.integration?.landing : a.integration?.landing === v),
+  },
+  hidden: {
+    kind: 'select',
+    options: [
+      { value: '', label: 'tất cả' },
+      { value: 'shown', label: 'đang hiện' },
+      { value: 'hidden', label: 'đã ẩn' },
+    ],
+    match: (a, v) => (v === 'hidden' ? !!a.is_hidden : !a.is_hidden),
+  },
+}
+
 /** /manage-apps — QUẢN LÝ APP (admin). Đầy đủ nội bộ: runs, blueprint, last update,
  *  và ẩn/hiện app khỏi danh mục sản phẩm của user thường. */
 export default function ManageApps() {
@@ -36,6 +147,17 @@ export default function ManageApps() {
   const [platformFilter, setPlatformFilter] = useState('')          // '' | 'android' | 'ios'
   const [editApp, setEditApp] = useState<AppRow | null>(null)
   const [colPanelOpen, setColPanelOpen] = useState(false)
+  // Filter theo từng cột (per Col.id). Ô trống bị gỡ khỏi object để đếm "đang lọc" dễ.
+  const [colFilters, setColFilters] = useState<Record<string, string>>({})
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const setColFilter = (id: string, v: string) =>
+    setColFilters((f) => {
+      if (!v) {
+        const { [id]: _drop, ...rest } = f
+        return rest
+      }
+      return { ...f, [id]: v }
+    })
   // Hiển thị theo trạng thái kinh doanh (is_hidden là boolean → 2 checkbox). MẶC ĐỊNH ẩn
   // app đã ẩn (chỉ 'Đang kinh doanh'); nhớ lựa chọn qua localStorage để F5 không reset.
   const [avail, setAvail] = useState<{ active: boolean; hidden: boolean }>(() => {
@@ -64,8 +186,17 @@ export default function ManageApps() {
     onSuccess: invalidate,
   })
   const meta = useMutation({
-    mutationFn: ({ id, extra, patch }: { id: number; extra: AppRow['extra']; patch: Record<string, string | null> }) =>
-      setAppMeta(id, extra, patch),
+    mutationFn: ({
+      id,
+      cols,
+      extra,
+      extraPatch,
+    }: {
+      id: number
+      cols: { package_name?: string | null; team?: string | null; is_hidden?: boolean }
+      extra: AppRow['extra']
+      extraPatch: Record<string, string | null>
+    }) => setAppFull(id, cols, extra, extraPatch),
     onSuccess: () => {
       invalidate()
       setEditApp(null)
@@ -223,7 +354,32 @@ export default function ManageApps() {
     {
       id: 'source',
       label: 'Nguồn',
-      render: (a) => <Mono className="text-neutral-500">{a.source_kind}</Mono>,
+      render: (a) => {
+        const url = a.extra?.source_url
+        const desc = a.extra?.source_desc
+        if (url) {
+          return (
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              title={desc || url}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex"
+            >
+              <GitBranch className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </a>
+          )
+        }
+        if (desc) {
+          return (
+            <span title={desc} className="inline-flex">
+              <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </span>
+          )
+        }
+        return <span className="text-neutral-400">—</span>
+      },
     },
     { id: 'runs', label: 'Runs', render: (a) => a.runs.length },
     {
@@ -309,6 +465,40 @@ export default function ManageApps() {
       return next
     })
 
+  // Control filter cho một cột (null = cột không lọc được → ô trống trong hàng filter).
+  const colFilterControl = (id: string): React.ReactNode => {
+    const spec = COL_FILTERS[id]
+    if (!spec) return null
+    const val = colFilters[id] ?? ''
+    const cls =
+      'w-full min-w-[72px] rounded border border-neutral-300 bg-transparent px-1.5 py-1 text-xs outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:focus:border-neutral-400'
+    if (spec.kind === 'text') {
+      return (
+        <input
+          value={val}
+          placeholder="lọc…"
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => setColFilter(id, e.target.value)}
+          className={cls}
+        />
+      )
+    }
+    return (
+      <select
+        value={val}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => setColFilter(id, e.target.value)}
+        className={cls}
+      >
+        {spec.options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase()
     const filtered = (q.data ?? [])
@@ -328,13 +518,25 @@ export default function ManageApps() {
           (appCodeOf(a) ?? '').toLowerCase().includes(needle) ||
           (a.package_name ?? '').toLowerCase().includes(needle),
       )
+      // Filter theo từng cột (AND với nhau + với global search ở trên).
+      .filter((a) =>
+        Object.entries(colFilters).every(([id, raw]) => {
+          const val = (raw ?? '').trim()
+          if (!val) return true
+          const spec = COL_FILTERS[id]
+          if (!spec) return true
+          return spec.kind === 'text'
+            ? spec.get(a).toLowerCase().includes(val.toLowerCase())
+            : spec.match(a, val)
+        }),
+      )
     return [...filtered].sort((a, b) => {
       if (sort === 'code') return (appCodeOf(b) ?? '').localeCompare(appCodeOf(a) ?? '')
       if (sort === 'name') return a.name.localeCompare(b.name)
       if (sort === 'created') return b.created_at.localeCompare(a.created_at)
       return appLastUpdate(b).localeCompare(appLastUpdate(a))
     })
-  }, [q.data, search, sort, teamFilter, platformFilter, avail, adsFilter])
+  }, [q.data, search, sort, teamFilter, platformFilter, avail, adsFilter, colFilters])
 
   if (q.isLoading) return <Loading />
   if (q.error) return <ErrorBox error={q.error} />
@@ -414,6 +616,32 @@ export default function ManageApps() {
           <option value="none">Ads: chưa tích hợp</option>
           <option value="unscanned">Ads: chưa quét</option>
         </select>
+        <button
+          onClick={() => setFiltersOpen((v) => !v)}
+          title="Bật/tắt hàng filter theo từng cột"
+          className={`flex items-center gap-1 rounded border px-2 py-1.5 text-sm ${
+            filtersOpen || Object.keys(colFilters).length
+              ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-500 dark:bg-primary-950 dark:text-primary-300'
+              : 'border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900'
+          }`}
+        >
+          <Filter className="h-4 w-4" />
+          Lọc cột
+          {Object.keys(colFilters).length > 0 && (
+            <span className="ml-0.5 rounded-full bg-primary-600 px-1.5 text-[10px] text-white">
+              {Object.keys(colFilters).length}
+            </span>
+          )}
+        </button>
+        {Object.keys(colFilters).length > 0 && (
+          <button
+            onClick={() => setColFilters({})}
+            title="Xoá tất cả filter theo cột (giữ global search)"
+            className="rounded border border-neutral-300 px-2 py-1.5 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+          >
+            Xoá lọc
+          </button>
+        )}
         <div className="relative">
           <button
             onClick={() => setColPanelOpen((v) => !v)}
@@ -448,7 +676,10 @@ export default function ManageApps() {
         {!rows.length ? (
           <Empty>{search ? 'Không app nào khớp tìm kiếm.' : 'Chưa có app nào.'}</Empty>
         ) : (
-          <Table head={visibleCols.map((c) => c.label)}>
+          <Table
+            head={visibleCols.map((c) => c.label)}
+            filterRow={filtersOpen ? visibleCols.map((c) => colFilterControl(c.id)) : undefined}
+          >
             {rows.map((a) => (
               <Row key={a.id} onClick={() => navigate(`/manage-apps/${a.id}`)}>
                 {visibleCols.map((c) => (
@@ -465,7 +696,9 @@ export default function ManageApps() {
           app={editApp}
           pending={meta.isPending}
           onClose={() => setEditApp(null)}
-          onSave={(patch) => meta.mutate({ id: editApp.id, extra: editApp.extra, patch })}
+          onSave={(cols, extraPatch) =>
+            meta.mutate({ id: editApp.id, cols, extra: editApp.extra, extraPatch })
+          }
         />
       )}
     </div>
@@ -533,7 +766,9 @@ function ColumnPanel({
 const modalInput =
   'mt-1 w-full rounded border border-neutral-300 bg-transparent px-2.5 py-1.5 text-sm outline-none focus:border-neutral-500 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900'
 
-/** Modal sửa metadata app: Discord channel, Play Store link (store_url), Dashboard link. */
+/** Trang sửa TOÀN BỘ metadata app (modal lớn): cột thật ở bảng apps (package_name/team/
+ *  is_hidden) + các field trong apps.extra (github/store_url/dashboard_url/discord_channel/
+ *  source_url/source_desc). app_code/name/platform hiển thị read-only để nhận diện. */
 function EditMetaModal({
   app,
   pending,
@@ -543,33 +778,108 @@ function EditMetaModal({
   app: AppRow
   pending: boolean
   onClose: () => void
-  onSave: (patch: Record<string, string | null>) => void
+  onSave: (
+    cols: { package_name?: string | null; team?: string | null; is_hidden?: boolean },
+    extraPatch: Record<string, string | null>,
+  ) => void
 }) {
-  const [discord, setDiscord] = useState(app.extra?.discord_channel ?? '')
+  // cột thật
+  const [pkg, setPkg] = useState(app.package_name ?? '')
+  const [team, setTeam] = useState(app.team ?? '')
+  const [hidden, setHidden] = useState(!!app.is_hidden)
+  // extra
+  const [github, setGithub] = useState(app.extra?.github ?? '')
   const [storeUrl, setStoreUrl] = useState(app.extra?.store_url ?? '')
   const [dashUrl, setDashUrl] = useState(app.extra?.dashboard_url ?? '')
+  const [discord, setDiscord] = useState(app.extra?.discord_channel ?? '')
+  const [sourceUrl, setSourceUrl] = useState(app.extra?.source_url ?? '')
+  const [sourceDesc, setSourceDesc] = useState(app.extra?.source_desc ?? '')
+
+  const platform = (app.platform ?? 'android') === 'ios' ? ' iOS' : '🤖 Android'
   const save = () =>
-    onSave({ discord_channel: discord, store_url: storeUrl, dashboard_url: dashUrl })
+    onSave(
+      { package_name: pkg, team, is_hidden: hidden },
+      {
+        github,
+        store_url: storeUrl,
+        dashboard_url: dashUrl,
+        discord_channel: discord,
+        source_url: sourceUrl,
+        source_desc: sourceDesc,
+      },
+    )
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-sm font-medium">
-          Metadata — <Mono>{appCodeOf(app) ?? app.name}</Mono>
+        <div className="text-sm font-medium">Sửa metadata app</div>
+        {/* nhận diện (read-only) */}
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs dark:border-neutral-800 dark:bg-neutral-900">
+          {appCodeOf(app) && <Mono className="font-semibold">{appCodeOf(app)}</Mono>}
+          <span className="font-medium text-neutral-700 dark:text-neutral-300">{app.name}</span>
+          <Badge tone={(app.platform ?? 'android') === 'ios' ? undefined : 'good'}>{platform}</Badge>
         </div>
-        <label className="mt-3 block text-xs text-neutral-500">
-          Discord channel
+
+        {/* ── Cột bảng apps ── */}
+        <div className="mt-4 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+          Cột apps
+        </div>
+        <label className="mt-2 block text-xs text-neutral-500">
+          Package name
           <input
             className={modalInput}
-            value={discord}
+            value={pkg}
             disabled={pending}
-            onChange={(e) => setDiscord(e.target.value)}
-            placeholder="#tên-kênh"
+            onChange={(e) => setPkg(e.target.value)}
+            placeholder="com.example.app"
+          />
+        </label>
+        <div className="mt-3 flex items-end gap-4">
+          <label className="block flex-1 text-xs text-neutral-500">
+            Team
+            <select
+              className={modalInput}
+              value={team}
+              disabled={pending}
+              onChange={(e) => setTeam(e.target.value)}
+            >
+              <option value="">—</option>
+              {TEAMS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm">
+            <input
+              type="checkbox"
+              checked={hidden}
+              disabled={pending}
+              onChange={(e) => setHidden(e.target.checked)}
+            />
+            Ẩn khỏi danh mục
+          </label>
+        </div>
+
+        {/* ── extra ── */}
+        <div className="mt-4 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+          Liên kết &amp; nguồn
+        </div>
+        <label className="mt-2 block text-xs text-neutral-500">
+          GitHub repo
+          <input
+            className={modalInput}
+            value={github}
+            disabled={pending}
+            onChange={(e) => setGithub(e.target.value)}
+            placeholder="https://github.com/org/repo"
           />
         </label>
         <label className="mt-3 block text-xs text-neutral-500">
@@ -592,7 +902,38 @@ function EditMetaModal({
             placeholder="https://…"
           />
         </label>
-        <div className="mt-4 flex justify-end gap-2">
+        <label className="mt-3 block text-xs text-neutral-500">
+          Discord channel
+          <input
+            className={modalInput}
+            value={discord}
+            disabled={pending}
+            onChange={(e) => setDiscord(e.target.value)}
+            placeholder="#tên-kênh"
+          />
+        </label>
+        <label className="mt-3 block text-xs text-neutral-500">
+          Nguồn src (git / app store)
+          <input
+            className={modalInput}
+            value={sourceUrl}
+            disabled={pending}
+            onChange={(e) => setSourceUrl(e.target.value)}
+            placeholder="https://github.com/… hoặc link store app gốc"
+          />
+        </label>
+        <label className="mt-3 block text-xs text-neutral-500">
+          Mô tả nguồn
+          <textarea
+            className={`${modalInput} min-h-[72px] resize-y`}
+            value={sourceDesc}
+            disabled={pending}
+            onChange={(e) => setSourceDesc(e.target.value)}
+            placeholder="App gốc là gì, clone từ đâu, ghi chú…"
+          />
+        </label>
+
+        <div className="mt-5 flex justify-end gap-2">
           <button
             className="rounded border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
             onClick={onClose}

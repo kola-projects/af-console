@@ -174,6 +174,13 @@ export interface AppRow {
     discord_channel?: string | null
     /** Link dashboard (bdash…) của app (seed sẵn cho app có trên dashboard). */
     dashboard_url?: string | null
+    /** Link GitHub repo (metadata admin nhập tay — override thủ công, sống ở extra nên
+     *  KHÔNG bị scan_integration ghi đè như integration.github). */
+    github?: string | null
+    /** Nguồn gốc app: URL gốc (git repo / link store của app được clone). */
+    source_url?: string | null
+    /** Mô tả nguồn gốc (app gốc là gì, clone từ đâu, ghi chú). */
+    source_desc?: string | null
   } | null
   runs: AppRunSummary[]
 }
