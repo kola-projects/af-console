@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.47.1 — 2026-10-18
+
+- **Fix: trang Evaluations không hiện ảnh màn** — trang chi tiết mặc định chọn phiên đánh giá MỚI NHẤT (`sessions[0]`, sắp `evaluated_at` desc), nhưng phiên mới nhất của mọi đối thủ là loại monetization-census (`apk_file`) hoặc store_only → 0 evidence `kind='screenshot'` ⇒ mục "Ảnh THẬT các màn" luôn trống dù ảnh vẫn còn trong bucket, chỉ gắn ở phiên CŨ hơn. Nay mặc định chọn phiên MỚI NHẤT CÓ ảnh (fallback `sessions[0]`); session picker vẫn chuyển tay được.
+- queries: thêm `competitorSessionsWithScreenshots(sessionIds)` — một query nhẹ trả tập session có `kind='screenshot'`. Không phải lỗi Storage/RLS (migration RBAC 0047 vẫn `.pending`).
+- **Evaluations: 2 tab mới cho dữ liệu reverse.sh** — **Remote Config** (project/template/param + delta shipped→live + ad unit map + bảng tham số, giá trị LIVE từ Firebase RC) và **API** (có/không REST backend + verdict + dịch vụ backend + kiến trúc + billing/IAP + permission đáng chú ý). Dữ liệu từ `extra.remote_config` / `extra.api`; tab hiện Empty khi phiên không có.
+- **Tab Kiếm tiền: "Ad inventory — từ Remote Config (reverse.sh)"** — bảng unit production thật (type/key/unit id/khi hiện/status) bóc từ `monetization.placements`. Nhãn scope thêm `reverse` ("Reverse — ads/API/RC").
+
 ## 3.47.0 — 2026-10-13
 
 - **Manage-apps: form sửa TOÀN BỘ metadata** (modal lớn, thay modal 3-field) — `package_name`/`team`/`is_hidden` + `extra`: `github`/`store_url`/`dashboard_url`/`discord_channel`/`source_url`/`source_desc`. Thêm `setAppFull` (gộp update cột apps + merge extra, RLS admin).

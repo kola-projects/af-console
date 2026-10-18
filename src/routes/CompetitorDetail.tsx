@@ -6,6 +6,7 @@ import {
   competitorSessions,
   competitorFindings,
   competitorEvidence,
+  competitorSessionsWithScreenshots,
   competitorImageUrl,
   competitorSetTags,
 } from '../lib/queries'
@@ -13,12 +14,14 @@ import { Badge, Mono, Empty, Loading, ErrorBox, localTime, Table, Row, Cell } fr
 import MarkdownView from './blueprint/MarkdownView'
 import type { CompetitorSession, CompetitorFinding, UxScorecard, CompetitorSummary, Improvement } from '../lib/types'
 
-type Tab = 'overview' | 'coverage' | 'monet' | 'features' | 'ux' | 'aso' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
+type Tab = 'overview' | 'coverage' | 'monet' | 'remoteConfig' | 'api' | 'features' | 'ux' | 'aso' | 'screens' | 'findings' | 'voc' | 'opportunities' | 'report'
 const TABS: [Tab, string][] = [
   ['overview', 'Tổng quan'],
   ['features', 'Tính năng'],
   ['ux', 'UI/UX'],
   ['monet', 'Kiếm tiền'],
+  ['remoteConfig', 'Remote Config'],
+  ['api', 'API'],
   ['aso', 'ASO'],
   ['screens', 'Màn hình'],
   ['findings', 'Phát hiện'],
@@ -111,9 +114,25 @@ export default function CompetitorDetail() {
   const sessQ = useQuery({ queryKey: ['competitor-sessions', pkg], queryFn: () => competitorSessions(pkg), enabled: !!pkg })
 
   const sessions = useMemo(() => sessQ.data ?? [], [sessQ.data])
+  // Phiên nào CÓ ảnh màn thiết bị — để mặc định chọn phiên mới nhất CÓ ảnh (fallback sessions[0]).
+  const sessIds = useMemo(() => sessions.map((s) => s.id), [sessions])
+  const shotSessQ = useQuery({
+    queryKey: ['competitor-shot-sessions', pkg, sessIds],
+    queryFn: () => competitorSessionsWithScreenshots(sessIds),
+    enabled: sessIds.length > 0,
+  })
+  // sessions đã sắp xếp evaluated_at desc ⇒ find() trả phiên MỚI NHẤT có ảnh.
+  const defaultSess = useMemo(() => {
+    const withShots = shotSessQ.data
+    if (withShots && withShots.size > 0) {
+      const found = sessions.find((s) => withShots.has(s.id))
+      if (found) return found
+    }
+    return sessions[0]
+  }, [sessions, shotSessQ.data])
   const sess: CompetitorSession | undefined = useMemo(
-    () => sessions.find((s) => s.id === sessId) ?? sessions[0],
-    [sessions, sessId],
+    () => sessions.find((s) => s.id === sessId) ?? defaultSess,
+    [sessions, sessId, defaultSess],
   )
 
   const findQ = useQuery({ queryKey: ['competitor-findings', sess?.id], queryFn: () => competitorFindings(sess!.id), enabled: !!sess })
@@ -149,9 +168,12 @@ export default function CompetitorDetail() {
   const evalId = (extra.eval_id as string | undefined) ?? (sess ? `S${sess.id}` : '')
   // ev_scope: 'full' | 'store_only' (chuẩn mới); fallback nhãn cũ 'A'/'B'
   const evScope = manifest?.ev_scope ?? (manifest?.tier === 'A' ? 'full' : manifest?.tier === 'B' ? 'store_only' : manifest?.tier)
-  const scopeLabel = (t?: string) => (t === 'full' ? 'Đầy đủ' : t === 'store_only' ? 'Chỉ store' : (t ?? '—'))
+  const scopeLabel = (t?: string) => (t === 'full' ? 'Đầy đủ' : t === 'store_only' ? 'Chỉ store' : t === 'reverse' ? 'Reverse (ads/API/RC)' : (t ?? '—'))
   const scopeTip = (t?: string) =>
-    t === 'full' ? 'Cài được + trải nghiệm thật + mổ APK' : t === 'store_only' ? 'Không cài được — chỉ dữ liệu store (Play)' : ''
+    t === 'full' ? 'Cài được + trải nghiệm thật + mổ APK'
+      : t === 'store_only' ? 'Không cài được — chỉ dữ liệu store (Play)'
+      : t === 'reverse' ? 'Phiên reverse.sh: mổ APK sâu (ads + API + Remote Config live) — KHÔNG phải đánh giá hành vi thiết bị đầy đủ'
+      : ''
   const adNetworks = mon.ad_networks as Record<string, { count?: number }> | string[] | undefined
   const adUnits = (mon.ad_units ?? {}) as Record<string, number>
   const adPlacements = findings.filter((f) => f.category === 'ad_placement')
@@ -170,6 +192,24 @@ export default function CompetitorDetail() {
     user_routing?: { config_platform?: string[]; ab_testing_sdk?: string[]; segmentation_signals?: string[]; routing_keys?: string[] }
   }
   const bidding = mon.bidding as { mediation_primary?: string } | undefined
+
+  // reverse.sh (ReverseApp): inventory ads chi tiết + Remote Config + API — nằm ở monetization.placements / extra.remote_config / extra.api
+  type RevPlacement = { t?: string; k?: string; u?: string; ss?: string; w?: string; s?: string; rc?: string; nw?: string; n?: string }
+  const revPlacements = (mon.placements ?? []) as RevPlacement[]
+  type RemoteConfigData = {
+    project?: string; template_version?: string; state?: string; param_count?: number; fetched_via?: string
+    params?: Array<{ key: string; type?: string; value: unknown }>
+    ad_units_map?: Record<string, string>
+    deltas?: Array<{ key: string; shipped: unknown; live: unknown; effect?: string }>
+  }
+  const remoteConfig = (extra.remote_config ?? null) as RemoteConfigData | null
+  type ApiData = {
+    has_rest_backend?: boolean; verdict?: string; firebase_project?: string; firebase_app_id?: string
+    services?: Array<{ name: string; host: string; confidence?: string; use?: string }>
+    architecture?: string[]; billing?: { library?: string; permission?: string; product?: string }
+    permissions_notable?: string[]; deliverables?: string[]
+  }
+  const apiData = (extra.api ?? null) as ApiData | null
 
   const listArr = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : [])
   // ad_networks/iap_sdks/trackers được lưu dạng OBJECT {name: {...}} — lấy tên; hỗ trợ cả array cũ
@@ -590,6 +630,35 @@ export default function CompetitorDetail() {
                     </div>
                   ))}
                 </div>
+
+                {revPlacements.length > 0 && (
+                  <section className="rounded-xl border border-primary-200 bg-primary-50/30 p-4 dark:border-primary-900 dark:bg-primary-950/20">
+                    <h2 className="mb-1 text-sm font-semibold">Ad inventory — từ Remote Config (reverse.sh) · {revPlacements.length} unit</h2>
+                    <p className="mb-2 text-[11px] text-neutral-500">Bản đồ unit production thật + màn/trigger/status, bóc từ Firebase Remote Config live (chính xác hơn static census).</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[11px]">
+                        <thead>
+                          <tr className="text-left text-neutral-500">
+                            <th className="py-1 pr-2">#</th><th className="pr-2">Type</th><th className="pr-2">Key</th>
+                            <th className="pr-2">Unit ID</th><th className="pr-2">Khi hiện</th><th className="pr-2">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {revPlacements.map((p, i) => (
+                            <tr key={i} className="border-t border-neutral-200/60 align-top dark:border-neutral-800">
+                              <td className="py-1 pr-2 tabular-nums text-neutral-400">{i + 1}</td>
+                              <td className="pr-2 whitespace-nowrap">{p.t}</td>
+                              <td className="pr-2"><Mono className="text-[10px]">{p.k}</Mono></td>
+                              <td className="pr-2"><Mono className="text-[10px] text-neutral-500">{(p.u ?? '').split('\n').map((l, j) => <span key={j} className="block">{l}</span>)}</Mono></td>
+                              <td className="pr-2 text-neutral-600 dark:text-neutral-400">{p.w}</td>
+                              <td className="pr-2"><Badge tone={p.s === 'Active' ? 'good' : 'neutral'}>{p.s}</Badge></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                )}
 
                 <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
                   <h2 className="mb-2 text-sm font-semibold">Vị trí / thời điểm quảng cáo QUAN SÁT ({adPlacements.length})</h2>
@@ -1199,6 +1268,150 @@ export default function CompetitorDetail() {
               })
             )}
           </div>
+        )}
+
+        {tab === 'remoteConfig' && (
+          !remoteConfig ? (
+            <Empty>Phiên này chưa có dữ liệu Remote Config (chỉ có khi reverse.sh fetch được Firebase RC).</Empty>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  [remoteConfig.project ?? '—', 'project'],
+                  [remoteConfig.template_version ?? '—', 'template'],
+                  [String(remoteConfig.param_count ?? (remoteConfig.params?.length ?? 0)), 'param'],
+                  [String(Object.keys(remoteConfig.ad_units_map ?? {}).length), 'ad unit'],
+                  [String((remoteConfig.deltas ?? []).length), 'delta shipped→live'],
+                ].map(([v, l], i) => (
+                  <div key={i} className="flex min-w-[92px] flex-col rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900">
+                    <b className="text-sm tabular-nums">{v}</b>
+                    <span className="text-[10px] uppercase tracking-wide text-neutral-500">{l}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-neutral-500">Fetch: {remoteConfig.fetched_via ?? '—'} · state {remoteConfig.state ?? '—'}. Giá trị LIVE từ Firebase Remote Config.</p>
+
+              {(remoteConfig.deltas ?? []).length > 0 && (
+                <section className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 dark:border-amber-900 dark:bg-amber-950/20">
+                  <h2 className="mb-2 text-sm font-semibold">Delta shipped → live ({(remoteConfig.deltas ?? []).length})</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11px]">
+                      <thead><tr className="text-left text-neutral-500"><th className="py-1 pr-2">Key</th><th className="pr-2">Shipped (APK)</th><th className="pr-2">Live (RC)</th><th className="pr-2">Hiệu ứng</th></tr></thead>
+                      <tbody>
+                        {(remoteConfig.deltas ?? []).map((d, i) => (
+                          <tr key={i} className="border-t border-neutral-200/60 align-top dark:border-neutral-800">
+                            <td className="py-1 pr-2"><Mono className="text-[10px]">{d.key}</Mono></td>
+                            <td className="pr-2 text-neutral-500">{String(d.shipped)}</td>
+                            <td className="pr-2 font-semibold">{String(d.live)}</td>
+                            <td className="pr-2 text-neutral-600 dark:text-neutral-400">{d.effect}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {Object.keys(remoteConfig.ad_units_map ?? {}).length > 0 && (
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">Ad unit map (admob_ads_key) · {Object.keys(remoteConfig.ad_units_map ?? {}).length}</h2>
+                  <div className="grid grid-cols-1 gap-x-6 gap-y-1 md:grid-cols-2">
+                    {Object.entries(remoteConfig.ad_units_map ?? {}).map(([k, v]) => (
+                      <div key={k} className="flex justify-between gap-2 text-[11px]">
+                        <span className="text-neutral-500">{k}</span>
+                        <Mono className="text-[10px] text-neutral-600 dark:text-neutral-400">{v || '(empty)'}</Mono>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                <h2 className="mb-2 text-sm font-semibold">Tham số ({(remoteConfig.params ?? []).length})</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[11px]">
+                    <thead><tr className="text-left text-neutral-500"><th className="py-1 pr-2">Key</th><th className="pr-2">Type</th><th className="pr-2">Value (live)</th></tr></thead>
+                    <tbody>
+                      {(remoteConfig.params ?? []).map((p, i) => (
+                        <tr key={i} className="border-t border-neutral-200/60 dark:border-neutral-800">
+                          <td className="py-1 pr-2"><Mono className="text-[10px]">{p.key}</Mono></td>
+                          <td className="pr-2 text-neutral-400">{p.type}</td>
+                          <td className="pr-2 font-mono text-[10px]">{String(p.value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          )
+        )}
+
+        {tab === 'api' && (
+          !apiData ? (
+            <Empty>Phiên này chưa có dữ liệu API/architecture (chỉ có khi reverse.sh chạy jobType api/both).</Empty>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <section className={`rounded-xl border p-4 ${apiData.has_rest_backend ? 'border-neutral-200 dark:border-neutral-800' : 'border-primary-200 bg-primary-50/30 dark:border-primary-900 dark:bg-primary-950/20'}`}>
+                <div className="mb-1 flex items-center gap-2">
+                  <Badge tone={apiData.has_rest_backend ? 'good' : 'warn'}>{apiData.has_rest_backend ? 'Có REST backend' : 'Không REST backend'}</Badge>
+                  {apiData.firebase_project && <span className="text-[11px] text-neutral-500">Firebase: <Mono className="text-[10px]">{apiData.firebase_project}</Mono></span>}
+                </div>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400">{apiData.verdict}</p>
+              </section>
+
+              {(apiData.services ?? []).length > 0 && (
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">Dịch vụ backend ({(apiData.services ?? []).length})</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11px]">
+                      <thead><tr className="text-left text-neutral-500"><th className="py-1 pr-2">Service</th><th className="pr-2">Host</th><th className="pr-2">Confidence</th><th className="pr-2">Dùng để</th></tr></thead>
+                      <tbody>
+                        {(apiData.services ?? []).map((s, i) => (
+                          <tr key={i} className="border-t border-neutral-200/60 align-top dark:border-neutral-800">
+                            <td className="py-1 pr-2 whitespace-nowrap font-semibold">{s.name}</td>
+                            <td className="pr-2"><Mono className="text-[10px] text-neutral-500">{s.host}</Mono></td>
+                            <td className="pr-2"><Badge tone={s.confidence === 'Observed' ? 'good' : 'neutral'}>{s.confidence}</Badge></td>
+                            <td className="pr-2 text-neutral-600 dark:text-neutral-400">{s.use}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {(apiData.architecture ?? []).length > 0 && (
+                <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h2 className="mb-2 text-sm font-semibold">Kiến trúc</h2>
+                  <ul className="flex list-disc flex-col gap-1 pl-5 text-xs text-neutral-700 dark:text-neutral-300">
+                    {(apiData.architecture ?? []).map((x, i) => <li key={i}>{x}</li>)}
+                  </ul>
+                </section>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {apiData.billing && (
+                  <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                    <h2 className="mb-2 text-sm font-semibold">Billing / IAP</h2>
+                    <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                      <div><b>{apiData.billing.library}</b></div>
+                      {apiData.billing.permission && <div><Mono className="text-[10px]">{apiData.billing.permission}</Mono></div>}
+                      {apiData.billing.product && <div>{apiData.billing.product}</div>}
+                    </div>
+                  </section>
+                )}
+                {(apiData.permissions_notable ?? []).length > 0 && (
+                  <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+                    <h2 className="mb-2 text-sm font-semibold">Permission đáng chú ý</h2>
+                    <div className="flex flex-wrap gap-1">
+                      {(apiData.permissions_notable ?? []).map((p) => <Badge key={p}>{p}</Badge>)}
+                    </div>
+                  </section>
+                )}
+              </div>
+            </div>
+          )
         )}
 
         {tab === 'report' && (sess?.report_md ? <MarkdownView text={sess.report_md} /> : <Empty>Phiên này chưa có report.md.</Empty>)}

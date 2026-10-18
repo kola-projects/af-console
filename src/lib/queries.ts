@@ -1274,6 +1274,21 @@ export const competitorEvidence = async (sessionId: number) =>
     await supabase.from('competitor_evidence').select('id,session_id,code,kind,storage_key,content_type,screen_name,caption,source_url').eq('session_id', sessionId).order('id'),
   )
 
+/** Tập session_id (trong danh sách truyền vào) CÓ ảnh màn thiết bị (kind='screenshot').
+ *  Dùng để trang chi tiết mặc định chọn phiên mới nhất CÓ ảnh thay vì phiên mới nhất rỗng ảnh
+ *  (các phiên monetization-census apk_file / store_only chỉ có manifest/icon/store_screenshot). */
+export const competitorSessionsWithScreenshots = async (sessionIds: number[]): Promise<Set<number>> => {
+  if (sessionIds.length === 0) return new Set()
+  const rows = unwrap<{ session_id: number }[]>(
+    await supabase
+      .from('competitor_evidence')
+      .select('session_id')
+      .eq('kind', 'screenshot')
+      .in('session_id', sessionIds),
+  )
+  return new Set(rows.map((r) => r.session_id))
+}
+
 /** [0044] Đặt lại toàn bộ tag của một đối thủ (RPC security definer — chỉ UA/Admin active).
  *  Server tự chuẩn hoá (trim/lowercase/khử trùng/≤20) và trả về mảng đã lưu. */
 export async function competitorSetTags(pkg: string, tags: string[]): Promise<string[]> {
