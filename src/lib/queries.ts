@@ -1289,6 +1289,39 @@ export const competitorSessionsWithScreenshots = async (sessionIds: number[]): P
   return new Set(rows.map((r) => r.session_id))
 }
 
+/** Mức đánh giá THẬT (suy từ evidence, KHÔNG tin install_status/research_type):
+ *  - full_device: có ảnh màn `kind='screenshot'` ở BẤT KỲ phiên nào (đã trải nghiệm thật)
+ *  - store_only:  không ảnh màn, nhưng có `store_screenshot` (chỉ dữ liệu store)
+ *  - census:      chỉ có manifest/icon (monetization-census, không chụp màn)
+ *  - empty:       không evidence nào (đánh giá rỗng / bước chụp fail) */
+export type EvalScope = 'full_device' | 'store_only' | 'census' | 'empty'
+
+/** Map competitor_id → EvalScope, tính theo evidence TỐT NHẤT qua MỌI phiên của competitor đó.
+ *  Khớp với trang chi tiết (default về phiên mới nhất CÓ ảnh): app từng có full-eval ở phiên cũ vẫn là full_device. */
+export async function competitorScopes(): Promise<Map<number, EvalScope>> {
+  const sess = unwrap<{ id: number; competitor_id: number }[]>(
+    await supabase.from('competitor_sessions').select('id,competitor_id'),
+  )
+  const ev = unwrap<{ session_id: number; kind: string }[]>(
+    await supabase.from('competitor_evidence').select('session_id,kind'),
+  )
+  const sidToComp = new Map(sess.map((s) => [s.id, s.competitor_id]))
+  const agg = new Map<number, { dev: number; store: number; other: number }>()
+  for (const s of sess) if (!agg.has(s.competitor_id)) agg.set(s.competitor_id, { dev: 0, store: 0, other: 0 })
+  for (const e of ev) {
+    const cid = sidToComp.get(e.session_id)
+    if (cid == null) continue
+    const a = agg.get(cid) ?? { dev: 0, store: 0, other: 0 }
+    if (e.kind === 'screenshot') a.dev++
+    else if (e.kind === 'store_screenshot') a.store++
+    else a.other++
+    agg.set(cid, a)
+  }
+  const out = new Map<number, EvalScope>()
+  for (const [cid, a] of agg) out.set(cid, a.dev > 0 ? 'full_device' : a.store > 0 ? 'store_only' : a.other > 0 ? 'census' : 'empty')
+  return out
+}
+
 /** [0044] Đặt lại toàn bộ tag của một đối thủ (RPC security definer — chỉ UA/Admin active).
  *  Server tự chuẩn hoá (trim/lowercase/khử trùng/≤20) và trả về mảng đã lưu. */
 export async function competitorSetTags(pkg: string, tags: string[]): Promise<string[]> {

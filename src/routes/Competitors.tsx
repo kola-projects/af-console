@@ -1,9 +1,17 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { competitors } from '../lib/queries'
+import { competitors, competitorScopes, type EvalScope } from '../lib/queries'
 import { Table, Row, Cell, Badge, Mono, Empty, Loading, ErrorBox, localTime } from '../components/ui'
 import type { Competitor } from '../lib/types'
+
+/** Nhãn + tone cho mức đánh giá THẬT (theo evidence). */
+const SCOPE_META: Record<EvalScope, { label: string; tone: 'good' | 'warn' | 'neutral' | 'bad' }> = {
+  full_device: { label: 'Đầy đủ', tone: 'good' },
+  store_only: { label: 'Chỉ store', tone: 'warn' },
+  census: { label: 'Census', tone: 'neutral' },
+  empty: { label: 'Rỗng', tone: 'bad' },
+}
 
 const inputCls =
   'w-72 rounded border border-neutral-300 bg-transparent px-2.5 py-1.5 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:focus:border-neutral-400'
@@ -76,13 +84,24 @@ function monFlags(mon: Competitor['latest_monetization']): { ads: boolean; iap: 
 export default function Competitors() {
   const navigate = useNavigate()
   const q = useQuery({ queryKey: ['competitors'], queryFn: competitors })
+  // Mức đánh giá THẬT theo evidence (không tin install_status) — map competitor_id → EvalScope.
+  const scopeQ = useQuery({ queryKey: ['competitor-scopes'], queryFn: competitorScopes })
   const [search, setSearch] = useState('')
   const [cat, setCat] = useState('')
   const [tag, setTag] = useState('')
   const [mon, setMon] = useState('')
-  const [showFull, setShowFull] = useState(true) // ev_scope=full (Đầy đủ) — mặc định BẬT
-  const [showStoreOnly, setShowStoreOnly] = useState(false) // ev_scope=store_only (Chỉ store) — mặc định TẮT
+  // Lọc theo mức THẬT — mặc định BẬT hết để thấy đúng trạng thái mọi app.
+  const [showScope, setShowScope] = useState<Record<EvalScope, boolean>>({
+    full_device: true,
+    store_only: true,
+    census: true,
+    empty: true,
+  })
   const [sort, setSort] = useState<'recent' | 'name' | 'rating'>('recent')
+
+  // Mức của một competitor: ưu tiên evidence thật; fallback install_status khi scope chưa tải xong.
+  const scopeOf = (c: Competitor): EvalScope =>
+    scopeQ.data?.get(c.id) ?? (c.latest_install_status === 'installed' ? 'full_device' : 'store_only')
 
   const cats = useMemo(
     () => [...new Set((q.data ?? []).map((c) => c.category_play).filter(Boolean))] as string[],
@@ -98,11 +117,7 @@ export default function Competitors() {
     const filtered = (q.data ?? []).filter((c) => {
       if (cat && c.category_play !== cat) return false
       if (tag && !(c.tags ?? []).includes(tag)) return false
-      {
-        const isFull = c.latest_install_status === 'installed'
-        if (isFull && !showFull) return false
-        if (!isFull && !showStoreOnly) return false
-      }
+      if (!showScope[scopeOf(c)]) return false
       if (mon) {
         const f = monFlags(c.latest_monetization)
         if (mon === 'ads' && !f.ads) return false
@@ -127,7 +142,7 @@ export default function Competitors() {
       }
       return (b.last_evaluated_at ?? b.created_at).localeCompare(a.last_evaluated_at ?? a.created_at)
     })
-  }, [q.data, search, cat, tag, mon, showFull, showStoreOnly, sort])
+  }, [q.data, scopeQ.data, search, cat, tag, mon, showScope, sort])
 
   if (q.isLoading) return <Loading />
   if (q.error) return <ErrorBox error={q.error} />
@@ -175,17 +190,19 @@ export default function Competitors() {
         </select>
         <div
           className="flex items-center gap-3 rounded border border-neutral-300 px-2.5 py-1.5 text-sm dark:border-neutral-700"
-          title="Lọc theo mức đánh giá (ev_scope). Mặc định: chỉ hiện app Đầy đủ."
+          title="Lọc theo mức đánh giá THẬT (theo evidence): Đầy đủ = có ảnh màn thật; Chỉ store = chỉ ảnh store; Census = chỉ manifest; Rỗng = không evidence."
         >
           <span className="text-neutral-500">Mức:</span>
-          <label className="flex cursor-pointer items-center gap-1.5">
-            <input type="checkbox" checked={showFull} onChange={(e) => setShowFull(e.target.checked)} />
-            Đầy đủ
-          </label>
-          <label className="flex cursor-pointer items-center gap-1.5">
-            <input type="checkbox" checked={showStoreOnly} onChange={(e) => setShowStoreOnly(e.target.checked)} />
-            Chỉ store
-          </label>
+          {(['full_device', 'store_only', 'census', 'empty'] as EvalScope[]).map((s) => (
+            <label key={s} className="flex cursor-pointer items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={showScope[s]}
+                onChange={(e) => setShowScope((prev) => ({ ...prev, [s]: e.target.checked }))}
+              />
+              {SCOPE_META[s].label}
+            </label>
+          ))}
         </div>
         <select className={selectCls} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
           <option value="recent">Đánh giá gần nhất</option>
@@ -220,11 +237,10 @@ export default function Competitors() {
                     </span>
                   </Cell>
                   <Cell>
-                    {c.latest_install_status === 'installed' ? (
-                      <Badge>Đầy đủ</Badge>
-                    ) : (
-                      <Badge tone="warn">Chỉ store</Badge>
-                    )}
+                    {(() => {
+                      const m = SCOPE_META[scopeOf(c)]
+                      return <Badge tone={m.tone}>{m.label}</Badge>
+                    })()}
                   </Cell>
                   <Cell>{c.category_play ? <Badge>{c.category_play}</Badge> : <span className="text-neutral-400">—</span>}</Cell>
                   <Cell>

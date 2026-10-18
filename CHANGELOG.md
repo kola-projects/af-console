@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.47.2 — 2026-10-18
+
+- **Evaluations: nhãn "Mức" theo EVIDENCE THẬT, không theo `install_status`** — trước đây badge "Đầy đủ"/"Chỉ store" ở trang list chỉ dựa `latest_install_status === 'installed'`, nên **mọi app cài được đều hiện "Đầy đủ"** kể cả app chỉ có manifest-census hoặc rỗng hoàn toàn. Nay badge 4 mức theo evidence tốt nhất qua MỌI phiên: **Đầy đủ** (có ảnh màn `screenshot`) · **Chỉ store** (chỉ `store_screenshot`) · **Census** (chỉ manifest/icon) · **Rỗng** (không evidence).
+- Bộ lọc "Mức" đổi sang 4 checkbox tương ứng, **mặc định BẬT hết** (trước đây mặc định chỉ hiện "Đầy đủ") để thấy đúng trạng thái mọi app.
+- queries: thêm `competitorScopes()` + type `EvalScope` (gom evidence theo competitor, phân loại full_device/store_only/census/empty). Khớp với default-phiên-có-ảnh ở trang chi tiết (3.47.1).
+
 ## 3.47.1 — 2026-10-18
 
 - **Fix: trang Evaluations không hiện ảnh màn** — trang chi tiết mặc định chọn phiên đánh giá MỚI NHẤT (`sessions[0]`, sắp `evaluated_at` desc), nhưng phiên mới nhất của mọi đối thủ là loại monetization-census (`apk_file`) hoặc store_only → 0 evidence `kind='screenshot'` ⇒ mục "Ảnh THẬT các màn" luôn trống dù ảnh vẫn còn trong bucket, chỉ gắn ở phiên CŨ hơn. Nay mặc định chọn phiên MỚI NHẤT CÓ ảnh (fallback `sessions[0]`); session picker vẫn chuyển tay được.
