@@ -123,6 +123,27 @@ export interface AppIntegration {
   landing?: 'built' | 'live' | null
   branch_count?: number
   scanned_dir?: string
+  cicd?: { integrated?: boolean; branch?: string | null; build_ready?: boolean }
+  /** [3.48.0 · AF v6.15.0] metadata quét từ source cho trang "Sửa metadata app" (integration-scan). */
+  make?: { src?: string | null; mode?: string | null; v?: number | null; store_code?: string | null; team?: string | null; app_name?: string | null; run?: number | null }
+  code_base?: { kind?: 'ajcb' | 'axcb' | null; used?: string | null; source?: string | null }
+  attribution?: { adjust_token?: string | null; adjust_event_token?: string | null; fb_app_id?: string | null; fb_client_token?: string | null } | null
+  admob_app_id?: string | null
+  google_services?: {
+    prod?: { file?: string; project_id?: string; project_number?: string; mobilesdk_app_id?: string; storage_bucket?: string } | null
+    dev?: { file?: string; project_id?: string; mobilesdk_app_id?: string } | null
+  }
+  firebase_prod?: { project_id?: string | null; mobilesdk_app_id?: string | null; updated_at?: string | null }
+  signing?: { keystore_file?: string | null; alias?: string | null; storepass?: string | null; keypass?: string | null; pw_scheme?: string | null; sha256_fingerprint?: string | null; updated_at?: string | null }
+  release?: { version_name?: string; version_code?: number; track?: string; status?: string; build_source?: string; created_at?: string }
+  ads_script?: {
+    run_id?: number; status?: string | null; scope?: string
+    source?: { kind?: string | null; sheet_id?: string | null; gid?: string | null; tab_name?: string | null; url?: string | null; fetched_at?: string | null }
+    plan_file?: string
+    ads_ids?: Array<{ ad_name: string; ad_type?: string | null; ad_id?: string | null; description?: string }>
+  } | null
+  discord?: { user_id?: string | null } | null
+  name_on_phone?: string | null
 }
 
 /** Một dòng bảng apps + toàn bộ run của nó. "Last update" KHÔNG có cột riêng —
@@ -158,6 +179,9 @@ export interface AppRow {
   integration?: AppIntegration | null
   /** [0054] App đã go-live (lên store) chưa — cột thật apps.go_live. */
   go_live?: boolean | null
+  /** [3.48.0] FK bảng stores + legal_urls (legal.sh ghi) — trang "Sửa metadata app" đọc/sửa. */
+  store_id?: number | null
+  legal_urls?: Record<string, unknown> | null
   /** `store_url` = link golive Play (admin nhập tay hoặc suy từ packageName);
    *  `icon_url` = URL icon trên CDN Play (play-lh.googleusercontent.com) do tool resolve
    *  từ store_url — AppIcon ưu tiên hiện ảnh này. Cả hai nằm ở `extra` (scan_integration
@@ -181,6 +205,9 @@ export interface AppRow {
     source_url?: string | null
     /** Mô tả nguồn gốc (app gốc là gì, clone từ đâu, ghi chú). */
     source_desc?: string | null
+    /** [3.48.0] khoá lồng nhau của trang "Sửa metadata app" (name_on_phone, make, ads, attribution,
+     *  discord, firebase, signing, checklist…) — xem lib/appMetaFields.ts. */
+    [key: string]: unknown
   } | null
   runs: AppRunSummary[]
 }

@@ -12,7 +12,8 @@ import {
   Pencil,
   SlidersHorizontal,
 } from 'lucide-react'
-import { appsWithRuns, setAppFull, setAppHidden, setAppTeam } from '../lib/queries'
+import { appsWithRuns, saveAppMeta, setAppHidden, setAppTeam, storeOptionsFull } from '../lib/queries'
+import { EditAppMeta, type MetaPatch } from '../components/EditAppMeta'
 import { appCodeOf, TEAMS, type AppRow } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 import { AppIcon, AppNameLabel, PackageName, appLastUpdate, blueprintRuns } from '../components/appMeta'
@@ -185,18 +186,9 @@ export default function ManageApps() {
     mutationFn: ({ id, team }: { id: number; team: string }) => setAppTeam(id, team),
     onSuccess: invalidate,
   })
+  const stores = useQuery({ queryKey: ['v_stores', 'full'], queryFn: storeOptionsFull })
   const meta = useMutation({
-    mutationFn: ({
-      id,
-      cols,
-      extra,
-      extraPatch,
-    }: {
-      id: number
-      cols: { package_name?: string | null; team?: string | null; is_hidden?: boolean }
-      extra: AppRow['extra']
-      extraPatch: Record<string, string | null>
-    }) => setAppFull(id, cols, extra, extraPatch),
+    mutationFn: ({ id, patch }: { id: number; patch: MetaPatch }) => saveAppMeta(id, patch),
     onSuccess: () => {
       invalidate()
       setEditApp(null)
@@ -692,13 +684,12 @@ export default function ManageApps() {
       </div>
 
       {editApp && (
-        <EditMetaModal
+        <EditAppMeta
           app={editApp}
+          stores={stores.data ?? []}
           pending={meta.isPending}
           onClose={() => setEditApp(null)}
-          onSave={(cols, extraPatch) =>
-            meta.mutate({ id: editApp.id, cols, extra: editApp.extra, extraPatch })
-          }
+          onSave={(patch) => meta.mutate({ id: editApp.id, patch })}
         />
       )}
     </div>
@@ -760,196 +751,5 @@ function ColumnPanel({
         })}
       </div>
     </>
-  )
-}
-
-const modalInput =
-  'mt-1 w-full rounded border border-neutral-300 bg-transparent px-2.5 py-1.5 text-sm outline-none focus:border-neutral-500 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900'
-
-/** Trang sửa TOÀN BỘ metadata app (modal lớn): cột thật ở bảng apps (package_name/team/
- *  is_hidden) + các field trong apps.extra (github/store_url/dashboard_url/discord_channel/
- *  source_url/source_desc). app_code/name/platform hiển thị read-only để nhận diện. */
-function EditMetaModal({
-  app,
-  pending,
-  onClose,
-  onSave,
-}: {
-  app: AppRow
-  pending: boolean
-  onClose: () => void
-  onSave: (
-    cols: { package_name?: string | null; team?: string | null; is_hidden?: boolean },
-    extraPatch: Record<string, string | null>,
-  ) => void
-}) {
-  // cột thật
-  const [pkg, setPkg] = useState(app.package_name ?? '')
-  const [team, setTeam] = useState(app.team ?? '')
-  const [hidden, setHidden] = useState(!!app.is_hidden)
-  // extra
-  const [github, setGithub] = useState(app.extra?.github ?? '')
-  const [storeUrl, setStoreUrl] = useState(app.extra?.store_url ?? '')
-  const [dashUrl, setDashUrl] = useState(app.extra?.dashboard_url ?? '')
-  const [discord, setDiscord] = useState(app.extra?.discord_channel ?? '')
-  const [sourceUrl, setSourceUrl] = useState(app.extra?.source_url ?? '')
-  const [sourceDesc, setSourceDesc] = useState(app.extra?.source_desc ?? '')
-
-  const platform = (app.platform ?? 'android') === 'ios' ? ' iOS' : '🤖 Android'
-  const save = () =>
-    onSave(
-      { package_name: pkg, team, is_hidden: hidden },
-      {
-        github,
-        store_url: storeUrl,
-        dashboard_url: dashUrl,
-        discord_channel: discord,
-        source_url: sourceUrl,
-        source_desc: sourceDesc,
-      },
-    )
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="text-sm font-medium">Sửa metadata app</div>
-        {/* nhận diện (read-only) */}
-        <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs dark:border-neutral-800 dark:bg-neutral-900">
-          {appCodeOf(app) && <Mono className="font-semibold">{appCodeOf(app)}</Mono>}
-          <span className="font-medium text-neutral-700 dark:text-neutral-300">{app.name}</span>
-          <Badge tone={(app.platform ?? 'android') === 'ios' ? undefined : 'good'}>{platform}</Badge>
-        </div>
-
-        {/* ── Cột bảng apps ── */}
-        <div className="mt-4 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
-          Cột apps
-        </div>
-        <label className="mt-2 block text-xs text-neutral-500">
-          Package name
-          <input
-            className={modalInput}
-            value={pkg}
-            disabled={pending}
-            onChange={(e) => setPkg(e.target.value)}
-            placeholder="com.example.app"
-          />
-        </label>
-        <div className="mt-3 flex items-end gap-4">
-          <label className="block flex-1 text-xs text-neutral-500">
-            Team
-            <select
-              className={modalInput}
-              value={team}
-              disabled={pending}
-              onChange={(e) => setTeam(e.target.value)}
-            >
-              <option value="">—</option>
-              {TEAMS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm">
-            <input
-              type="checkbox"
-              checked={hidden}
-              disabled={pending}
-              onChange={(e) => setHidden(e.target.checked)}
-            />
-            Ẩn khỏi danh mục
-          </label>
-        </div>
-
-        {/* ── extra ── */}
-        <div className="mt-4 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
-          Liên kết &amp; nguồn
-        </div>
-        <label className="mt-2 block text-xs text-neutral-500">
-          GitHub repo
-          <input
-            className={modalInput}
-            value={github}
-            disabled={pending}
-            onChange={(e) => setGithub(e.target.value)}
-            placeholder="https://github.com/org/repo"
-          />
-        </label>
-        <label className="mt-3 block text-xs text-neutral-500">
-          Play Store link
-          <input
-            className={modalInput}
-            value={storeUrl}
-            disabled={pending}
-            onChange={(e) => setStoreUrl(e.target.value)}
-            placeholder="https://play.google.com/store/apps/details?id=…"
-          />
-        </label>
-        <label className="mt-3 block text-xs text-neutral-500">
-          Dashboard link
-          <input
-            className={modalInput}
-            value={dashUrl}
-            disabled={pending}
-            onChange={(e) => setDashUrl(e.target.value)}
-            placeholder="https://…"
-          />
-        </label>
-        <label className="mt-3 block text-xs text-neutral-500">
-          Discord channel
-          <input
-            className={modalInput}
-            value={discord}
-            disabled={pending}
-            onChange={(e) => setDiscord(e.target.value)}
-            placeholder="#tên-kênh"
-          />
-        </label>
-        <label className="mt-3 block text-xs text-neutral-500">
-          Nguồn src (git / app store)
-          <input
-            className={modalInput}
-            value={sourceUrl}
-            disabled={pending}
-            onChange={(e) => setSourceUrl(e.target.value)}
-            placeholder="https://github.com/… hoặc link store app gốc"
-          />
-        </label>
-        <label className="mt-3 block text-xs text-neutral-500">
-          Mô tả nguồn
-          <textarea
-            className={`${modalInput} min-h-[72px] resize-y`}
-            value={sourceDesc}
-            disabled={pending}
-            onChange={(e) => setSourceDesc(e.target.value)}
-            placeholder="App gốc là gì, clone từ đâu, ghi chú…"
-          />
-        </label>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            className="rounded border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
-            onClick={onClose}
-            disabled={pending}
-          >
-            Huỷ
-          </button>
-          <button
-            className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
-            onClick={save}
-            disabled={pending}
-          >
-            {pending ? 'Đang lưu…' : 'Lưu'}
-          </button>
-        </div>
-      </div>
-    </div>
   )
 }

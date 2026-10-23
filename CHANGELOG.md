@@ -3,6 +3,20 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.48.0 — 2026-10-23
+
+- **Trang "Sửa metadata app" dựng lại theo spec chủ sản phẩm** (sheet `APP_METADATA_FIELDS_TABLE`, AF v6.19.0 `docs/app_metadata/`):
+  `src/lib/appMetaFields.ts` khai 88 trường / 8 nhóm (Danh tính · Build make.sh · Legal & landing · Tích hợp & liên kết · Ads · Firebase ·
+  Ký release · Store) với `mode` edit/readonly và nơi lưu (`col` / `extra` / `integration` / `legal_urls` / `store`). Component mới
+  `src/components/EditAppMeta.tsx` render theo spec: 45 ô sửa, 43 ô chỉ đọc (kịch bản ads hiện bảng placement, versions_seen/variant_spec
+  hiện JSON), ô trống đọc dự phòng từ `integration.*` do integration-scan ghi và ghi rõ nguồn; chỉ lưu **trường đã đổi**.
+- `queries.saveAppMeta`: cột thật + deep-merge vào `extra` / `integration` / `legal_urls` (không đụng khoá khác) + gán store theo
+  `store_code` (tra `v_stores`). `storeOptionsFull` (id/support_email/extra). `appsWithRuns` select thêm `legal_urls,store_id`.
+- types: `AppIntegration` thêm make/code_base/attribution/admob_app_id/google_services/signing/ads_script/discord/name_on_phone;
+  `AppRow` thêm `store_id`, `legal_urls`, `extra` nhận khoá lồng nhau.
+- Bỏ modal cũ `EditMetaModal` (9 ô: package/team/ẩn + github/store_url/dashboard/discord_channel/source_url/source_desc). Các khoá
+  `extra` cũ vẫn giữ trong DB; `github`/`dashboard_url` tiếp tục dùng, `source_url`/`discord_channel` thay bằng `make.src`/`discord.*`.
+
 ## 3.47.2 — 2026-10-18
 
 - **Evaluations: nhãn "Mức" theo EVIDENCE THẬT, không theo `install_status`** — trước đây badge "Đầy đủ"/"Chỉ store" ở trang list chỉ dựa `latest_install_status === 'installed'`, nên **mọi app cài được đều hiện "Đầy đủ"** kể cả app chỉ có manifest-census hoặc rỗng hoàn toàn. Nay badge 4 mức theo evidence tốt nhất qua MỌI phiên: **Đầy đủ** (có ảnh màn `screenshot`) · **Chỉ store** (chỉ `store_screenshot`) · **Census** (chỉ manifest/icon) · **Rỗng** (không evidence).
