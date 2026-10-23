@@ -10,9 +10,10 @@ import {
   GitBranch,
   LayoutDashboard,
   Pencil,
+  RefreshCw,
   SlidersHorizontal,
 } from 'lucide-react'
-import { appsWithRuns, saveAppMeta, setAppHidden, setAppTeam, storeOptionsFull } from '../lib/queries'
+import { appsWithRuns, saveAppMeta, setAppHidden, setAppTeam, storeOptionsFull, syncApps } from '../lib/queries'
 import { EditAppMeta, type MetaPatch } from '../components/EditAppMeta'
 import { appCodeOf, TEAMS, type AppRow } from '../lib/types'
 import { Badge, Cell, Empty, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
@@ -187,6 +188,19 @@ export default function ManageApps() {
     onSuccess: invalidate,
   })
   const stores = useQuery({ queryKey: ['v_stores', 'full'], queryFn: storeOptionsFull })
+  // [3.49.0] đồng bộ Play/dashboard/icon qua Edge Function app-sync (1 app hoặc mọi app đang hiện)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const sync = useMutation({
+    mutationFn: (ids: number[]) => syncApps(ids),
+    onMutate: (ids) => setSyncMsg(`Đang đồng bộ ${ids.length} app…`),
+    onSuccess: (r) => {
+      const skipped = r.results.filter((x) => x.skipped).length
+      const errs = r.results.filter((x) => x.error).length
+      setSyncMsg(`Đồng bộ xong ${r.count} app · live ${r.live} · bỏ qua ${skipped} (không có package)${errs ? ` · lỗi ${errs}` : ''}`)
+      invalidate()
+    },
+    onError: (e) => setSyncMsg(`Đồng bộ lỗi: ${e instanceof Error ? e.message : String(e)}`),
+  })
   const meta = useMutation({
     mutationFn: ({ id, patch }: { id: number; patch: MetaPatch }) => saveAppMeta(id, patch),
     onSuccess: () => {
@@ -302,6 +316,17 @@ export default function ManageApps() {
             className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
           >
             <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            title="Đồng bộ Play / icon / dashboard cho app này"
+            disabled={sync.isPending}
+            onClick={(e) => {
+              e.stopPropagation()
+              sync.mutate([a.id])
+            }}
+            className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-40 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${sync.isPending ? 'animate-spin' : ''}`} />
           </button>
         </span>
       ),
@@ -634,6 +659,15 @@ export default function ManageApps() {
             Xoá lọc
           </button>
         )}
+        <button
+          onClick={() => sync.mutate(rows.map((a) => a.id))}
+          disabled={sync.isPending || !rows.length}
+          title="Đồng bộ Play (go-live, icon, link store) + dashboard link cho MỌI app đang hiện trong bảng"
+          className="flex items-center gap-1 rounded border border-neutral-300 px-2 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+        >
+          <RefreshCw className={`h-4 w-4 ${sync.isPending ? 'animate-spin' : ''}`} />
+          Đồng bộ {rows.length}
+        </button>
         <div className="relative">
           <button
             onClick={() => setColPanelOpen((v) => !v)}
@@ -663,6 +697,7 @@ export default function ManageApps() {
           <ErrorBox error={hide.error || team.error || meta.error} />
         </div>
       )}
+      {syncMsg && <div className="mt-2 text-xs text-neutral-500">{syncMsg}</div>}
 
       <div className="mt-4">
         {!rows.length ? (

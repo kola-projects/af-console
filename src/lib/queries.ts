@@ -183,6 +183,34 @@ export async function saveAppMeta(id: number, patch: MetaPatch) {
   if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
 }
 
+/** [3.49.0] Đồng bộ metadata app từ nguồn ngoài qua Edge Function `app-sync` (admin): Play existence-check →
+ *  go_live/go_live_at, icon og:image, store_url, play_title, dashboard_url theo công thức, integration.go_live.
+ *  Tối đa 60 id mỗi lần; caller chia lô. */
+export interface SyncResult {
+  id: number
+  app_code: string | null
+  name: string
+  package: string | null
+  http?: number
+  live?: boolean | 'unknown'
+  icon?: boolean
+  dashboard?: string
+  skipped?: string
+  error?: string
+}
+export async function syncApps(ids: number[]): Promise<{ count: number; live: number; results: SyncResult[] }> {
+  const out = { count: 0, live: 0, results: [] as SyncResult[] }
+  for (let i = 0; i < ids.length; i += 40) {
+    const { data, error } = await supabase.functions.invoke('app-sync', { body: { ids: ids.slice(i, i + 40) } })
+    if (error) throw new Error(error.message)
+    if (data?.error) throw new Error(String(data.error))
+    out.count += data.count ?? 0
+    out.live += data.live ?? 0
+    out.results.push(...((data.results ?? []) as SyncResult[]))
+  }
+  return out
+}
+
 /** [3.48.0] Store đầy đủ cho trang metadata app (select + hiển thị read-only). */
 export const storeOptionsFull = async (): Promise<StoreOpt[]> => {
   const res = await supabase

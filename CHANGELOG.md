@@ -3,6 +3,17 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.49.0 — 2026-10-23
+
+- **Nút "Đồng bộ" trên trang quản lý app** (`/manage-apps`: nút ⟳ từng hàng ở cột Metadata + nút "Đồng bộ N" ở header cho
+  mọi app đang hiện; `/manage-apps/:id`: thanh "Đồng bộ Play / dashboard" trên đầu trang). Gọi **Edge Function `app-sync`**
+  (`supabase/functions/app-sync/index.ts`, admin-only qua RPC `is_admin`, ghi bằng service role): mỗi app lấy package (cột
+  `package_name` hoặc suy từ `extra.store_url`) → existence-check Play Store (200 = live, 404 = chưa) → `go_live`/`go_live_at` +
+  `integration.go_live` → icon `og:image` + tên listing + link store vào `extra.icon_url/play_title/store_url` → `extra.dashboard_url`
+  theo công thức `https://dashboard.stemlabs.site/apps/<package>` (chỉ khi chưa có). Tối đa 60 app mỗi lời gọi, client chia lô 40,
+  3 app song song để tránh Play rate-limit. Kết quả hiện ngay dưới thanh công cụ (số app, số live, số bỏ qua vì không có package).
+- `queries.syncApps(ids)` + type `SyncResult`.
+
 ## 3.48.1 — 2026-10-23
 
 - **Trang "Sửa metadata app" theo cột C của sheet đánh dấu (x / r / e)**: còn **52 trường** — 23 ô sửa (team, ẩn, family_code,
