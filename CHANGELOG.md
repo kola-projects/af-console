@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.49.1 — 2026-10-23
+
+- **Icon app: SOURCE CODE là nguồn sự thật.** `AppIcon` đổi thứ tự ưu tiên: (1) icon trích từ launcher icon trong repo
+  (`extra.icon_storage_key`, AF `tools/scan_icons.py` quét kho generated/ hoặc clone GitHub, bucket private, admin đọc qua
+  signed URL) → (2) icon Play (`extra.icon_url`) → (3) blueprint → (4) chữ cái đầu. Package cũng do máy quét đọc từ
+  `applicationId` trong gradle (mọi module, fallback manifest) — AF v6.19.2.
+
 ## 3.49.0 — 2026-10-23
 
 - **Nút "Đồng bộ" trên trang quản lý app** (`/manage-apps`: nút ⟳ từng hàng ở cột Metadata + nút "Đồng bộ N" ở header cho
