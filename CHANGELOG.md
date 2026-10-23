@@ -3,6 +3,16 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.48.1 — 2026-10-23
+
+- **Trang "Sửa metadata app" theo cột C của sheet đánh dấu (x / r / e)**: còn **52 trường** — 23 ô sửa (team, ẩn, family_code,
+  5 URL legal, AdMob/Adjust/Facebook/Discord, email chủ Firebase, file google-services PROD, 4 trường keystore, go_live, dashboard,
+  store), 29 ô chỉ đọc (tên trên máy/store, package, platform, created_at, src/mode/v, af_version, github, aso, legal, cicd, 7 trường
+  ads, Firebase DEV, sheet + bảng placement kịch bản ads, code_base, email/org/platform của store). Bỏ 27 trường khỏi trang (id,
+  app_code, name, app_codes, source_kind, store_id, family_role/seq/variant_spec, scanned_dir/branch_count/checked_at, legal_repo/
+  legal_source/landing, ads.adsMode/branch/host*/lock_missing/versions_seen, google_services.prod.project_id/mobilesdk/updated_at) —
+  DB vẫn giữ, chỉ không hiện trên trang. `app.go_live` thành ô sửa (checkbox).
+
 ## 3.48.0 — 2026-10-23
 
 - **Trang "Sửa metadata app" dựng lại theo spec chủ sản phẩm** (sheet `APP_METADATA_FIELDS_TABLE`, AF v6.19.0 `docs/app_metadata/`):

@@ -1,5 +1,5 @@
-/** [3.48.0] Spec trường của trang "Sửa metadata app" — sinh từ bảng đánh dấu
- *  APP_METADATA_FIELDS_TABLE (AF, 2026-10-23): mode `edit` = cho sửa · `readonly` = chỉ hiển thị/lọc.
+/** [3.48.1] Spec trường của trang "Sửa metadata app" — sinh từ bảng đánh dấu
+ *  APP_METADATA_FIELDS_TABLE cột C (AF, 2026-10-23: x = bỏ · r = readonly · e = edit): mode `edit` = cho sửa · `readonly` = chỉ hiển thị/lọc.
  *  Nguồn ghi/đọc của mỗi trường (`kind` + `key`):
  *   - col         : cột thật bảng apps
  *   - extra       : apps.extra.<key>   (admin nhập / launcher ghi — scan KHÔNG đè, chỉ backfill khi trống)
@@ -57,56 +57,44 @@ export const META_GROUPS: MetaGroup[] = [
   {
     title: 'Danh tính (cột apps)',
     fields: [
-      ro('app.id', 'ID', 'col', 'id'),
-      ro('app.app_code', 'Mã app', 'col', 'app_code', { hint: 'Khoá ổn định — không đổi qua trang này' }),
-      ro('app.app_codes', 'Mọi mã từng gán', 'col', 'app_codes', { input: 'list' }),
-      ed('app.name', 'Tên app', 'col', 'name'),
-      ed('app.name_on_phone', 'Tên trên máy', 'extra', 'name_on_phone', {
+      ro('app.name_on_phone', 'Tên trên máy', 'extra', 'name_on_phone', {
         fallback: ['integration.name_on_phone', 'extra.checklist.name_on_phone.value'],
         hint: 'strings.xml app_name',
       }),
-      ed('app.name_on_store', 'Tên trên store', 'extra', 'name_on_store', {
+      ro('app.name_on_store', 'Tên trên store', 'extra', 'name_on_store', {
         fallback: ['extra.checklist.name_on_store.value'],
       }),
-      ed('app.package_name', 'Package name', 'col', 'package_name', { fallback: ['integration.applicationId'] }),
-      ed('app.platform', 'Nền tảng', 'col', 'platform', { input: 'select', options: ['android', 'ios'] }),
+      ro('app.package_name', 'Package name', 'col', 'package_name', { fallback: ['integration.applicationId'] }),
+      ro('app.platform', 'Nền tảng', 'col', 'platform', { input: 'select', options: ['android', 'ios'] }),
       ed('app.team', 'Team', 'col', 'team', { input: 'select', options: TEAMS, fallback: ['integration.make.team'] }),
-      ro('app.source_kind', 'Nguồn sinh app', 'col', 'source_kind'),
       ro('app.created_at', 'Ngày tạo', 'col', 'created_at'),
       ed('app.is_hidden', 'Ẩn khỏi danh mục', 'col', 'is_hidden', { input: 'bool' }),
       ed('app.store.store_code', 'Store', 'store', 'store_code', {
         input: 'select',
         fallback: ['integration.make.store_code', 'legal.store_code'],
       }),
-      ro('app.store_id', 'Store ID', 'col', 'store_id'),
-      ed('app.family_code', 'Mã master (multi-version)', 'col', 'family_code', { placeholder: 'trống = app solo' }),
-      ro('app.family_role', 'Vai trò family', 'col', 'family_role'),
-      ro('app.family_seq', 'Thứ tự app con', 'col', 'family_seq'),
-      ro('app.variant_spec', 'Đặc tả biến thể', 'col', 'variant_spec', { input: 'json' }),
+      ro('app.family_code', 'Mã master (multi-version)', 'col', 'family_code', { placeholder: 'trống = app solo' }),
     ],
   },
   {
     title: 'Build (make.sh)',
     note: 'integration.* do integration-scan ghi lại mỗi lần quét; sửa tay chỉ bền với app không có repo trong kho.',
     fields: [
-      ed('app.src', 'App mẫu (--src)', 'extra', 'make.src', {
+      ro('app.src', 'App mẫu (--src)', 'extra', 'make.src', {
         fallback: ['integration.make.src'],
         placeholder: 'https://play.google.com/… | git | .apk',
       }),
-      ed('app.mode', 'Mode (--mode)', 'extra', 'make.mode', {
+      ro('app.mode', 'Mode (--mode)', 'extra', 'make.mode', {
         fallback: ['integration.make.mode'],
         placeholder: 'changeLayoutAuto, full, …',
       }),
-      ed('app.v', 'Số biến thể giao diện (-v)', 'extra', 'make.v', { input: 'number', fallback: ['integration.make.v'] }),
-      ed('app.integration.af_version', 'AF version lúc build', 'integration', 'af_version'),
-      ed('app.libraries.code_base.kind', 'Code base', 'integration', 'code_base.kind', {
+      ro('app.v', 'Số biến thể giao diện (-v)', 'extra', 'make.v', { input: 'number', fallback: ['integration.make.v'] }),
+      ro('app.integration.af_version', 'AF version lúc build', 'integration', 'af_version'),
+      ro('app.libraries.code_base.kind', 'Code base', 'integration', 'code_base.kind', {
         input: 'select',
         options: ['ajcb', 'axcb'],
       }),
-      ed('app.libraries.code_base.used', 'Tag code base đang dùng', 'integration', 'code_base.used', { placeholder: 'v2.4' }),
-      ro('app.integration.scanned_dir', 'Thư mục đã quét', 'integration', 'scanned_dir'),
-      ro('app.integration.branch_count', 'Số nhánh git', 'integration', 'branch_count'),
-      ro('app.integration.checked_at', 'Ngày quét', 'integration', 'checked_at'),
+      ro('app.libraries.code_base.used', 'Tag code base đang dùng', 'integration', 'code_base.used', { placeholder: 'v2.4' }),
     ],
   },
   {
@@ -118,43 +106,31 @@ export const META_GROUPS: MetaGroup[] = [
       ed('app.legal_urls.pages.terms', 'URL Terms', 'legal', 'pages.terms', { fallback: ['legal.terms_url'] }),
       ed('app.legal_urls.pages.landing', 'URL landing', 'legal', 'pages.landing'),
       ro('app.integration.legal', 'Trạng thái legal', 'integration', 'legal'),
-      ro('app.integration.legal_repo', 'Repo legal', 'integration', 'legal_repo'),
-      ro('app.integration.legal_source', 'Nguồn legal', 'integration', 'legal_source'),
-      ro('app.integration.landing', 'Trạng thái landing', 'integration', 'landing'),
     ],
   },
   {
     title: 'Tích hợp & liên kết',
     fields: [
-      ed('app.integration.github', 'GitHub repo', 'extra', 'github', { fallback: ['integration.github'] }),
-      ed('app.integration.aso', 'Đã có gói ASO', 'integration', 'aso', { input: 'bool' }),
-      ed('app.integration.cicd.integrated', 'Đã có CI/CD', 'integration', 'cicd.integrated', { input: 'bool' }),
+      ro('app.integration.github', 'GitHub repo', 'extra', 'github', { fallback: ['integration.github'] }),
+      ro('app.integration.aso', 'Đã có gói ASO', 'integration', 'aso', { input: 'bool' }),
+      ro('app.integration.cicd.integrated', 'Đã có CI/CD', 'integration', 'cicd.integrated', { input: 'bool' }),
       ed('app.extra.dashboard_url', 'Dashboard link', 'extra', 'dashboard_url'),
-      ro('app.go_live', 'Đã live Play', 'col', 'go_live'),
+      ed('app.go_live', 'Đã live Play', 'col', 'go_live', { input: 'bool' }),
     ],
   },
   {
     title: 'Ads',
     fields: [
-      ed('app.integration.ads.status', 'Mức tích hợp ads', 'integration', 'ads.status', {
+      ro('app.integration.ads.status', 'Mức tích hợp ads', 'integration', 'ads.status', {
         input: 'select',
         options: ['none', 'funnel', 'full'],
       }),
       ro('app.integration.ads.engine', 'Engine', 'integration', 'ads.engine'),
-      ed('app.integration.ads.funnel_version', 'Version funnel', 'integration', 'ads.funnel_version'),
-      ed('app.integration.ads.module_ads', 'Version module-ads', 'integration', 'ads.module_ads'),
-      ed('app.integration.ads.lane', 'Lane', 'integration', 'ads.lane'),
-      ed('app.integration.ads.serial', 'Serial funnel', 'integration', 'ads.serial', { placeholder: 'S1L2O1W1U1' }),
+      ro('app.integration.ads.funnel_version', 'Version funnel', 'integration', 'ads.funnel_version'),
+      ro('app.integration.ads.module_ads', 'Version module-ads', 'integration', 'ads.module_ads'),
+      ro('app.integration.ads.lane', 'Lane', 'integration', 'ads.lane'),
+      ro('app.integration.ads.serial', 'Serial funnel', 'integration', 'ads.serial', { placeholder: 'S1L2O1W1U1' }),
       ro('app.integration.ads.scope', 'Scope', 'integration', 'ads.scope'),
-      ro('app.integration.ads.adsMode', 'adsMode', 'integration', 'ads.adsMode'),
-      ro('app.integration.ads.branch', 'Nhánh có ads', 'integration', 'ads.branch'),
-      ro('app.integration.ads.host', 'Thư mục host', 'integration', 'ads.host'),
-      ro('app.integration.ads.host_ref', 'Nhánh code host', 'integration', 'ads.host_ref'),
-      ro('app.integration.ads.host_kind', 'Loại host', 'integration', 'ads.host_kind'),
-      ro('app.integration.ads.host_wired', 'Host đã nối', 'integration', 'ads.host_wired'),
-      ro('app.integration.ads.host_any_branch', 'Có host ở nhánh nào', 'integration', 'ads.host_any_branch'),
-      ro('app.integration.ads.lock_missing', 'Thiếu funnel.lock', 'integration', 'ads.lock_missing'),
-      ro('app.integration.ads.versions_seen', 'Lịch sử tích hợp ads', 'integration', 'ads.versions_seen', { input: 'json' }),
       ed('app.integration.admob_app_id', 'AdMob App ID', 'extra', 'ads.admob_app_id', {
         fallback: ['integration.admob_app_id'],
         placeholder: 'ca-app-pub-…~…',
@@ -195,13 +171,6 @@ export const META_GROUPS: MetaGroup[] = [
         fallback: ['integration.google_services.prod.file'],
         placeholder: 'app/google-services.json',
       }),
-      ro('app.integration.google_services.prod.project_id', 'Firebase project PROD', 'integration', 'google_services.prod.project_id', {
-        fallback: ['integration.firebase_prod.project_id', 'extra.firebase.prod.project_id'],
-      }),
-      ro('app.integration.google_services.prod.mobilesdk_app_id', 'Firebase app id PROD', 'integration', 'google_services.prod.mobilesdk_app_id', {
-        fallback: ['integration.firebase_prod.mobilesdk_app_id', 'extra.firebase.prod.mobilesdk_app_id'],
-      }),
-      ro('app.integration.google_services.prod.updated_at', 'Firebase PROD cập nhật', 'integration', 'firebase_prod.updated_at'),
       ro('app.integration.google_services.dev.project_id', 'Firebase DEV đã dùng', 'integration', 'google_services.dev.project_id', {
         fallback: ['extra.firebase.dev.project_id'],
       }),
