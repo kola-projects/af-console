@@ -24,6 +24,7 @@ import Ads from './routes/Ads'
 import AdsBuilder from './routes/AdsBuilder'
 import AdsAppDetail from './routes/AdsAppDetail'
 import AdsScenarioDetail from './routes/AdsScenarioDetail'
+import Partners from './routes/Partners'
 import Competitors from './routes/Competitors'
 import CompetitorDetail from './routes/CompetitorDetail'
 import Compare from './routes/Compare'
@@ -110,6 +111,7 @@ export default function App() {
             />
             <Route path="tags" element={<RequireAdmin><Tags /></RequireAdmin>} />
             <Route path="stores" element={<RequireAdmin><Stores /></RequireAdmin>} />
+            <Route path="partners" element={<RequireAdmin><Partners /></RequireAdmin>} />
             <Route path="users" element={<RequireAdmin><Users /></RequireAdmin>} />
             <Route path="*" element={<Navigate to="/apps" replace />} />
           </Route>

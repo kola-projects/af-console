@@ -3,6 +3,14 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.48.0 — 2026-10-30
+
+- **Trang Partners** (`/partners`, admin-only): CRUD bảng `partners` (migration 0056) — danh sách, tạo/sửa/xoá partner.
+- **Tiptap WYSIWYG editor** cho `description_html`: bold/italic, list, heading, chèn ảnh URL, link. Dependencies mới: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-image`, `@tiptap/extension-link`, `@tiptap/pm` (2.11.5).
+- **Rules editor** theo lệnh (`global`/`make`/`aso`/`ads`/`adsHost`): key-value pairs, tiêm mặc định vào CLI khi `--partner=<code>`.
+- queries.ts: `PartnerRow`, `PartnerInput`, `partnersList`, `createPartner`, `updatePartner`, `deletePartner`, `allocPartnerCode`.
+- Shell: nav item "Partners" (icon Handshake) cho admin.
+
 ## 3.47.2 — 2026-10-18
 
 - **Evaluations: nhãn "Mức" theo EVIDENCE THẬT, không theo `install_status`** — trước đây badge "Đầy đủ"/"Chỉ store" ở trang list chỉ dựa `latest_install_status === 'installed'`, nên **mọi app cài được đều hiện "Đầy đủ"** kể cả app chỉ có manifest-census hoặc rỗng hoàn toàn. Nay badge 4 mức theo evidence tốt nhất qua MỌI phiên: **Đầy đủ** (có ảnh màn `screenshot`) · **Chỉ store** (chỉ `store_screenshot`) · **Census** (chỉ manifest/icon) · **Rỗng** (không evidence).

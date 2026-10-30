@@ -1236,6 +1236,61 @@ export async function clearStorePat(id: number) {
   if (error) throw new Error(error.message)
 }
 
+// ── [0056] Partners — partner rules tiêm mặc định make/aso/ads [v6.15.0] ─────────
+export type PartnerRow = {
+  partner_code: string
+  name: string
+  description_html: string | null
+  rules: Record<string, Record<string, string>>
+  enabled: boolean
+  app_count: number
+  created_at: string
+  updated_at: string
+}
+
+export type PartnerInput = {
+  partner_code: string
+  name: string
+  description_html?: string | null
+  rules?: Record<string, Record<string, string>>
+  enabled?: boolean
+}
+
+export async function partnersList(): Promise<PartnerRow[]> {
+  const { data, error } = await supabase.from('v_partners').select('*').order('partner_code')
+  if (error) throw new Error(error.message)
+  return (data ?? []) as PartnerRow[]
+}
+
+export async function createPartner(input: PartnerInput) {
+  const { data, error } = await supabase.from('partners').insert(input).select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không tạo được — chỉ admin mới có quyền.')
+  return data[0]
+}
+
+export async function updatePartner(code: string, patch: Partial<PartnerInput>) {
+  const { data, error } = await supabase
+    .from('partners')
+    .update(patch)
+    .eq('partner_code', code)
+    .select()
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
+  return data[0]
+}
+
+export async function deletePartner(code: string) {
+  const { error } = await supabase.from('partners').delete().eq('partner_code', code)
+  if (error) throw new Error(error.message)
+}
+
+export async function allocPartnerCode(): Promise<string> {
+  const { data, error } = await supabase.rpc('alloc_partner_code')
+  if (error) throw new Error(error.message)
+  return data as string
+}
+
 // ── [0043] Competitors — đọc qua view, ảnh bucket 'competitors' ─────────────────
 const COMPETITOR_BUCKET = 'competitors'
 

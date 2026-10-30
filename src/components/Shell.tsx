@@ -16,6 +16,7 @@ import {
   Store,
   Users,
   Factory,
+  Handshake,
   Radar,
   GitCompare,
   type LucideIcon,
@@ -42,6 +43,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/tags', label: 'Tags', icon: Tag },
   { to: '/requests', label: 'Yêu cầu', icon: Inbox },
   { to: '/stores', label: 'Stores', icon: Store },
+  { to: '/partners', label: 'Partners', icon: Handshake },
   { to: '/users', label: 'Users', icon: Users },
 ]
 // Evaluations (đánh giá app — đối thủ & app của ta): chỉ UA + Admin xem (không có trong nav member/dev/aso)
