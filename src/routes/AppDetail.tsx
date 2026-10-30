@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { RefreshCw } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import {
   appDetail,
@@ -9,6 +10,7 @@ import {
   asoZipBytes,
   designZipBytes,
   productAppAssets,
+  syncApps,
 } from '../lib/queries'
 import { appCodeOf } from '../lib/types'
 import type { AppRow, RunLearningRow } from '../lib/types'
@@ -45,7 +47,7 @@ export function ManageAppDetail() {
   if (q.isLoading) return <Loading />
   if (q.error) return <ErrorBox error={q.error} />
   if (!q.data) return <Empty>Không thấy app này.</Empty>
-  return <Detail app={q.data} />
+  return <ManageDetailWithSync app={q.data} />
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -703,5 +705,44 @@ function DispositionBadge({ d }: { d: RunLearningRow['disposition'] }) {
     <Badge>not relevant</Badge>
   ) : (
     <Badge tone="warn">MISSING</Badge>
+  )
+}
+
+/** [3.49.0] Trang quản lý app (admin): thanh đồng bộ Play / icon / dashboard qua Edge Function app-sync + Detail. */
+function ManageDetailWithSync({ app }: { app: AppRow }) {
+  const qc = useQueryClient()
+  const [msg, setMsg] = useState<string | null>(null)
+  const sync = useMutation({
+    mutationFn: () => syncApps([app.id]),
+    onMutate: () => setMsg('Đang đồng bộ…'),
+    onSuccess: (r) => {
+      const x = r.results[0]
+      setMsg(
+        !x ? 'Không có kết quả'
+          : x.skipped ? `Bỏ qua: ${x.skipped}`
+          : x.error ? `Lỗi: ${x.error}`
+          : `Play HTTP ${x.http} · ${x.live === true ? 'LIVE' : x.live === false ? 'chưa lên store' : 'không rõ'}${x.icon ? ' · icon đã cập nhật' : ''} · dashboard: ${x.dashboard ?? '—'}`,
+      )
+      qc.invalidateQueries({ queryKey: ['app-manage', app.id] })
+      qc.invalidateQueries({ queryKey: ['apps'] })
+    },
+    onError: (e) => setMsg(`Đồng bộ lỗi: ${e instanceof Error ? e.message : String(e)}`),
+  })
+  return (
+    <>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => sync.mutate()}
+          disabled={sync.isPending}
+          title="Kiểm Play Store (go-live, icon, link store, tên listing) + dashboard link theo package"
+          className="flex items-center gap-1 rounded border border-neutral-300 px-2 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+        >
+          <RefreshCw className={`h-4 w-4 ${sync.isPending ? 'animate-spin' : ''}`} />
+          Đồng bộ Play / dashboard
+        </button>
+        {msg && <span className="text-xs text-neutral-500">{msg}</span>}
+      </div>
+      <Detail app={app} />
+    </>
   )
 }

@@ -1,4 +1,6 @@
 import { zipSync } from 'fflate'
+import { deepMerge } from './appMetaFields'
+import type { MetaPatch, StoreOpt } from '../components/EditAppMeta'
 import { supabase, createEphemeralClient } from './supabase'
 import { b64ToBytes, b64ToDataURL, b64ToText, bytesToB64, mimeOf } from './blueprint'
 import type {
@@ -96,7 +98,7 @@ export const appsWithRuns = async () =>
   unwrap<AppRow[]>(
     await supabase
       .from('apps')
-      .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration,go_live,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
+      .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration,legal_urls,store_id,go_live,runs(id,run_name,job_kind,status,af_version,started_at,finished_at,extra)')
       .order('created_at', { ascending: false })
       .order('started_at', { referencedTable: 'runs', ascending: false }),
   )
@@ -157,6 +159,69 @@ export async function setAppFull(
   if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
 }
 
+/** [3.48.0] Lưu trang "Sửa metadata app": cột thật + deep-merge vào extra / integration / legal_urls
+ *  (chỉ các khoá trong patch, không đụng khoá khác) + gán store theo store_code. RLS chỉ admin ghi. */
+export async function saveAppMeta(id: number, patch: MetaPatch) {
+  const cur = await supabase.from('apps').select('extra,integration,legal_urls').eq('id', id).maybeSingle()
+  if (cur.error) throw new Error(cur.error.message)
+  const update: Record<string, unknown> = { ...patch.cols }
+  if (Object.keys(patch.extra).length) update.extra = deepMerge(cur.data?.extra, patch.extra)
+  if (Object.keys(patch.integration).length) update.integration = deepMerge(cur.data?.integration, patch.integration)
+  if (Object.keys(patch.legal_urls).length) update.legal_urls = deepMerge(cur.data?.legal_urls, patch.legal_urls)
+  if (patch.store_code !== undefined) {
+    if (!patch.store_code) update.store_id = null
+    else {
+      const s = await supabase.from('v_stores').select('id').eq('store_code', patch.store_code).maybeSingle()
+      if (s.error) throw new Error(s.error.message)
+      if (!s.data) throw new Error(`Không tìm thấy store ${patch.store_code}`)
+      update.store_id = (s.data as { id: number }).id
+    }
+  }
+  if (!Object.keys(update).length) return
+  const { data, error } = await supabase.from('apps').update(update).eq('id', id).select('id')
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Không đổi được — chỉ admin mới có quyền.')
+}
+
+/** [3.49.0] Đồng bộ metadata app từ nguồn ngoài qua Edge Function `app-sync` (admin): Play existence-check →
+ *  go_live/go_live_at, icon og:image, store_url, play_title, dashboard_url theo công thức, integration.go_live.
+ *  Tối đa 60 id mỗi lần; caller chia lô. */
+export interface SyncResult {
+  id: number
+  app_code: string | null
+  name: string
+  package: string | null
+  http?: number
+  live?: boolean | 'unknown'
+  icon?: boolean
+  dashboard?: string
+  skipped?: string
+  error?: string
+}
+export async function syncApps(ids: number[]): Promise<{ count: number; live: number; results: SyncResult[] }> {
+  const out = { count: 0, live: 0, results: [] as SyncResult[] }
+  for (let i = 0; i < ids.length; i += 40) {
+    const { data, error } = await supabase.functions.invoke('app-sync', { body: { ids: ids.slice(i, i + 40) } })
+    if (error) throw new Error(error.message)
+    if (data?.error) throw new Error(String(data.error))
+    out.count += data.count ?? 0
+    out.live += data.live ?? 0
+    out.results.push(...((data.results ?? []) as SyncResult[]))
+  }
+  return out
+}
+
+/** [3.48.0] Store đầy đủ cho trang metadata app (select + hiển thị read-only). */
+export const storeOptionsFull = async (): Promise<StoreOpt[]> => {
+  const res = await supabase
+    .from('v_stores')
+    .select('id,store_code,name,display_name,support_email,extra')
+    .not('store_code', 'is', null)
+    .order('store_code')
+  if (res.error) throw new Error(res.error.message)
+  return (res.data ?? []) as StoreOpt[]
+}
+
 /** [0027] Admin gán team cho app (nhãn thống kê; '' = bỏ team). RLS chỉ admin ghi. */
 export async function setAppTeam(id: number, team: string) {
   const { data, error } = await supabase
@@ -174,7 +239,7 @@ export async function setAppTeam(id: number, team: string) {
 export const appsPublic = async (): Promise<AppRow[]> => {
   const appsRes = await supabase
     .from('apps')
-    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration')
+    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration,legal_urls,store_id')
     .order('created_at', { ascending: false })
   if (appsRes.error) throw new Error(appsRes.error.message)
   const bpRes = await supabase.from('v_app_blueprints').select('app_id,run_name,started_at')
@@ -206,7 +271,7 @@ export const appsPublic = async (): Promise<AppRow[]> => {
 export const appDetailPublic = async (id: number): Promise<AppRow | null> => {
   const appRes = await supabase
     .from('apps')
-    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration')
+    .select('id,name,package_name,source_kind,created_at,extra,is_hidden,team,app_code,app_codes,platform,family_code,family_role,family_seq,variant_spec,integration,legal_urls,store_id')
     .eq('id', id)
     .maybeSingle()
   if (appRes.error) throw new Error(appRes.error.message)

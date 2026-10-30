@@ -3,13 +3,56 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
-## 3.48.0 — 2026-10-30
+## 3.50.0 — 2026-10-30
 
 - **Trang Partners** (`/partners`, admin-only): CRUD bảng `partners` (migration 0056) — danh sách, tạo/sửa/xoá partner.
 - **Tiptap WYSIWYG editor** cho `description_html`: bold/italic, list, heading, chèn ảnh URL, link. Dependencies mới: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-image`, `@tiptap/extension-link`, `@tiptap/pm` (2.11.5).
 - **Rules editor** theo lệnh (`global`/`make`/`aso`/`ads`/`adsHost`): key-value pairs, tiêm mặc định vào CLI khi `--partner=<code>`.
 - queries.ts: `PartnerRow`, `PartnerInput`, `partnersList`, `createPartner`, `updatePartner`, `deletePartner`, `allocPartnerCode`.
 - Shell: nav item "Partners" (icon Handshake) cho admin.
+
+
+## 3.49.1 — 2026-10-23
+
+- **Icon app: SOURCE CODE là nguồn sự thật.** `AppIcon` đổi thứ tự ưu tiên: (1) icon trích từ launcher icon trong repo
+  (`extra.icon_storage_key`, AF `tools/scan_icons.py` quét kho generated/ hoặc clone GitHub, bucket private, admin đọc qua
+  signed URL) → (2) icon Play (`extra.icon_url`) → (3) blueprint → (4) chữ cái đầu. Package cũng do máy quét đọc từ
+  `applicationId` trong gradle (mọi module, fallback manifest) — AF v6.19.2.
+
+## 3.49.0 — 2026-10-23
+
+- **Nút "Đồng bộ" trên trang quản lý app** (`/manage-apps`: nút ⟳ từng hàng ở cột Metadata + nút "Đồng bộ N" ở header cho
+  mọi app đang hiện; `/manage-apps/:id`: thanh "Đồng bộ Play / dashboard" trên đầu trang). Gọi **Edge Function `app-sync`**
+  (`supabase/functions/app-sync/index.ts`, admin-only qua RPC `is_admin`, ghi bằng service role): mỗi app lấy package (cột
+  `package_name` hoặc suy từ `extra.store_url`) → existence-check Play Store (200 = live, 404 = chưa) → `go_live`/`go_live_at` +
+  `integration.go_live` → icon `og:image` + tên listing + link store vào `extra.icon_url/play_title/store_url` → `extra.dashboard_url`
+  theo công thức `https://dashboard.stemlabs.site/apps/<package>` (chỉ khi chưa có). Tối đa 60 app mỗi lời gọi, client chia lô 40,
+  3 app song song để tránh Play rate-limit. Kết quả hiện ngay dưới thanh công cụ (số app, số live, số bỏ qua vì không có package).
+- `queries.syncApps(ids)` + type `SyncResult`.
+
+## 3.48.1 — 2026-10-23
+
+- **Trang "Sửa metadata app" theo cột C của sheet đánh dấu (x / r / e)**: còn **52 trường** — 23 ô sửa (team, ẩn, family_code,
+  5 URL legal, AdMob/Adjust/Facebook/Discord, email chủ Firebase, file google-services PROD, 4 trường keystore, go_live, dashboard,
+  store), 29 ô chỉ đọc (tên trên máy/store, package, platform, created_at, src/mode/v, af_version, github, aso, legal, cicd, 7 trường
+  ads, Firebase DEV, sheet + bảng placement kịch bản ads, code_base, email/org/platform của store). Bỏ 27 trường khỏi trang (id,
+  app_code, name, app_codes, source_kind, store_id, family_role/seq/variant_spec, scanned_dir/branch_count/checked_at, legal_repo/
+  legal_source/landing, ads.adsMode/branch/host*/lock_missing/versions_seen, google_services.prod.project_id/mobilesdk/updated_at) —
+  DB vẫn giữ, chỉ không hiện trên trang. `app.go_live` thành ô sửa (checkbox).
+
+## 3.48.0 — 2026-10-23
+
+- **Trang "Sửa metadata app" dựng lại theo spec chủ sản phẩm** (sheet `APP_METADATA_FIELDS_TABLE`, AF v6.19.0 `docs/app_metadata/`):
+  `src/lib/appMetaFields.ts` khai 88 trường / 8 nhóm (Danh tính · Build make.sh · Legal & landing · Tích hợp & liên kết · Ads · Firebase ·
+  Ký release · Store) với `mode` edit/readonly và nơi lưu (`col` / `extra` / `integration` / `legal_urls` / `store`). Component mới
+  `src/components/EditAppMeta.tsx` render theo spec: 45 ô sửa, 43 ô chỉ đọc (kịch bản ads hiện bảng placement, versions_seen/variant_spec
+  hiện JSON), ô trống đọc dự phòng từ `integration.*` do integration-scan ghi và ghi rõ nguồn; chỉ lưu **trường đã đổi**.
+- `queries.saveAppMeta`: cột thật + deep-merge vào `extra` / `integration` / `legal_urls` (không đụng khoá khác) + gán store theo
+  `store_code` (tra `v_stores`). `storeOptionsFull` (id/support_email/extra). `appsWithRuns` select thêm `legal_urls,store_id`.
+- types: `AppIntegration` thêm make/code_base/attribution/admob_app_id/google_services/signing/ads_script/discord/name_on_phone;
+  `AppRow` thêm `store_id`, `legal_urls`, `extra` nhận khoá lồng nhau.
+- Bỏ modal cũ `EditMetaModal` (9 ô: package/team/ẩn + github/store_url/dashboard/discord_channel/source_url/source_desc). Các khoá
+  `extra` cũ vẫn giữ trong DB; `github`/`dashboard_url` tiếp tục dùng, `source_url`/`discord_channel` thay bằng `make.src`/`discord.*`.
 
 ## 3.47.2 — 2026-10-18
 
