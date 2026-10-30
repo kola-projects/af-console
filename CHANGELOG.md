@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.50.1 — 2026-10-30
+
+- **Cột Partner trên `/apps`**: hiển thị partner của mỗi app (từ `extra.partner_code` → tên partner).
+- **Filter Partner** trên `/apps`: dropdown lọc theo partner (tất cả / BBL / ICT / chưa gán).
+
 ## 3.50.0 — 2026-10-30
 
 - **Trang Partners** (`/partners`, admin-only): CRUD bảng `partners` (migration 0056) — danh sách, tạo/sửa/xoá partner.
