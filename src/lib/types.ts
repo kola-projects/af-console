@@ -504,10 +504,19 @@ export const GRADUATION_TARGETS = [
 
 /** 0020: role nghiệp vụ. 'member' giữ cho tài khoản cũ; v1 mọi role non-admin
  *  quyền giống nhau (đọc + đặt yêu cầu). */
-export type UserRole = 'admin' | 'member' | 'dev' | 'ua' | 'aso'
+export type UserRole = 'admin' | 'member' | 'dev' | 'ua' | 'ua_manager' | 'aso'
 
 /** Role admin cấp được khi tạo user (không cấp 'member' — tên cũ, tránh lẫn). */
-export const ASSIGNABLE_ROLES: UserRole[] = ['dev', 'ua', 'aso', 'admin']
+export const ASSIGNABLE_ROLES: UserRole[] = ['dev', 'ua', 'ua_manager', 'aso', 'admin']
+
+/** [0063] ua_manager = mọi quyền của ua + XEM UA activity report và Cron jobs (không sửa).
+ *  Tên hiển thị của role; role khác hiện đúng mã của nó. */
+export const ROLE_LABEL: Partial<Record<UserRole, string>> = { ua_manager: 'UA Manager' }
+export const roleLabel = (r: string) => ROLE_LABEL[r as UserRole] ?? r
+
+/** Role xem được nhóm trang UA (Evaluations, So sánh) và nhóm trang quản lý UA (UA activity report, Cron jobs). */
+export const UA_ROLES: UserRole[] = ['ua', 'ua_manager', 'admin']
+export const UA_MANAGER_ROLES: UserRole[] = ['ua_manager', 'admin']
 
 /** Team (nhãn thống kê app, khớp GitHub team af-products auto/titan). */
 export const TEAMS = ['Auto', 'Titan'] as const

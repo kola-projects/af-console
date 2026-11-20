@@ -10,7 +10,7 @@ import {
   setUserActive,
   setUserRole,
 } from '../lib/queries'
-import { ASSIGNABLE_ROLES, type UserRole } from '../lib/types'
+import { ASSIGNABLE_ROLES, roleLabel, type UserRole } from '../lib/types'
 import { Badge, Cell, ErrorBox, Loading, Mono, Row, Table, localTime } from '../components/ui'
 import ChangePassword from './ChangePassword'
 
@@ -88,7 +88,7 @@ function CreateUser({ onDone }: { onDone: () => void }) {
           >
             {ASSIGNABLE_ROLES.map((r) => (
               <option key={r} value={r}>
-                {r}
+                {roleLabel(r)}
               </option>
             ))}
           </select>
@@ -291,7 +291,7 @@ export default function Users() {
                     >
                       {roleOptions.map((r) => (
                         <option key={r} value={r}>
-                          {r}
+                          {roleLabel(r)}
                         </option>
                       ))}
                     </select>

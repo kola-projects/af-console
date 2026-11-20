@@ -19,11 +19,14 @@ import {
   Handshake,
   Radar,
   GitCompare,
+  Activity,
+  CalendarClock,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { APP_VERSION, fetchLatestVersion } from '../lib/appVersion'
 import { myProfile, promotionCandidates, tags } from '../lib/queries'
+import { roleLabel } from '../lib/types'
 
 // Nav ADMIN: toàn bộ trang nội bộ. Nav NON-ADMIN: chỉ Apps + Yêu cầu (0023) —
 // Runs/Lessons/Bugs… bị chặn ở RLS, ẩn khỏi nav để giao diện gọn.
@@ -34,6 +37,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/apps', label: 'Apps', icon: LayoutGrid },
   { to: '/evaluations', label: 'Evaluations', icon: Radar },
   { to: '/compare', label: 'So sánh', icon: GitCompare },
+  { to: '/ua-report', label: 'UA activity Report', icon: Activity },
   { to: '/manage-apps', label: 'Quản lý app', icon: SlidersHorizontal },
   { to: '/runs', label: 'Runs', icon: Play },
   { to: '/bugs', label: 'Bugs', icon: Bug },
@@ -44,6 +48,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/requests', label: 'Yêu cầu', icon: Inbox },
   { to: '/stores', label: 'Stores', icon: Store },
   { to: '/partners', label: 'Partners', icon: Handshake },
+  { to: '/cron-jobs', label: 'Cron jobs', icon: CalendarClock },
   { to: '/users', label: 'Users', icon: Users },
 ]
 // Evaluations (đánh giá app — đối thủ & app của ta): chỉ UA + Admin xem (không có trong nav member/dev/aso)
@@ -53,6 +58,10 @@ const MEMBER_NAV: NavItem[] = [
 ]
 const COMPETITORS_NAV: NavItem = { to: '/evaluations', label: 'Evaluations', icon: Radar }
 const COMPARE_NAV: NavItem = { to: '/compare', label: 'So sánh', icon: GitCompare }
+// UA activity report (ai thao tác gì + tiền theo chủ app) và Cron jobs: chỉ UA Manager + Admin xem
+// (role ua thường KHÔNG thấy — báo cáo soi hiệu quả từng người). UA Manager chỉ xem, không sửa.
+const UA_REPORT_NAV: NavItem = { to: '/ua-report', label: 'UA activity Report', icon: Activity }
+const CRON_NAV: NavItem = { to: '/cron-jobs', label: 'Cron jobs', icon: CalendarClock }
 
 export default function Shell({ email }: { email: string }) {
   const me = useQuery({ queryKey: ['me'], queryFn: myProfile })
@@ -61,12 +70,16 @@ export default function Shell({ email }: { email: string }) {
   const pending = useQuery({ queryKey: ['promotion'], queryFn: promotionCandidates, enabled: isAdmin })
   const newTags = useQuery({ queryKey: ['tags'], queryFn: tags, enabled: isAdmin })
   const newTagCount = newTags.data?.filter((t) => t.status === 'new').length ?? 0
-  // UA thấy Evaluations (chèn sau Apps); Admin đã có sẵn trong ADMIN_NAV.
+  // UA thấy Evaluations + So sánh (chèn sau Apps); UA Manager thấy thêm UA activity report + Cron jobs;
+  // Admin đã có sẵn tất cả trong ADMIN_NAV.
+  const role = me.data?.role
   const nav = isAdmin
     ? ADMIN_NAV
-    : me.data?.role === 'ua'
-      ? [MEMBER_NAV[0], COMPETITORS_NAV, COMPARE_NAV, ...MEMBER_NAV.slice(1)]
-      : MEMBER_NAV
+    : role === 'ua_manager'
+      ? [MEMBER_NAV[0], COMPETITORS_NAV, COMPARE_NAV, UA_REPORT_NAV, CRON_NAV, ...MEMBER_NAV.slice(1)]
+      : role === 'ua'
+        ? [MEMBER_NAV[0], COMPETITORS_NAV, COMPARE_NAV, ...MEMBER_NAV.slice(1)]
+        : MEMBER_NAV
 
   const appVersion = APP_VERSION
   const [latestVersion, setLatestVersion] = useState<string>('')
@@ -125,7 +138,7 @@ export default function Shell({ email }: { email: string }) {
         <div className="mt-6 border-t border-neutral-200 px-2 pt-3 dark:border-neutral-800">
           <div className="truncate text-[11px] text-neutral-500">{email}</div>
           {me.data && (
-            <div className="text-[11px] text-neutral-400">{me.data.role}</div>
+            <div className="text-[11px] text-neutral-400">{roleLabel(me.data.role)}</div>
           )}
           <button
             onClick={() => supabase.auth.signOut()}

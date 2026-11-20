@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from './lib/supabase'
 import { myProfile } from './lib/queries'
+import { UA_MANAGER_ROLES, UA_ROLES } from './lib/types'
 import Shell from './components/Shell'
 import Login from './routes/Login'
 import Dashboard from './routes/Dashboard'
@@ -29,6 +30,8 @@ import Competitors from './routes/Competitors'
 import CompetitorDetail from './routes/CompetitorDetail'
 import Compare from './routes/Compare'
 import CompareDetail from './routes/CompareDetail'
+import UaReport from './routes/UaReport'
+import CronJobs from './routes/CronJobs'
 
 const qc = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 } },
@@ -85,13 +88,16 @@ export default function App() {
             {/* Công khai cho mọi user còn hiệu lực (RLS lọc dữ liệu) */}
             <Route path="apps" element={<Apps />} />
             <Route path="apps/:id" element={<AppDetail />} />
-            <Route path="evaluations" element={<RequireRoles roles={['ua', 'admin']}><Competitors /></RequireRoles>} />
-            <Route path="evaluations/:package" element={<RequireRoles roles={['ua', 'admin']}><CompetitorDetail /></RequireRoles>} />
+            <Route path="evaluations" element={<RequireRoles roles={UA_ROLES}><Competitors /></RequireRoles>} />
+            <Route path="evaluations/:package" element={<RequireRoles roles={UA_ROLES}><CompetitorDetail /></RequireRoles>} />
             {/* Đường dẫn cũ — redirect sang /evaluations (giữ link/bookmark cũ) */}
             <Route path="competitors" element={<Navigate to="/evaluations" replace />} />
             <Route path="competitors/:package" element={<RedirectCompetitorDetail />} />
-            <Route path="compare" element={<RequireRoles roles={['ua', 'admin']}><Compare /></RequireRoles>} />
-            <Route path="compare/:slug" element={<RequireRoles roles={['ua', 'admin']}><CompareDetail /></RequireRoles>} />
+            <Route path="compare" element={<RequireRoles roles={UA_ROLES}><Compare /></RequireRoles>} />
+            <Route path="compare/:slug" element={<RequireRoles roles={UA_ROLES}><CompareDetail /></RequireRoles>} />
+            {/* Quản lý UA — UA Manager + admin XEM (sửa vẫn chỉ admin; RLS + RPC chặn thật) */}
+            <Route path="ua-report" element={<RequireRoles roles={UA_MANAGER_ROLES}><UaReport /></RequireRoles>} />
+            <Route path="cron-jobs" element={<RequireRoles roles={UA_MANAGER_ROLES}><CronJobs /></RequireRoles>} />
             <Route path="requests" element={<Requests />} />
             {/* Nội bộ — chỉ admin */}
             <Route path="manage-apps" element={<RequireAdmin><ManageApps /></RequireAdmin>} />
