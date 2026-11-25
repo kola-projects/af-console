@@ -75,6 +75,20 @@ export function focusApps(cr: CreativePerson | null): { app: string; app_id: str
 export const shortApp = (name: string) => name.split(/\s*[:–|]\s*|\s+-\s+/)[0] || name
 
 const winText = (a: CreativeAgg, min: number) => `${int(a.win)} win / ${int(a.tested)} ${testedLabel(min)}`
+/** Lời giải thích hiện khi rê chuột vào ROAS / chấm xanh. */
+export const winTitle = (a: CreativeAgg, min: number | null | undefined) =>
+  a.tested ? `${int(a.win)} creative win trong ${int(a.tested)} creative đã ${testedLabel(min)}` : `Chưa có creative nào ${testedLabel(min)}`
+
+/** Chủ sản phẩm chốt (2026-11-25): không viết số win / ngưỡng chi ra màn hình — có creative win trong kỳ thì
+ *  chỉ một chấm xanh nhỏ cạnh ROAS quảng cáo; số nằm ở tooltip và ở các cột ẩn sẵn (bật trong nút "Cột"). */
+export function RoasWithDot({ a, min, dot = true }: { a: CreativeAgg; min: number | null | undefined; dot?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1.5" title={winTitle(a, min)}>
+      {dot && a.win > 0 && <span className="inline-block h-2 w-2 flex-none rounded-full" style={{ backgroundColor: WIN_COLOR }} aria-label="có creative win" />}
+      {pct(creativeRoas(a))}
+    </span>
+  )
+}
 
 function WinBar({ a }: { a: CreativeAgg }) {
   if (!a.tested) return DASH
@@ -126,8 +140,8 @@ export function TeamStats({ act, team, creativeQ }: Pick<ViewProps, 'act' | 'tea
     <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
       <Stat label="Creative mới" value={t ? int(t.new) : '—'} hint={waiting ?? (t ? `${int(t.creatives)} creative đang chạy trong kỳ` : `${int(uploads)} creative lên theo lịch`)} />
       <Stat label="Thao tác campaign" value={int(actions)} hint="tạo, bật / tắt, chỉnh ngân sách" />
-      <Stat label={`Win / ${testedLabel(team?.min_spend)}`} value={t ? `${int(t.win)} / ${int(t.tested)}` : '—'} hint={waiting ?? (team ? `creative đã ${testedLabel(team.min_spend)}; win = ROAS QC từ ${(team.roas_threshold * 100).toFixed(0)}%` : undefined)} />
-      <Stat label="ROAS quảng cáo" value={t ? pct(creativeRoas(t)) : '—'} hint={waiting ?? (t ? `Adjust ${usd(t.revenue)} / chi ${usd(t.spend)}` : undefined)} />
+      <Stat label="Chi quảng cáo" value={t ? usd(t.spend) : '—'} hint={waiting ?? (t ? `doanh thu Adjust ${usd(t.revenue)}` : undefined)} />
+      <Stat label="ROAS quảng cáo" value={t ? pct(creativeRoas(t)) : '—'} hint={waiting ?? (t ? 'doanh thu Adjust / chi của creative' : undefined)} />
     </div>
   )
 }
@@ -165,7 +179,7 @@ export function Overview(p: ViewProps) {
           // chỉ một chấm xanh nhỏ; số chi tiết hiện khi rê chuột và ở tab Kết quả.
           r.cr ? (
             r.cr.spend >= 1 ? (
-              <div className="text-xs" title={r.cr.tested ? winText(r.cr, team?.min_spend ?? 10) : `Chưa có creative ${testedLabel(team?.min_spend)}`}>
+              <div className="text-xs" title={winTitle(r.cr, team?.min_spend)}>
                 <div className="flex items-center gap-1.5 text-sm">
                   {r.cr.win > 0 && <span className="inline-block h-2 w-2 flex-none rounded-full" style={{ backgroundColor: WIN_COLOR }} aria-label="có creative win" />}
                   ROAS QC {pct(creativeRoas(r.cr))}
@@ -359,9 +373,9 @@ export function Allocation(p: ViewProps) {
       },
       { id: 'new', header: 'Creative mới', align: 'right', sortValue: (r) => r.agg.new, cell: (r) => (r.agg.new ? int(r.agg.new) : '') },
       { id: 'creatives', header: 'Đang chạy', align: 'right', sortValue: (r) => r.agg.creatives, cell: (r) => int(r.agg.creatives) },
-      { id: 'win', header: `Win / ${testedLabel(team?.min_spend)}`, sortValue: (r) => (r.agg.tested ? r.agg.win / r.agg.tested : null), csvValue: (r) => `${r.agg.win}/${r.agg.tested}`, className: 'min-w-40', cell: (r) => <WinBar a={r.agg} /> },
+      { id: 'win', header: `Win / ${testedLabel(team?.min_spend)}`, defaultHidden: true, sortValue: (r) => (r.agg.tested ? r.agg.win / r.agg.tested : null), csvValue: (r) => `${r.agg.win}/${r.agg.tested}`, className: 'min-w-40', cell: (r) => <WinBar a={r.agg} /> },
       { id: 'spend', header: 'Chi', align: 'right', sortValue: (r) => r.agg.spend, cell: (r) => usd(r.agg.spend) },
-      { id: 'roas', header: 'ROAS QC', align: 'right', sortValue: (r) => creativeRoas(r.agg), cell: (r) => pct(creativeRoas(r.agg)) },
+      { id: 'roas', header: 'ROAS QC', align: 'right', sortValue: (r) => creativeRoas(r.agg), csvValue: (r) => creativeRoas(r.agg), cell: (r) => <RoasWithDot a={r.agg} min={team?.min_spend} /> },
     ],
     [go, team?.min_spend],
   )
@@ -383,10 +397,10 @@ export function Allocation(p: ViewProps) {
       <div className={team ? '' : 'mt-3'}>
         {mode === 'person' ? (
           rows.length ? (
-            <DataTable tableId="ua-alloc-person" columns={personCols} rows={rows} rowKey={(r) => r.key} defaultSort={{ id: 'kinds', dir: 'desc' }} csvName={`ua-phan-bo-theo-nguoi_${s.from}_${s.to}`} />
+            <DataTable key="person" tableId="ua-alloc-person" columns={personCols} rows={rows} rowKey={(r) => r.key} defaultSort={{ id: 'kinds', dir: 'desc' }} csvName={`ua-phan-bo-theo-nguoi_${s.from}_${s.to}`} />
           ) : <Empty>Chưa có hoạt động nào trong khoảng ngày này.</Empty>
         ) : apps.length ? (
-          <DataTable tableId="ua-alloc-app" columns={appCols} rows={apps} rowKey={(r) => r.app} defaultSort={{ id: 'spend', dir: 'desc' }} csvName={`ua-phan-bo-theo-app_${s.from}_${s.to}`} />
+          <DataTable key="app" tableId="ua-alloc-app-3" columns={appCols} rows={apps} rowKey={(r) => r.app} defaultSort={{ id: 'spend', dir: 'desc' }} csvName={`ua-phan-bo-theo-app_${s.from}_${s.to}`} />
         ) : team ? <Empty>Không có creative nào chạy trong khoảng ngày này.</Empty> : null}
       </div>
       <p className={`mt-3 text-xs ${MUTED}`}>
@@ -424,11 +438,15 @@ export function Results(p: ViewProps) {
     () => [
       { id: 'name', header: 'UA', locked: true, sortValue: (r) => r.name, cell: (r) => (r.known ? <PersonLink row={r} go={go} /> : <span className={r.synthetic ? MUTED : ''}>{r.name}</span>) },
       { id: 'new', header: 'Creative mới', align: 'right', sortValue: (r) => r.cr.new, cell: (r) => int(r.cr.new) },
-      { id: 'tested', header: testedLabel(team?.min_spend).replace(/^c/, 'C'), align: 'right', sortValue: (r) => r.cr.tested, cell: (r) => int(r.cr.tested) },
-      { id: 'winrate', header: `Win / ${testedLabel(team?.min_spend)}`, className: 'min-w-44', sortValue: (r) => (r.cr.tested ? r.cr.win / r.cr.tested : null), csvValue: (r) => `${r.cr.win}/${r.cr.tested}`, cell: (r) => <WinBar a={r.cr} /> },
+      { id: 'tested', header: testedLabel(team?.min_spend).replace(/^c/, 'C'), align: 'right', defaultHidden: true, sortValue: (r) => r.cr.tested, cell: (r) => int(r.cr.tested) },
+      { id: 'winrate', header: `Win / ${testedLabel(team?.min_spend)}`, className: 'min-w-44', defaultHidden: true, sortValue: (r) => (r.cr.tested ? r.cr.win / r.cr.tested : null), csvValue: (r) => `${r.cr.win}/${r.cr.tested}`, cell: (r) => <WinBar a={r.cr} /> },
       { id: 'spend', header: 'Chi', align: 'right', sortValue: (r) => r.cr.spend, cell: (r) => usd(r.cr.spend) },
       { id: 'revenue', header: 'Doanh thu Adjust', align: 'right', defaultHidden: true, sortValue: (r) => r.cr.revenue, cell: (r) => usd(r.cr.revenue) },
-      { id: 'roas', header: 'ROAS QC', align: 'right', sortValue: (r) => creativeRoas(r.cr), cell: (r) => pct(creativeRoas(r.cr)) },
+      {
+        id: 'roas', header: 'ROAS QC', align: 'right', sortValue: (r) => creativeRoas(r.cr), csvValue: (r) => creativeRoas(r.cr),
+        cell: (r) => <RoasWithDot a={r.cr} min={team?.min_spend} />,
+        totalCell: (r) => <RoasWithDot a={r.cr} min={team?.min_spend} dot={false} />,
+      },
       { id: 'creatives', header: 'Đang chạy', align: 'right', defaultHidden: true, sortValue: (r) => r.cr.creatives, cell: (r) => int(r.cr.creatives) },
       { id: 'not_ok', header: 'Dưới ngưỡng', align: 'right', defaultHidden: true, sortValue: (r) => r.cr.not_ok, cell: (r) => int(r.cr.not_ok) },
       { id: 'inferred', header: 'ZooKeeper suy ra', align: 'right', defaultHidden: true, sortValue: (r) => r.cr.inferred, cell: (r) => (r.cr.inferred ? int(r.cr.inferred) : '') },
@@ -443,13 +461,14 @@ export function Results(p: ViewProps) {
     <>
       <CreativeNote q={creativeQ} />
       {team && (rows.length ? (
-        <DataTable tableId="ua-results" columns={columns} rows={rows} rowKey={(r) => r.key} defaultSort={{ id: 'spend', dir: 'desc' }}
+        <DataTable tableId="ua-results-2" columns={columns} rows={rows} rowKey={(r) => r.key} defaultSort={{ id: 'spend', dir: 'desc' }}
           pinBottom={(r) => r.synthetic} totalRow={total} csvName={`ua-ket-qua_${s.from}_${s.to}`} />
       ) : <Empty>Không có creative nào chạy trong khoảng ngày này.</Empty>)}
       {team && (
         <p className={`mt-3 text-xs ${MUTED}`}>
-          Creative mới = lên lần đầu trong kỳ. Chi ≥ ${team.min_spend} = số creative đã chi từ ${team.min_spend} trong kỳ, tức đã đủ tiền để đánh giá. Win = trong số đó, creative có ROAS quảng cáo từ {(team.roas_threshold * 100).toFixed(0)}%.
-          Chi và ROAS QC tính trên mọi creative của người đó có chạy trong kỳ (cả creative lên từ trước); ROAS QC = doanh thu Adjust / chi.
+          Creative mới = lên lần đầu trong kỳ. Chi và ROAS QC tính trên mọi creative của người đó có chạy trong kỳ (cả creative lên từ trước);
+          ROAS QC = doanh thu Adjust / chi. Chấm xanh cạnh ROAS = có creative win trong kỳ, tức creative đã chi từ ${team.min_spend} và có
+          ROAS quảng cáo từ {(team.roas_threshold * 100).toFixed(0)}%; rê chuột để xem số, hoặc bật hai cột ẩn sẵn trong nút "Cột".
           Số khớp màn Kho creative của ZooKeeper cho cùng khoảng ngày. Dòng Cả đội đếm mỗi creative một lần. Creative không ghi nhận được người
           lên được ZooKeeper gán cho người chạy app đó nhiều nhất; tên dạng email là tài khoản ZooKeeper chưa khai ở Thiết lập → Mapping người (bật cột "ZooKeeper suy ra" để xem bao nhiêu). Lãi theo app xem ở tab Tiền theo app.{' '}
           <CreativeStamp q={creativeQ} />

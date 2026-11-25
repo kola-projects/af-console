@@ -91,7 +91,7 @@ export function Stat({
   tone,
 }: {
   label: string
-  value: string | number
+  value: ReactNode
   hint?: string
   tone?: 'good' | 'bad'
 }) {

@@ -13,7 +13,6 @@ import {
   mondayOf,
   pct,
   shortDay,
-  testedLabel,
   usd,
   weekdayVN,
   type CreativeItem,
@@ -24,7 +23,7 @@ import {
 import DataTable, { type Column } from '../../components/DataTable'
 import { Badge, Empty, Stat } from '../../components/ui'
 import ActionLog from './ActionLog'
-import { KIND_COLOR, focusApps, shortApp } from './Activity'
+import { KIND_COLOR, RoasWithDot, focusApps, shortApp } from './Activity'
 import {
   BTN,
   CreativeNote,
@@ -228,8 +227,8 @@ export default function PersonPage(p: ViewProps & {
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Creative mới" value={cr ? int(cr.new) : team ? '0' : '—'} hint={waiting ?? `${range} · ${int(a.kinds.upload)} lượt lên theo lịch`} />
         <Stat label="Thao tác campaign" value={int(a.actions)} hint={`${range} · tạo, bật / tắt, chỉnh ngân sách`} />
-        <Stat label={`Win / ${testedLabel(team?.min_spend)}`} value={cr?.tested ? `${int(cr.win)} / ${int(cr.tested)}` : '—'} hint={waiting ?? (team ? `creative đã ${testedLabel(team.min_spend)}; win = ROAS QC từ ${(team.roas_threshold * 100).toFixed(0)}%` : undefined)} />
-        <Stat label="ROAS quảng cáo" value={cr ? pct(creativeRoas(cr)) : '—'} hint={waiting ?? (cr && cr.spend >= 1 ? `Adjust ${usd(cr.revenue)} / chi ${usd(cr.spend)}` : undefined)} />
+        <Stat label="Chi quảng cáo" value={cr ? usd(cr.spend) : '—'} hint={waiting ?? (cr ? `doanh thu Adjust ${usd(cr.revenue)}` : undefined)} />
+        <Stat label="ROAS quảng cáo" value={cr ? <RoasWithDot a={cr} min={team?.min_spend} /> : '—'} hint={waiting ?? (cr?.win ? 'chấm xanh = có creative win trong kỳ' : cr ? 'doanh thu Adjust / chi của creative' : undefined)} />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">

@@ -3,6 +3,13 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.53.1 — 2026-11-25
+
+- **UA activity Report — chấm xanh thay số win ở mọi màn** (chủ sản phẩm chốt sau khi dùng thử): tab **Kết quả**, **Phân bổ → Theo app** và **trang từng UA** không còn viết "x win / y chi ≥ $10". Người / app có creative win trong kỳ thì có một chấm xanh nhỏ cạnh ROAS quảng cáo; số win hiện khi rê chuột. Hai cột "Chi ≥ $10" và "Win / chi ≥ $10" vẫn còn, ẩn sẵn — bật trong nút "Cột"; file CSV và MCP không đổi.
+- Ô số thứ ba ở đầu trang (cả đội và từng UA) đổi từ "Win / chi ≥ $10" thành **Chi quảng cáo** (chi của creative trong kỳ, kèm doanh thu Adjust).
+- Sửa lỗi: ở tab Phân bổ, đổi giữa "Theo người" và "Theo app" làm bảng sau dùng lại lựa chọn cột của bảng trước (cột ẩn sẵn bị hiện ra). Hai bảng giờ giữ lựa chọn riêng.
+- `Stat` (components/ui) nhận `value` là nội dung bất kỳ thay vì chỉ chuỗi / số.
+
 ## 3.53.0 — 2026-11-25
 
 Thiết kế mới của **UA activity Report** (chủ sản phẩm duyệt mock-up 2026-11-25) + đưa **Kho creative của ZooKeeper** vào AFC. Bản 3.52.0 bên dưới chưa phát hành riêng — đi chung trong bản này.
