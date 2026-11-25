@@ -3,6 +3,37 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.53.0 — 2026-11-25
+
+Thiết kế mới của **UA activity Report** (chủ sản phẩm duyệt mock-up 2026-11-25) + đưa **Kho creative của ZooKeeper** vào AFC. Bản 3.52.0 bên dưới chưa phát hành riêng — đi chung trong bản này.
+
+- **8 tab thay cho 6**: `Tổng quan` · `Workload` · `Phân bổ` · `Kết quả` · `Từng UA` · `Nhật ký` · `Tiền theo app` (Scorecard / Theo app / Theo ngày cũ, đổi bằng nút "Theo người · Theo app · Theo ngày") · `Thiết lập` (Gán app + Mapping người). Tab, người và ngày đang xem nằm trên URL (`?tab=…&p=…&day=…`) nên gửi link được và nút Back chạy đúng.
+- **Tổng quan**: mỗi người một dòng — dải Workload 14 ngày, app tập trung, kết quả creative (ROAS quảng cáo + chi; **chấm xanh nhỏ** khi có creative win trong kỳ, số chi tiết hiện khi rê chuột).
+- **Workload**: 8 tuần gần nhất, mỗi ô một ngày, đậm dần theo số hoạt động (creative lên + thao tác campaign). Ngày không có hoạt động ghi nhận là ô xám. Không đếm "x/y ngày".
+- **Phân bổ**: loại hoạt động của từng người (Lên creative · Tạo campaign · Bật / tắt · Chỉnh ngân sách · Chỉnh khác) và app tập trung theo creative mới; nút đổi sang **Theo app** (mỗi app: ai tham gia, creative mới, đang chạy, win, chi, ROAS quảng cáo).
+- **Kết quả**: creative mới → chi ≥ $10 → win, chi và ROAS quảng cáo theo người, dòng "Cả đội". Số khớp màn Kho creative của ZooKeeper cho cùng khoảng ngày; ngưỡng $10 và ROAS 100% là ngưỡng Win đang cài bên ZooKeeper (trang đọc ngưỡng từ đó, không tự đặt).
+- **Trang riêng từng UA** (bấm tên ở bất kỳ màn nào, hoặc tab Từng UA): 4 ô số của kỳ, **biểu đồ lịch hoạt động** kiểu contribution của GitHub (từ tháng 8/2026, tối đa một năm; bấm một ô để mở creative lên + thao tác của ngày đó), loại hoạt động, app tập trung, danh sách creative mới kèm chi / ROAS / trạng thái, và nhật ký thao tác của riêng người đó.
+- **Giọng chữ trung tính**: tên màn / cột là danh từ (Workload, Phân bổ, Kết quả, Loại hoạt động, App tập trung); không có câu hỏi về con người, không nêu tên kèm nhận xét, không tô đỏ ngày trống.
+- **Cấp thao tác mặc định đổi từ "Cấp campaign" sang "Mọi cấp"** (bật / tắt ở cấp ad cũng là việc đã làm); vẫn đổi được ở ô chọn đầu trang.
+- **Edge function mới `ua-creative-pipeline`** + bảng đệm `ua_creative_cache`: ZooKeeper tính Kho creative chậm theo độ dài khoảng ngày (1 ngày ≈ 6 s, 7 ngày ≈ 23 s, 31 ngày ≈ 71 s) và cộng số từng ngày không ra số của cả khoảng, nên function hỏi đúng khoảng được yêu cầu, lưu nguyên kết quả, trả bản đã lưu cho lần sau. Khoảng chưa có sẵn: trang hiện "đang lấy, khoảng N giây" và tự cập nhật. Tối đa 31 ngày một lần (giới hạn của ZooKeeper).
+- **Cron job mới `ua-creative-sync`** (phút 20 mỗi giờ, hiện ở trang Cron jobs): lấy sẵn 7 ngày gần nhất + hôm nay mỗi giờ; D-1, D-2, tháng này 3 giờ một lần; D-3 … D-6 mỗi ngày một lần — các chip ngày mở ra là có số. Đồng thời cập nhật số creative lên theo ngày × người (nguồn của Workload và biểu đồ lịch).
+- **Gán app**: thêm cột **Người lên creative** (theo Kho creative) bên cạnh Người thao tác — gợi ý ai đang thực chạy app. Chỉ có ở app khớp được tên giữa ZooKeeper và BBL Dashboard.
+- **MCP `afc`** thêm 3 tool: `ua_workload` (creative lên + thao tác theo ngày của từng người), `ua_creatives` (số Kho creative theo người hoặc app), `ua_creative_items` (creative mới của một người).
+- **Đã nạp lại lịch sử**: creative lên từ 09/08/2026 và nhật ký thao tác từ 01/08/2026 (trước đó AFC chỉ có từ 02/11).
+- DB: migration AF **0065** (`ua_creative_uploads_daily`, `ua_zk_users`, `ua_creative_cache`, view `v_ua_creative_uploads`, RPC `ua_activity_calendar`, `ua_report_summary` thêm `action_type` + `uploads[]`, cron job `ua-creative-sync`).
+- Code: `routes/ua/{shared,Activity,PersonPage,ActionLog}.tsx` (mới; Nhật ký tách khỏi `UaReport.tsx` để trang từng UA dùng lại), `supabase/functions/ua-creative-pipeline`. Không thêm dependency.
+- **Giới hạn cần biết:** chỉ thấy việc đi qua ZooKeeper (sửa thẳng trong Ads Manager / Google Ads, thời gian dựng video không hiện); tên app ở các màn creative theo ZooKeeper, app trùng tên nhiều package (vd "GBA Emulator") không gắn được icon; tài khoản ZooKeeper chưa khai ở Mapping người hiện bằng email ở tab Kết quả.
+
+## 3.52.0 — 2026-11-25
+
+- **Tab "Gán app"** trong UA activity Report: gán thẳng app cho người ngay trên web, không phải sửa tag bên BBL Dashboard. Mỗi app một ô chọn ở cột **Chủ app**; gán tay được ưu tiên hơn tag, chọn lại dòng đầu ("Theo tag: …" / "Chưa gán") để bỏ gán tay. Có hiệu lực cho cả dữ liệu cũ. Cột **Nguồn gán** ghi rõ `gán tay` / `theo tag` / `chưa có chủ`; cột Người thao tác cho biết ai đang thực sự chạy app để chọn chủ. Dòng cảnh báo đầu tab đếm số app **đang có tiền mà chưa có chủ** trong khoảng ngày đang xem, kèm nút lọc nhanh. Lọc theo tên / package / mã app / tag, theo trạng thái gán, theo chủ app; mặc định chỉ hiện app có số trong khoảng ngày (bỏ tick để gán trước cho app chưa phát sinh tiền). Chỉ **admin** gán được; UA Manager xem.
+- **Dòng "Tổng" ở chân bảng** Scorecard, Theo app, Theo ngày và Gán app: cộng đúng các dòng đang hiện (sau khi lọc), đứng yên khi sắp xếp, có trong file CSV. Ở Scorecard dòng Tổng gồm cả phần "chưa gán người" nên khớp các ô số đầu trang. `DataTable` thêm prop `totalRow` và `totalCell` của cột.
+- **ROAS để trống khi chi ads dưới $1** trong khoảng đang xem. App không chạy ads chỉ có vài chục cent phí nên phép chia ra hàng nghìn % — con số không nói gì về hiệu quả ads. Công thức khi có chi ads không đổi (doanh thu / (chi ads + phí)); số tổng không bị ảnh hưởng.
+- Tab Theo app: chủ app gán tay có ghi chú "gán tay". Dòng tiền chưa có chủ đổi tên thành "Chưa gán người (app chưa có chủ)". Xoá một người ở Mapping người thì các app đã gán tay cho người đó cũng bỏ gán.
+- **MCP `afc`** (edge function `afc-mcp`): `ua_money` với `group_by=app` trả thêm `owner_source`; `roas_pct` = null khi chi ads dưới $1 — khớp web. Chủ app trong mọi tool `ua_*` tự theo gán tay.
+- DB: migration AF **0064** (`ua_app_owners`, view `v_ua_app_owner`, `ua_report_summary` trả `owner_source` + `tag_owner_key`).
+- **Chưa có:** gán nhiều app một lần.
+
 ## 3.51.0 — 2026-11-20
 
 - **Role mới `UA Manager`** (`ua_manager`): có mọi quyền của `ua` (Evaluations, So sánh) và **xem** được UA activity Report + Cron jobs. Chỉ xem: sửa cấu hình cron, chạy tay và sửa mapping người vẫn chỉ admin. Role `ua` thường **không** xem được hai trang này (báo cáo soi hiệu quả từng người). Gán role ở trang Users.

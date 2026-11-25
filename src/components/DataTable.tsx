@@ -2,6 +2,7 @@
 //   • bấm tiêu đề cột để sắp xếp (bấm lần nữa đảo chiều); giá trị trống luôn nằm cuối
 //   • nút "Cột (n/m)": ẩn/hiện từng cột, đẩy cột lên/xuống để đổi thứ tự, "Mặc định" để trả về như ban đầu
 //   • nút "Tải CSV": xuất đúng các cột đang hiện, đúng thứ tự đang xem
+//   • [3.52.0] `totalRow`: dòng "Tổng" ở chân bảng, đứng yên khi sắp xếp, có trong file CSV
 // Lựa chọn (cột ẩn, thứ tự, cột đang sắp) lưu ở localStorage theo `tableId` — mỗi người một kiểu xem riêng,
 // mở lại trang vẫn còn. Bảng phân trang phía server thì truyền `sort` + `onSortChange` để server sắp xếp
 // (sắp ở client trên một trang sẽ cho thứ tự sai).
@@ -26,7 +27,13 @@ export type Column<T> = {
   /** Cột định danh: luôn hiện, không cho ẩn. */
   locked?: boolean
   className?: string
+  /** Ô của dòng "Tổng" khi cần khác ô thường (vd bỏ thanh so sánh); mặc định dùng `cell`. */
+  totalCell?: (row: T) => ReactNode
 }
+
+/** Dòng "Tổng": `row` là một dòng cùng kiểu do nơi gọi tự cộng; chỉ các cột trong `columns` hiện số,
+ *  cột đầu tiên đang hiện mang nhãn. Nơi gọi cộng trên đúng danh sách `rows` đang truyền vào bảng. */
+export type TotalRow<T> = { row: T; columns: string[]; label?: string }
 
 type Prefs = { order: string[]; hidden: string[]; sort: SortState }
 
@@ -76,6 +83,7 @@ export default function DataTable<T>({
   canExpand,
   toolbar,
   csvName,
+  totalRow,
 }: {
   /** Khoá lưu lựa chọn cột/sắp xếp — mỗi bảng một khoá riêng. */
   tableId: string
@@ -95,6 +103,7 @@ export default function DataTable<T>({
   toolbar?: ReactNode
   /** Có tên file thì hiện nút "Tải CSV". */
   csvName?: string
+  totalRow?: TotalRow<T>
 }) {
   const manual = !!onSortChange
   const defaultOrder = useMemo(() => columns.map((c) => c.id), [columns])
@@ -165,9 +174,14 @@ export default function DataTable<T>({
     if (manual) onSortChange!(defaultSort)
     else setOwnSort(defaultSort)
   }
+  const showTotal = !!totalRow && sorted.length > 0
+  const totalLabel = totalRow?.label ?? 'Tổng'
   const download = () => {
     const lines: Value[][] = [visible.map((c) => c.header)]
     for (const r of sorted) lines.push(visible.map((c) => (c.csvValue ?? c.sortValue)?.(r)))
+    if (showTotal) {
+      lines.push(visible.map((c, i) => (i === 0 ? totalLabel : totalRow!.columns.includes(c.id) ? (c.csvValue ?? c.sortValue)?.(totalRow!.row) : '')))
+    }
     const url = URL.createObjectURL(new Blob([`﻿${toCsv(lines)}`], { type: 'text/csv;charset=utf-8' }))
     const a = document.createElement('a')
     a.href = url
@@ -298,6 +312,17 @@ export default function DataTable<T>({
               )
             })}
           </tbody>
+          {showTotal && (
+            <tfoot>
+              <tr className="border-t-2 border-neutral-300 bg-neutral-50 font-semibold dark:border-neutral-700 dark:bg-neutral-900">
+                {visible.map((c, i) => (
+                  <td key={c.id} className={`py-2.5 pr-4 first:rounded-l-md first:pl-3 last:rounded-r-md ${c.align === 'right' ? 'whitespace-nowrap text-right tabular-nums' : ''}`}>
+                    {i === 0 ? totalLabel : totalRow!.columns.includes(c.id) ? (c.totalCell ?? c.cell)(totalRow!.row) : null}
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>

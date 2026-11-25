@@ -11,14 +11,18 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
-const SERVER = { name: "afc", version: "3.51.0" };
+const SERVER = { name: "afc", version: "3.53.0" };
 const PROTOCOL = "2025-03-26";
 const INSTRUCTIONS =
   "af-console (AFC) của App-Factory, chỉ đọc. UA activity report: ua_scorecard (bảng điểm theo người), " +
   "ua_activity (đếm thao tác theo chiều tuỳ chọn), ua_money (tiền theo chủ app / app / ngày), ua_action_log " +
-  "(nhật ký thô), ua_people (mapping người), ua_sync_status. Hai khung gán khác nhau: THAO TÁC gán theo người " +
-  "đã thao tác trên ZooKeeper; TIỀN gán theo chủ sở hữu app (tag bdash). Tiền là USD; doanh thu = AdMob + MAX + " +
-  "IAP + nhập tay; lãi = doanh thu − chi ads − phí; ROAS = doanh thu / (chi ads + phí). Ngày theo GMT+7. " +
+  "(nhật ký thô), ua_people (mapping người), ua_sync_status; ua_workload (creative lên + thao tác theo ngày của từng người), " +
+  "ua_creatives (số Kho creative của ZooKeeper theo người hoặc app: creative mới, đủ chi, win, chi, ROAS quảng cáo = doanh thu " +
+  "Adjust / chi của creative — KHÁC ROAS của khung tiền), ua_creative_items (creative mới của một người). Số Kho creative tối đa " +
+  "31 ngày một lần; khoảng chưa có sẵn phải chờ ZooKeeper tính (tới ~70 giây). Hai khung gán khác nhau: THAO TÁC gán theo người " +
+  "đã thao tác trên ZooKeeper; TIỀN gán theo chủ sở hữu app (gán tay trên AFC, chưa gán tay thì theo tag bdash). " +
+  "Tiền là USD; doanh thu = AdMob + MAX + IAP + nhập tay; lãi = doanh thu − chi ads − phí; ROAS = doanh thu / " +
+  "(chi ads + phí), roas_pct = null khi chi ads dưới $1 (app không chạy ads). Ngày theo GMT+7. " +
   "Số của mấy ngày gần nhất còn nhích theo bdash. afc_list_apps tra app của AF. Tool ua_* và cron_* cần token role ua_manager hoặc admin.";
 
 type Json = Record<string, unknown>;
@@ -53,7 +57,7 @@ function range(a: Json): [string, string] {
 type Summary = {
   actions: { day: string; person_key: string; person_name: string; app_id: string | null; platform: string; bucket: string; n: number }[];
   money: { day: string; app_id: string; revenue: number; cost: number; fees: number; installs: number }[];
-  apps: { app_id: string; app_name: string | null; tags: string[]; owner_key: string | null; app_code: string | null }[];
+  apps: { app_id: string; app_name: string | null; tags: string[]; owner_key: string | null; owner_source: "manual" | "tag" | null; app_code: string | null }[];
   people: { person_key: string; display_name: string; zk_emails: string[]; bdash_tags: string[] }[];
   data_from: string | null; data_to: string | null; sync: Json | null;
 };
@@ -70,7 +74,8 @@ function moneyRow(m: { revenue: number; cost: number; fees: number; installs: nu
   const spent = m.cost + m.fees;
   return {
     revenue: r2(m.revenue), cost: r2(m.cost), fees: r2(m.fees), profit: r2(profit),
-    roas_pct: spent > 0 ? r2((m.revenue / spent) * 100) : null, installs: m.installs,
+    // Chi ads dưới $1 = app không chạy ads: tỉ lệ ra hàng nghìn % và không nói gì về hiệu quả ads (khớp web 3.52.0).
+    roas_pct: m.cost >= 1 ? r2((m.revenue / spent) * 100) : null, installs: m.installs,
   };
 }
 
@@ -89,7 +94,7 @@ function scorecard(s: Summary) {
   }
   for (const m of s.money) {
     const owner = appOf.get(m.app_id)?.owner_key ?? null;
-    const r = owner ? get(owner, nameOf.get(owner) ?? owner) : get("_unassigned", "Chưa gán người (app không có tag người)");
+    const r = owner ? get(owner, nameOf.get(owner) ?? owner) : get("_unassigned", "Chưa gán người (app chưa có chủ)");
     r.revenue += num(m.revenue); r.cost += num(m.cost); r.fees += num(m.fees); r.installs += num(m.installs); r.owned = true;
   }
   const out = [...rows.values()].map((r) => {
@@ -109,10 +114,29 @@ function scorecard(s: Summary) {
       actions: out.reduce((t, r) => t + r.actions, 0), money: moneyRow(tot),
     },
     people: out,
-    note: "actions = người đã thao tác; owned_apps_money = tiền của các app người đó SỞ HỮU (tag bdash). Hai khung khác nhau.",
+    note: "actions = người đã thao tác; owned_apps_money = tiền của các app người đó SỞ HỮU (gán tay trên AFC, chưa gán tay thì theo tag bdash). Hai khung khác nhau.",
     data_range_in_db: [s.data_from, s.data_to], sync: s.sync,
   };
 }
+
+/** Gọi nội bộ edge function ua-creative-pipeline (chờ tới khi có số). */
+async function pipeline(body: Json): Promise<{ data: Json; fetched_at: string; stale: boolean }> {
+  const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ua-creative-pipeline`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ ...body, wait: true }),
+  });
+  const j = await r.json().catch(() => null) as Json | null;
+  if (!j) throw new Error(`ua-creative-pipeline: HTTP ${r.status}`);
+  if (j.status === "error") throw new Error(String(j.error));
+  if (j.status === "pending") throw new Error(`ZooKeeper đang tính số cho khoảng ngày này — gọi lại sau khoảng ${j.eta_s} giây.`);
+  return j as { data: Json; fetched_at: string; stale: boolean };
+}
+const roasPct = (a: Json) => (num(a.spend) >= 1 ? r2((num(a.revenue) / num(a.spend)) * 100) : null);
+const creativeRow = (a: Json) => ({
+  running: num(a.creatives), new: num(a.new), tested: num(a.tested), win: num(a.win), below_threshold: num(a.not_ok),
+  testing: num(a.testing), owner_inferred_by_zk: num(a.inferred), spend: r2(num(a.spend)), adjust_revenue: r2(num(a.revenue)), ad_roas_pct: roasPct(a),
+});
 
 const TOOLS: Tool[] = [
   {
@@ -166,7 +190,7 @@ const TOOLS: Tool[] = [
   {
     name: "ua_money",
     manager: true,
-    description: "Tiền (USD) trong một khoảng ngày, gom theo owner (chủ sở hữu app), app hoặc day: doanh thu, chi ads, phí, lãi, ROAS, installs. Khớp cách tính của BBL Dashboard.",
+    description: "Tiền (USD) trong một khoảng ngày, gom theo owner (chủ sở hữu app), app hoặc day: doanh thu, chi ads, phí, lãi, ROAS, installs. Khớp cách tính của BBL Dashboard. group_by=app trả thêm owner_source: manual = gán tay trên AFC, tag = theo tag bdash, null = chưa có chủ.",
     inputSchema: {
       type: "object",
       properties: {
@@ -191,7 +215,7 @@ const TOOLS: Tool[] = [
         if (fo && (fo === "none" ? owner !== null : owner !== fo)) continue;
         if (fa && !(m.app_id.toLowerCase() === fa || appName.toLowerCase().includes(fa))) continue;
         const key: Json = by === "app"
-          ? { app_id: m.app_id, app: appName, owner: owner ? nameOf.get(owner) ?? owner : null, afc_app_code: ap?.app_code ?? null }
+          ? { app_id: m.app_id, app: appName, owner: owner ? nameOf.get(owner) ?? owner : null, owner_source: ap?.owner_source ?? null, afc_app_code: ap?.app_code ?? null }
           : by === "day" ? { day: m.day }
           : { owner_key: owner, owner: owner ? nameOf.get(owner) ?? owner : "Chưa gán người" };
         const k = JSON.stringify(key);
@@ -242,9 +266,98 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "ua_workload",
+    manager: true,
+    description: "Workload theo ngày của từng người UA: số creative đưa lên chạy (ZooKeeper) và số thao tác trên campaign/ad, mỗi ngày một dòng. Dữ liệu có từ tháng 8/2026. Chỉ phản ánh việc đi qua ZooKeeper.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...RANGE,
+        level: { ...LEVEL, default: "all", description: "Cấp đối tượng của thao tác. Mặc định all." },
+        person: { type: "string", description: "Lọc: person_key hoặc một phần tên người." },
+      },
+      required: ["date_from", "date_to"],
+    },
+    run: async (db, a) => {
+      const [from, to] = range(a);
+      const { data, error } = await db.rpc("ua_activity_calendar", { p_from: from, p_to: to, p_level: str(a.level) ?? "all" });
+      if (error) throw new Error(error.message);
+      const fp = str(a.person)?.toLowerCase();
+      const people = new Map<string, { person_key: string; person: string; uploads: number; actions: number; active_days: number; days: Json[] }>();
+      for (const r of ((data as Json).rows as Json[]) ?? []) {
+        const key = String(r.person_key), name = String(r.person_name);
+        if (fp && !(key.toLowerCase() === fp || name.toLowerCase().includes(fp))) continue;
+        let p = people.get(key);
+        if (!p) { p = { person_key: key, person: name, uploads: 0, actions: 0, active_days: 0, days: [] }; people.set(key, p); }
+        p.uploads += num(r.uploads); p.actions += num(r.actions); p.active_days += 1;
+        p.days.push({ day: r.day, creatives_uploaded: num(r.uploads), actions: num(r.actions) });
+      }
+      const rows = [...people.values()].sort((x, y) => y.uploads + y.actions - (x.uploads + x.actions));
+      for (const p of rows) p.days.sort((x, y) => String(x.day).localeCompare(String(y.day)));
+      return { date_from: from, date_to: to, data_from: (data as Json).data_from, people: rows, note: "Ngày không có trong days = không có hoạt động ghi nhận qua ZooKeeper (không tính sửa thẳng trong Ads Manager / Google Ads)." };
+    },
+  },
+  {
+    name: "ua_creatives",
+    manager: true,
+    description: "Số Kho creative của ZooKeeper trong một khoảng ngày (tối đa 31 ngày), gom theo person (người lên creative) hoặc app: creative đang chạy, creative mới, đủ chi (chi từ ngưỡng, mặc định $10), win (đủ chi và ROAS Adjust ≥ ngưỡng), chi, doanh thu Adjust, ROAS quảng cáo. Khớp màn Kho creative của ZooKeeper cho cùng khoảng ngày.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...RANGE,
+        group_by: { type: "string", enum: ["person", "app"], default: "person" },
+        person: { type: "string", description: "Lọc: person_key hoặc một phần tên người." },
+        app: { type: "string", description: "Lọc: một phần tên app (tên theo ZooKeeper) hoặc app_id." },
+      },
+      required: ["date_from", "date_to"],
+    },
+    run: async (_db, a) => {
+      const [from, to] = range(a);
+      const out = await pipeline({ from, to });
+      const d = out.data as { totals: Json; min_spend: number; roas_threshold: number; people: (Json & { person_key: string; name: string; apps: (Json & { app: string; app_id: string | null })[] })[] };
+      const fp = str(a.person)?.toLowerCase(), fa = str(a.app)?.toLowerCase();
+      const people = d.people.filter((p) => !fp || p.person_key.toLowerCase() === fp || p.name.toLowerCase().includes(fp));
+      const appOk = (x: { app: string; app_id: string | null }) => !fa || x.app.toLowerCase().includes(fa) || (x.app_id ?? "").toLowerCase() === fa;
+      const head = { date_from: from, date_to: to, fetched_at: out.fetched_at, stale: out.stale, min_spend_usd: d.min_spend, win_roas_threshold_pct: d.roas_threshold * 100 };
+      if ((str(a.group_by) ?? "person") === "app") {
+        const apps = new Map<string, { app: string; app_id: string | null; agg: Json; people: { person: string; new: number; running: number }[] }>();
+        for (const p of people) for (const x of p.apps.filter(appOk)) {
+          let r = apps.get(x.app);
+          if (!r) { r = { app: x.app, app_id: x.app_id, agg: {}, people: [] }; apps.set(x.app, r); }
+          for (const k of ["creatives", "new", "tested", "win", "not_ok", "testing", "inferred", "spend", "revenue"]) r.agg[k] = num(r.agg[k]) + num(x[k]);
+          if (p.person_key !== "_unknown") r.people.push({ person: p.name, new: num(x.new), running: num(x.creatives) });
+        }
+        const rows = [...apps.values()].map((r) => ({ app: r.app, app_id: r.app_id, ...creativeRow(r.agg), people: r.people.sort((x, y) => y.new - x.new || y.running - x.running) }))
+          .sort((x, y) => y.spend - x.spend);
+        return { ...head, group_by: "app", rows: rows.slice(0, 300), truncated: rows.length > 300 };
+      }
+      return {
+        ...head, group_by: "person",
+        team_totals: fp || fa ? undefined : creativeRow(d.totals),
+        rows: people.map((p) => ({
+          person_key: p.person_key, person: p.name, ...creativeRow(fa ? p.apps.filter(appOk).reduce<Json>((t, x) => { for (const k of ["creatives", "new", "tested", "win", "not_ok", "testing", "inferred", "spend", "revenue"]) t[k] = num(t[k]) + num(x[k]); return t; }, {}) : p),
+          apps: p.apps.filter(appOk).slice(0, 8).map((x) => ({ app: x.app, app_id: x.app_id, ...creativeRow(x) })),
+        })),
+        note: "team_totals đếm mỗi creative một lần. owner_inferred_by_zk = creative không ghi nhận được người lên, ZooKeeper gán cho người chạy app đó nhiều nhất. ad_roas_pct = doanh thu Adjust / chi của creative, null khi chi dưới $1.",
+      };
+    },
+  },
+  {
+    name: "ua_creative_items",
+    manager: true,
+    description: "Danh sách creative MỚI của một người UA trong khoảng ngày (tối đa 31 ngày, 100 creative mới nhất): tên file, app, nền tảng, lúc lên, chi, doanh thu Adjust, ROAS, trạng thái (untested / testing / win / not_ok).",
+    inputSchema: { type: "object", properties: { ...RANGE, person: { type: "string", description: "person_key chính xác (xem ua_people)." } }, required: ["date_from", "date_to", "person"] },
+    run: async (_db, a) => {
+      const [from, to] = range(a);
+      if (!str(a.person)) throw new Error("Cần person (person_key).");
+      const out = await pipeline({ from, to, person_key: str(a.person), items: true });
+      return { fetched_at: out.fetched_at, ...out.data };
+    },
+  },
+  {
     name: "ua_people",
     manager: true,
-    description: "Mapping người UA: person_key, tên, email ZooKeeper, tag bdash (dùng để gán chủ sở hữu app).",
+    description: "Mapping người UA: person_key, tên, email ZooKeeper, tag bdash (chủ app theo tag khi app chưa được gán tay trên AFC).",
     inputSchema: { type: "object", properties: {} },
     run: async (db) => {
       const { data, error } = await db.from("ua_people").select("person_key, display_name, zk_emails, bdash_tags, note").order("display_name");
