@@ -3,6 +3,10 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.53.3 — 2026-11-25
+
+- Không đổi gì so với 3.53.2. Số phiên bản nhảy thêm một bậc vì script phát hành bị chạy hai lần: lần đầu đã bump + tag `v3.53.2` ở local rồi báo lỗi ở bước sau, lần chạy lại bump tiếp lên `v3.53.3` và push cả hai tag. Hai tag trỏ vào cùng một nội dung; bản đang chạy trên production là 3.53.3.
+
 ## 3.53.2 — 2026-11-25
 
 - **UA activity Report — nhãn "Avg ROAS"** thay cho "ROAS QC" / "ROAS quảng cáo" ở mọi chỗ hiện ROAS GỘP của một người hoặc cả đội (Tổng quan, tab Kết quả, ô số đầu trang, trang từng UA). Con số này là tổng doanh thu Adjust / tổng chi của mọi app người đó có creative chạy trong kỳ — không phải ROAS của app tốt nhất — nên app chi nhiều kéo nó về phía mình; tên mới để khỏi hiểu nhầm. Cách tính không đổi. ROAS của một app hay một creative thì ghi "ROAS".
