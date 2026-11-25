@@ -3,6 +3,12 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.54.0 — 2026-11-25
+
+- **UA activity Report — bảng Tổng quan bố cục mới** (chủ sản phẩm duyệt mock-up): mỗi con số một cột riêng có tiêu đề, gom dưới ba nhóm. **Hoạt động trong kỳ**: Workload 14 ngày · Creative lên · Thao tác. **App tập trung**: mỗi app một dòng kèm % creative, phần còn lại ghi "+N app khác". **Kết quả quảng cáo**: Đã chi · Avg ROAS · Win. Bản cũ gộp "tên app + số creative · số thao tác" vào một ô và "chấm xanh + ROAS QC + chi" vào ô kia nên khó đọc. Mọi cột sắp xếp được.
+- **Cột "Win" ghi số creative win** trong ô xanh nhỏ (không có thì gạch) ở Tổng quan, tab Kết quả, Phân bổ → Theo app và bảng Theo app của trang từng UA — thay cho chấm xanh không chú thích của 3.53.1. Rê chuột vào ô để xem "x creative win trong y creative đã chi ≥ $10". Cột "Chi" đổi tên thành "Đã chi".
+- **`DataTable` có tiêu đề nhóm cột**: cột khai `group` thì các cột liền nhau cùng nhóm chung một dòng tiêu đề phía trên; tên nhóm đi kèm tên cột trong nút "Cột" và trong file CSV.
+
 ## 3.53.3 — 2026-11-25
 
 - Không đổi gì so với 3.53.2. Số phiên bản nhảy thêm một bậc vì script phát hành bị chạy hai lần: lần đầu đã bump + tag `v3.53.2` ở local rồi báo lỗi ở bước sau, lần chạy lại bump tiếp lên `v3.53.3` và push cả hai tag. Hai tag trỏ vào cùng một nội dung; bản đang chạy trên production là 3.53.3.

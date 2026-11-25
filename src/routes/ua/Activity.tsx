@@ -74,20 +74,24 @@ export function focusApps(cr: CreativePerson | null): { app: string; app_id: str
 /** Bỏ phần mô tả sau dấu ":" / " - " của tên store để dòng gọn: "Kaleidra: Short Drama Series" → "Kaleidra". */
 export const shortApp = (name: string) => name.split(/\s*[:–|]\s*|\s+-\s+/)[0] || name
 
-const winText = (a: CreativeAgg, min: number) => `${int(a.win)} win / ${int(a.tested)} ${testedLabel(min)}`
 /** Lời giải thích hiện khi rê chuột vào ROAS / chấm xanh. */
 export const winTitle = (a: CreativeAgg, min: number | null | undefined) =>
   a.tested ? `${int(a.win)} creative win trong ${int(a.tested)} creative đã ${testedLabel(min)}` : `Chưa có creative nào ${testedLabel(min)}`
 
-/** Chủ sản phẩm chốt (2026-11-25): không viết số win / ngưỡng chi ra màn hình — có creative win trong kỳ thì
- *  chỉ một chấm xanh nhỏ cạnh ROAS quảng cáo; số nằm ở tooltip và ở các cột ẩn sẵn (bật trong nút "Cột"). */
-export function RoasWithDot({ a, min, dot = true }: { a: CreativeAgg; min: number | null | undefined; dot?: boolean }) {
-  return (
-    <span className="inline-flex items-center gap-1.5" title={winTitle(a, min)}>
-      {dot && a.win > 0 && <span className="inline-block h-2 w-2 flex-none rounded-full" style={{ backgroundColor: WIN_COLOR }} aria-label="có creative win" />}
-      {pct(creativeRoas(a))}
+/** [3.54.0] Chủ sản phẩm duyệt bố cục mới (2026-11-25): mỗi con số một cột riêng có tiêu đề. Số creative win
+ *  nằm ở cột "Win" trong ô xanh nhỏ (không có thì gạch) — thay cho chấm xanh không chú thích của 3.53.1. */
+export function WinPill({ a, min }: { a: CreativeAgg; min: number | null | undefined }) {
+  return a.win > 0 ? (
+    <span title={winTitle(a, min)} className="inline-block rounded-md bg-green-50 px-1.5 py-0.5 text-xs font-medium tabular-nums text-green-800 dark:bg-green-950 dark:text-green-200">
+      {int(a.win)}
     </span>
+  ) : (
+    <span className="text-neutral-400" title={winTitle(a, min)}>—</span>
   )
+}
+/** ROAS % của một nhóm creative; rê chuột hiện số win. */
+export function RoasCell({ a, min }: { a: CreativeAgg; min: number | null | undefined }) {
+  return <span title={winTitle(a, min)}>{pct(creativeRoas(a))}</span>
 }
 
 function WinBar({ a }: { a: CreativeAgg }) {
@@ -147,63 +151,61 @@ export function TeamStats({ act, team, creativeQ }: Pick<ViewProps, 'act' | 'tea
 }
 
 // ----------------------------------------------------------------------------- Tổng quan
+const G_ACT = 'Hoạt động trong kỳ'
+const G_APP = 'App tập trung'
+const G_RES = 'Kết quả quảng cáo'
+const zero = (n: number) => (n ? int(n) : <span className="text-neutral-300 dark:text-neutral-700">0</span>)
+
 export function Overview(p: ViewProps) {
   const rows = useRows(p)
   const { s, cal, go, creativeQ, team } = p
   const days = useMemo(() => Array.from({ length: 14 }, (_, i) => addDays(s.to, i - 13)), [s.to])
-  const columns = useMemo<Column<Row>[]>(
-    () => [
+  const columns = useMemo<Column<Row>[]>(() => {
+    const wait = team ? DASH : <span className={MUTED}>…</span>
+    return [
       { id: 'name', header: 'UA', locked: true, sortValue: (r) => r.name, cell: (r) => <PersonLink row={r} go={go} /> },
       {
-        id: 'workload', header: `Workload 14 ngày (tới ${shortDay(s.to)})`, sortValue: (r) => sumDays(cal, r.key, days), csvValue: (r) => sumDays(cal, r.key, days),
+        id: 'workload', group: G_ACT, header: 'Workload 14 ngày', sortValue: (r) => sumDays(cal, r.key, days), csvValue: (r) => sumDays(cal, r.key, days),
         cell: (r) => <DayStrip cal={cal} personKey={r.key} days={days} onPick={(d) => go(r.key, d)} />,
       },
+      { id: 'uploads', group: G_ACT, header: 'Creative lên', align: 'right', sortValue: (r) => r.act.kinds.upload, cell: (r) => zero(r.act.kinds.upload) },
+      { id: 'actions', group: G_ACT, header: 'Thao tác', align: 'right', sortValue: (r) => r.act.actions, cell: (r) => zero(r.act.actions) },
       {
-        id: 'focus', header: 'App tập trung', sortValue: (r) => r.act.total,
-        csvValue: (r) => focusApps(r.cr).slice(0, 3).map((a) => a.app).join('; '),
+        id: 'focus', group: G_APP, header: 'Theo creative lên', sortValue: (r) => focusApps(r.cr)[0]?.app ?? null,
+        csvValue: (r) => focusApps(r.cr).map((a) => `${a.app} ${(a.share * 100).toFixed(0)}%`).join('; '),
         cell: (r) => {
           const apps = focusApps(r.cr)
+          if (!apps.length) return wait
           return (
-            <div className="text-xs">
-              <div className="text-sm">{apps.length ? apps.slice(0, 2).map((a) => shortApp(a.app)).join(', ') : team ? DASH : <span className={MUTED}>…</span>}</div>
-              <div className={MUTED}>{int(r.act.kinds.upload)} creative · {int(r.act.actions)} thao tác</div>
+            <div className="leading-5">
+              {apps.slice(0, 2).map((a) => (
+                <div key={a.app} title={`${a.app}: ${int(a.n)} creative`}>
+                  {shortApp(a.app)} <span className={MUTED}>{(a.share * 100).toFixed(0)}%</span>
+                </div>
+              ))}
+              {apps.length > 2 && <div className={`text-xs ${MUTED}`}>+{apps.length - 2} app khác</div>}
             </div>
           )
         },
       },
-      {
-        id: 'result', header: 'Kết quả creative', sortValue: (r) => r.cr?.win ?? null,
-        csvValue: (r) => (r.cr ? `${winText(r.cr, team?.min_spend ?? 10)}; Avg ROAS ${pct(creativeRoas(r.cr))}; chi ${usd(r.cr.spend)}` : ''),
-        cell: (r) =>
-          // Chủ sản phẩm chốt (2026-11-25): không viết số win / ngưỡng chi ở đây — có creative win trong kỳ thì
-          // chỉ một chấm xanh nhỏ; số chi tiết hiện khi rê chuột và ở tab Kết quả.
-          r.cr ? (
-            r.cr.spend >= 1 ? (
-              <div className="text-xs" title={winTitle(r.cr, team?.min_spend)}>
-                <div className="flex items-center gap-1.5 text-sm">
-                  {r.cr.win > 0 && <span className="inline-block h-2 w-2 flex-none rounded-full" style={{ backgroundColor: WIN_COLOR }} aria-label="có creative win" />}
-                  Avg ROAS {pct(creativeRoas(r.cr))}
-                </div>
-                <div className={MUTED}>chi {usd(r.cr.spend)}</div>
-              </div>
-            ) : DASH
-          ) : team ? DASH : <span className={MUTED}>…</span>,
-      },
-    ],
-    [cal, days, go, s.to, team],
-  )
+      { id: 'spend', group: G_RES, header: 'Đã chi', align: 'right', sortValue: (r) => r.cr?.spend ?? null, cell: (r) => (r.cr ? usd(r.cr.spend) : wait) },
+      { id: 'roas', group: G_RES, header: 'Avg ROAS', align: 'right', sortValue: (r) => (r.cr ? creativeRoas(r.cr) : null), cell: (r) => (r.cr ? <RoasCell a={r.cr} min={team?.min_spend} /> : wait) },
+      { id: 'win', group: G_RES, header: 'Win', align: 'right', sortValue: (r) => r.cr?.win ?? null, cell: (r) => (r.cr ? <WinPill a={r.cr} min={team?.min_spend} /> : wait) },
+    ]
+  }, [cal, days, go, team])
   if (!rows.length) return <Empty>Chưa có hoạt động nào được ghi nhận.</Empty>
   return (
     <>
       <CreativeNote q={creativeQ} />
       <div className={team ? '' : 'mt-3'}>
-        <DataTable tableId="ua-overview" columns={columns} rows={rows} rowKey={(r) => r.key} defaultSort={{ id: 'workload', dir: 'desc' }} csvName={`ua-tong-quan_${s.from}_${s.to}`} />
+        <DataTable tableId="ua-overview-2" columns={columns} rows={rows} rowKey={(r) => r.key} defaultSort={{ id: 'workload', dir: 'desc' }} csvName={`ua-tong-quan_${s.from}_${s.to}`} />
       </div>
       <p className={`mt-3 text-xs ${MUTED}`}>
-        Mỗi ô của dải Workload là một ngày: càng đậm càng nhiều hoạt động (creative lên + thao tác campaign); rê chuột để xem số,
-        bấm để mở ngày đó. App tập trung và Kết quả creative tính trong khoảng ngày đang chọn ({shortDay(s.from)} – {shortDay(s.to)}).
-        Avg ROAS = tổng doanh thu Adjust / tổng chi của mọi creative người đó có chạy trong kỳ, gộp mọi app (ROAS từng app xem ở trang riêng của người đó); chấm xanh = có creative win trong kỳ (rê chuột để xem số, chi tiết ở tab Kết quả).
-        Bấm tên để mở trang riêng. <CreativeStamp q={creativeQ} />
+        Workload: mỗi ô một ngày (14 ngày tới {shortDay(s.to)}), càng đậm càng nhiều hoạt động; rê chuột để xem số, bấm để mở ngày đó.
+        Các cột còn lại tính trong khoảng ngày đang chọn ({shortDay(s.from)} – {shortDay(s.to)}). App tập trung = tỉ lệ creative của người đó theo từng app.
+        Avg ROAS = tổng doanh thu Adjust / tổng chi, gộp mọi app của người đó (ROAS từng app xem ở trang riêng — bấm tên).
+        {team && <> Win = số creative đã chi từ ${team.min_spend} và có ROAS từ {(team.roas_threshold * 100).toFixed(0)}%.</>}{' '}
+        <CreativeStamp q={creativeQ} />
       </p>
     </>
   )
@@ -374,8 +376,9 @@ export function Allocation(p: ViewProps) {
       { id: 'new', header: 'Creative mới', align: 'right', sortValue: (r) => r.agg.new, cell: (r) => (r.agg.new ? int(r.agg.new) : '') },
       { id: 'creatives', header: 'Đang chạy', align: 'right', sortValue: (r) => r.agg.creatives, cell: (r) => int(r.agg.creatives) },
       { id: 'win', header: `Win / ${testedLabel(team?.min_spend)}`, defaultHidden: true, sortValue: (r) => (r.agg.tested ? r.agg.win / r.agg.tested : null), csvValue: (r) => `${r.agg.win}/${r.agg.tested}`, className: 'min-w-40', cell: (r) => <WinBar a={r.agg} /> },
-      { id: 'spend', header: 'Chi', align: 'right', sortValue: (r) => r.agg.spend, cell: (r) => usd(r.agg.spend) },
-      { id: 'roas', header: 'ROAS', align: 'right', sortValue: (r) => creativeRoas(r.agg), csvValue: (r) => creativeRoas(r.agg), cell: (r) => <RoasWithDot a={r.agg} min={team?.min_spend} /> },
+      { id: 'spend', header: 'Đã chi', align: 'right', sortValue: (r) => r.agg.spend, cell: (r) => usd(r.agg.spend) },
+      { id: 'roas', header: 'ROAS', align: 'right', sortValue: (r) => creativeRoas(r.agg), csvValue: (r) => creativeRoas(r.agg), cell: (r) => <RoasCell a={r.agg} min={team?.min_spend} /> },
+      { id: 'wins', header: 'Win', align: 'right', sortValue: (r) => r.agg.win, cell: (r) => <WinPill a={r.agg} min={team?.min_spend} /> },
     ],
     [go, team?.min_spend],
   )
@@ -400,7 +403,7 @@ export function Allocation(p: ViewProps) {
             <DataTable key="person" tableId="ua-alloc-person" columns={personCols} rows={rows} rowKey={(r) => r.key} defaultSort={{ id: 'kinds', dir: 'desc' }} csvName={`ua-phan-bo-theo-nguoi_${s.from}_${s.to}`} />
           ) : <Empty>Chưa có hoạt động nào trong khoảng ngày này.</Empty>
         ) : apps.length ? (
-          <DataTable key="app" tableId="ua-alloc-app-3" columns={appCols} rows={apps} rowKey={(r) => r.app} defaultSort={{ id: 'spend', dir: 'desc' }} csvName={`ua-phan-bo-theo-app_${s.from}_${s.to}`} />
+          <DataTable key="app" tableId="ua-alloc-app-4" columns={appCols} rows={apps} rowKey={(r) => r.app} defaultSort={{ id: 'spend', dir: 'desc' }} csvName={`ua-phan-bo-theo-app_${s.from}_${s.to}`} />
         ) : team ? <Empty>Không có creative nào chạy trong khoảng ngày này.</Empty> : null}
       </div>
       <p className={`mt-3 text-xs ${MUTED}`}>
@@ -416,7 +419,7 @@ export function Allocation(p: ViewProps) {
 // ----------------------------------------------------------------------------- Kết quả
 /** known = có trang riêng (nằm trong danh sách người); tài khoản ZooKeeper khác chỉ hiện tên. */
 type ResultRow = RosterRow & { cr: CreativeAgg; synthetic: boolean; known: boolean }
-const RESULT_TOTAL = ['new', 'tested', 'winrate', 'spend', 'revenue', 'roas', 'creatives', 'not_ok', 'inferred']
+const RESULT_TOTAL = ['new', 'tested', 'winrate', 'spend', 'revenue', 'roas', 'win', 'creatives', 'not_ok', 'inferred']
 
 export function Results(p: ViewProps) {
   const { s, roster, team, creativeQ, go } = p
@@ -440,13 +443,10 @@ export function Results(p: ViewProps) {
       { id: 'new', header: 'Creative mới', align: 'right', sortValue: (r) => r.cr.new, cell: (r) => int(r.cr.new) },
       { id: 'tested', header: testedLabel(team?.min_spend).replace(/^c/, 'C'), align: 'right', defaultHidden: true, sortValue: (r) => r.cr.tested, cell: (r) => int(r.cr.tested) },
       { id: 'winrate', header: `Win / ${testedLabel(team?.min_spend)}`, className: 'min-w-44', defaultHidden: true, sortValue: (r) => (r.cr.tested ? r.cr.win / r.cr.tested : null), csvValue: (r) => `${r.cr.win}/${r.cr.tested}`, cell: (r) => <WinBar a={r.cr} /> },
-      { id: 'spend', header: 'Chi', align: 'right', sortValue: (r) => r.cr.spend, cell: (r) => usd(r.cr.spend) },
+      { id: 'spend', header: 'Đã chi', align: 'right', sortValue: (r) => r.cr.spend, cell: (r) => usd(r.cr.spend) },
       { id: 'revenue', header: 'Doanh thu Adjust', align: 'right', defaultHidden: true, sortValue: (r) => r.cr.revenue, cell: (r) => usd(r.cr.revenue) },
-      {
-        id: 'roas', header: 'Avg ROAS', align: 'right', sortValue: (r) => creativeRoas(r.cr), csvValue: (r) => creativeRoas(r.cr),
-        cell: (r) => <RoasWithDot a={r.cr} min={team?.min_spend} />,
-        totalCell: (r) => <RoasWithDot a={r.cr} min={team?.min_spend} dot={false} />,
-      },
+      { id: 'roas', header: 'Avg ROAS', align: 'right', sortValue: (r) => creativeRoas(r.cr), csvValue: (r) => creativeRoas(r.cr), cell: (r) => <RoasCell a={r.cr} min={team?.min_spend} /> },
+      { id: 'win', header: 'Win', align: 'right', sortValue: (r) => r.cr.win, cell: (r) => <WinPill a={r.cr} min={team?.min_spend} /> },
       { id: 'creatives', header: 'Đang chạy', align: 'right', defaultHidden: true, sortValue: (r) => r.cr.creatives, cell: (r) => int(r.cr.creatives) },
       { id: 'not_ok', header: 'Dưới ngưỡng', align: 'right', defaultHidden: true, sortValue: (r) => r.cr.not_ok, cell: (r) => int(r.cr.not_ok) },
       { id: 'inferred', header: 'ZooKeeper suy ra', align: 'right', defaultHidden: true, sortValue: (r) => r.cr.inferred, cell: (r) => (r.cr.inferred ? int(r.cr.inferred) : '') },
@@ -461,14 +461,14 @@ export function Results(p: ViewProps) {
     <>
       <CreativeNote q={creativeQ} />
       {team && (rows.length ? (
-        <DataTable tableId="ua-results-2" columns={columns} rows={rows} rowKey={(r) => r.key} defaultSort={{ id: 'spend', dir: 'desc' }}
+        <DataTable tableId="ua-results-3" columns={columns} rows={rows} rowKey={(r) => r.key} defaultSort={{ id: 'spend', dir: 'desc' }}
           pinBottom={(r) => r.synthetic} totalRow={total} csvName={`ua-ket-qua_${s.from}_${s.to}`} />
       ) : <Empty>Không có creative nào chạy trong khoảng ngày này.</Empty>)}
       {team && (
         <p className={`mt-3 text-xs ${MUTED}`}>
           Creative mới = lên lần đầu trong kỳ. Chi và Avg ROAS tính trên mọi creative của người đó có chạy trong kỳ (cả creative lên từ trước), gộp mọi app;
-          Avg ROAS = tổng doanh thu Adjust / tổng chi — app chi nhiều kéo con số về phía nó; ROAS từng app xem ở trang riêng của người đó. Chấm xanh cạnh ROAS = có creative win trong kỳ, tức creative đã chi từ ${team.min_spend} và có
-          ROAS quảng cáo từ {(team.roas_threshold * 100).toFixed(0)}%; rê chuột để xem số, hoặc bật hai cột ẩn sẵn trong nút "Cột".
+          Avg ROAS = tổng doanh thu Adjust / tổng chi — app chi nhiều kéo con số về phía nó; ROAS từng app xem ở trang riêng của người đó. Win = số creative đã chi từ ${team.min_spend} và có
+          ROAS từ {(team.roas_threshold * 100).toFixed(0)}%; cột "Chi ≥ ..." (bao nhiêu creative đã đủ tiền để đánh giá) ẩn sẵn, bật trong nút "Cột".
           Số khớp màn Kho creative của ZooKeeper cho cùng khoảng ngày. Dòng Cả đội đếm mỗi creative một lần. Creative không ghi nhận được người
           lên được ZooKeeper gán cho người chạy app đó nhiều nhất; tên dạng email là tài khoản ZooKeeper chưa khai ở Thiết lập → Mapping người (bật cột "ZooKeeper suy ra" để xem bao nhiêu). Lãi theo app xem ở tab Tiền theo app.{' '}
           <CreativeStamp q={creativeQ} />

@@ -28,7 +28,7 @@ import {
 import DataTable, { type Column, type TotalRow } from '../../components/DataTable'
 import { Badge, Empty, Stat } from '../../components/ui'
 import ActionLog from './ActionLog'
-import { KIND_COLOR, RoasWithDot, focusApps, shortApp } from './Activity'
+import { KIND_COLOR, RoasCell, WinPill, focusApps, shortApp } from './Activity'
 import {
   AppIconImg,
   BTN,
@@ -193,11 +193,10 @@ function PersonApps({ cr, s, minSpend, csvName }: { cr: CreativePerson; s: UaSum
       { id: 'revenue', header: 'Doanh thu Adjust', align: 'right', sortValue: (r) => r.revenue, cell: (r) => usd(r.revenue) },
       {
         id: 'roas', header: 'ROAS', align: 'right', sortValue: (r) => creativeRoas(r), csvValue: (r) => creativeRoas(r),
-        cell: (r) => <RoasWithDot a={r} min={minSpend} />,
-        totalCell: (r) => <RoasWithDot a={r} min={minSpend} dot={false} />,
+        cell: (r) => <RoasCell a={r} min={minSpend} />,
       },
+      { id: 'win', header: 'Win', align: 'right', sortValue: (r) => r.win, cell: (r) => <WinPill a={r} min={minSpend} /> },
       { id: 'tested', header: testedLabel(minSpend).replace(/^c/, 'C'), align: 'right', defaultHidden: true, sortValue: (r) => r.tested, cell: (r) => int(r.tested) },
-      { id: 'win', header: 'Win', align: 'right', defaultHidden: true, sortValue: (r) => r.win, cell: (r) => int(r.win) },
     ],
     [minSpend],
   )
@@ -208,10 +207,10 @@ function PersonApps({ cr, s, minSpend, csvName }: { cr: CreativePerson; s: UaSum
   if (!rows.length) return <Empty>Không có creative nào của người này chạy trong khoảng ngày đang chọn.</Empty>
   return (
     <>
-      <DataTable tableId="ua-person-apps" columns={columns} rows={rows} rowKey={(r) => r.app} defaultSort={{ id: 'spend', dir: 'desc' }} totalRow={total} csvName={csvName} />
+      <DataTable tableId="ua-person-apps-2" columns={columns} rows={rows} rowKey={(r) => r.app} defaultSort={{ id: 'spend', dir: 'desc' }} totalRow={total} csvName={csvName} />
       <p className={`mt-2 text-xs ${MUTED}`}>
         ROAS = doanh thu Adjust / chi của các creative người này có trên app đó trong kỳ. Dòng Tổng là Avg ROAS ở ô số đầu trang: tổng doanh thu / tổng chi
-        của mọi app, nên app chi nhiều kéo con số về phía nó. Chấm xanh = app có creative win.
+        của mọi app, nên app chi nhiều kéo con số về phía nó. Win = số creative win của người này trên app đó.
       </p>
     </>
   )
@@ -286,7 +285,7 @@ export default function PersonPage(p: ViewProps & {
         <Stat label="Creative mới" value={cr ? int(cr.new) : team ? '0' : '—'} hint={waiting ?? `${range} · ${int(a.kinds.upload)} lượt lên theo lịch`} />
         <Stat label="Thao tác campaign" value={int(a.actions)} hint={`${range} · tạo, bật / tắt, chỉnh ngân sách`} />
         <Stat label="Chi quảng cáo" value={cr ? usd(cr.spend) : '—'} hint={waiting ?? (cr ? `doanh thu Adjust ${usd(cr.revenue)}` : undefined)} />
-        <Stat label="Avg ROAS" value={cr ? <RoasWithDot a={cr} min={team?.min_spend} /> : '—'} hint={waiting ?? (cr ? `gộp mọi app: doanh thu Adjust / chi${cr.win ? ' · chấm xanh = có creative win' : ''}` : undefined)} />
+        <Stat label="Avg ROAS" value={cr ? <RoasCell a={cr} min={team?.min_spend} /> : '—'} hint={waiting ?? (cr ? 'gộp mọi app: doanh thu Adjust / chi' : undefined)} />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">

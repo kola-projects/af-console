@@ -3,6 +3,7 @@
 //   • nút "Cột (n/m)": ẩn/hiện từng cột, đẩy cột lên/xuống để đổi thứ tự, "Mặc định" để trả về như ban đầu
 //   • nút "Tải CSV": xuất đúng các cột đang hiện, đúng thứ tự đang xem
 //   • [3.52.0] `totalRow`: dòng "Tổng" ở chân bảng, đứng yên khi sắp xếp, có trong file CSV
+//   • [3.54.0] `group` của cột: các cột liền nhau cùng nhóm có chung một dòng tiêu đề nhóm phía trên
 // Lựa chọn (cột ẩn, thứ tự, cột đang sắp) lưu ở localStorage theo `tableId` — mỗi người một kiểu xem riêng,
 // mở lại trang vẫn còn. Bảng phân trang phía server thì truyền `sort` + `onSortChange` để server sắp xếp
 // (sắp ở client trên một trang sẽ cho thứ tự sai).
@@ -16,6 +17,8 @@ type Value = number | string | null | undefined
 export type Column<T> = {
   id: string
   header: string
+  /** Tên nhóm cột — các cột LIỀN NHAU cùng nhóm chung một tiêu đề nhóm ở dòng trên (vd "Kết quả quảng cáo"). */
+  group?: string
   align?: 'left' | 'right'
   cell: (row: T) => ReactNode
   /** Giá trị để sắp xếp. Bỏ trống = cột không sắp xếp được. */
@@ -139,7 +142,20 @@ export default function DataTable<T>({
     const ids = [...order.filter((id) => byId.has(id)), ...defaultOrder.filter((id) => !order.includes(id))]
     return ids.map((id) => byId.get(id)!)
   }, [columns, order, defaultOrder])
-  const visible = ordered.filter((c) => c.locked || !hidden.includes(c.id))
+  const visible = useMemo(() => ordered.filter((c) => c.locked || !hidden.includes(c.id)), [ordered, hidden])
+
+  // Dòng tiêu đề nhóm: gộp các cột liền nhau cùng `group`; không cột nào có nhóm thì không có dòng này.
+  const groups = useMemo(() => {
+    if (!visible.some((c) => c.group)) return null
+    const out: { name: string; span: number }[] = []
+    for (const c of visible) {
+      const name = c.group ?? ''
+      const last = out[out.length - 1]
+      if (last && last.name === name) last.span += 1
+      else out.push({ name, span: 1 })
+    }
+    return out
+  }, [visible])
 
   const sorted = useMemo(() => {
     if (manual || !sort) return rows
@@ -177,7 +193,7 @@ export default function DataTable<T>({
   const showTotal = !!totalRow && sorted.length > 0
   const totalLabel = totalRow?.label ?? 'Tổng'
   const download = () => {
-    const lines: Value[][] = [visible.map((c) => c.header)]
+    const lines: Value[][] = [visible.map((c) => (c.group ? `${c.group} — ${c.header}` : c.header))]
     for (const r of sorted) lines.push(visible.map((c) => (c.csvValue ?? c.sortValue)?.(r)))
     if (showTotal) {
       lines.push(visible.map((c, i) => (i === 0 ? totalLabel : totalRow!.columns.includes(c.id) ? (c.csvValue ?? c.sortValue)?.(totalRow!.row) : '')))
@@ -223,6 +239,7 @@ export default function DataTable<T>({
                     />
                     <label htmlFor={`${tableId}-col-${c.id}`} className={`min-w-0 flex-1 truncate ${c.locked ? 'text-neutral-500' : ''}`}>
                       {c.header || '(thao tác)'}
+                      {c.group && <span className="text-neutral-400"> · {c.group}</span>}
                     </label>
                     <button className="px-1 text-neutral-500 hover:text-neutral-900 disabled:opacity-30 dark:hover:text-neutral-100" disabled={i === 0} onClick={() => move(c.id, -1)} aria-label={`Đưa cột ${c.header} lên`}>
                       <ArrowUp className="h-3.5 w-3.5" />
@@ -247,6 +264,15 @@ export default function DataTable<T>({
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
+            {groups && (
+              <tr>
+                {groups.map((g, i) => (
+                  <th key={i} colSpan={g.span} className="pb-1.5 pr-4 text-left align-bottom text-xs font-medium text-neutral-500 first:pl-3 dark:text-neutral-400">
+                    {g.name && <div className="border-b border-neutral-300 pb-1 dark:border-neutral-700">{g.name}</div>}
+                  </th>
+                ))}
+              </tr>
+            )}
             {/* Header có nền riêng + chữ đậm để tách khỏi phần dữ liệu; cột đang sắp xếp tô màu chủ đạo. */}
             <tr className="bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-100">
               {visible.map((c) => {
