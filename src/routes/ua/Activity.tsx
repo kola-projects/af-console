@@ -141,7 +141,7 @@ export function TeamStats({ act, team, creativeQ }: Pick<ViewProps, 'act' | 'tea
       <Stat label="Creative mới" value={t ? int(t.new) : '—'} hint={waiting ?? (t ? `${int(t.creatives)} creative đang chạy trong kỳ` : `${int(uploads)} creative lên theo lịch`)} />
       <Stat label="Thao tác campaign" value={int(actions)} hint="tạo, bật / tắt, chỉnh ngân sách" />
       <Stat label="Chi quảng cáo" value={t ? usd(t.spend) : '—'} hint={waiting ?? (t ? `doanh thu Adjust ${usd(t.revenue)}` : undefined)} />
-      <Stat label="ROAS quảng cáo" value={t ? pct(creativeRoas(t)) : '—'} hint={waiting ?? (t ? 'doanh thu Adjust / chi của creative' : undefined)} />
+      <Stat label="Avg ROAS" value={t ? pct(creativeRoas(t)) : '—'} hint={waiting ?? (t ? 'gộp mọi app: doanh thu Adjust / chi' : undefined)} />
     </div>
   )
 }
@@ -173,7 +173,7 @@ export function Overview(p: ViewProps) {
       },
       {
         id: 'result', header: 'Kết quả creative', sortValue: (r) => r.cr?.win ?? null,
-        csvValue: (r) => (r.cr ? `${winText(r.cr, team?.min_spend ?? 10)}; ROAS QC ${pct(creativeRoas(r.cr))}; chi ${usd(r.cr.spend)}` : ''),
+        csvValue: (r) => (r.cr ? `${winText(r.cr, team?.min_spend ?? 10)}; Avg ROAS ${pct(creativeRoas(r.cr))}; chi ${usd(r.cr.spend)}` : ''),
         cell: (r) =>
           // Chủ sản phẩm chốt (2026-11-25): không viết số win / ngưỡng chi ở đây — có creative win trong kỳ thì
           // chỉ một chấm xanh nhỏ; số chi tiết hiện khi rê chuột và ở tab Kết quả.
@@ -182,7 +182,7 @@ export function Overview(p: ViewProps) {
               <div className="text-xs" title={winTitle(r.cr, team?.min_spend)}>
                 <div className="flex items-center gap-1.5 text-sm">
                   {r.cr.win > 0 && <span className="inline-block h-2 w-2 flex-none rounded-full" style={{ backgroundColor: WIN_COLOR }} aria-label="có creative win" />}
-                  ROAS QC {pct(creativeRoas(r.cr))}
+                  Avg ROAS {pct(creativeRoas(r.cr))}
                 </div>
                 <div className={MUTED}>chi {usd(r.cr.spend)}</div>
               </div>
@@ -202,7 +202,7 @@ export function Overview(p: ViewProps) {
       <p className={`mt-3 text-xs ${MUTED}`}>
         Mỗi ô của dải Workload là một ngày: càng đậm càng nhiều hoạt động (creative lên + thao tác campaign); rê chuột để xem số,
         bấm để mở ngày đó. App tập trung và Kết quả creative tính trong khoảng ngày đang chọn ({shortDay(s.from)} – {shortDay(s.to)}).
-        ROAS QC = doanh thu Adjust / chi của creative; chấm xanh = có creative win trong kỳ (rê chuột để xem số, chi tiết ở tab Kết quả).
+        Avg ROAS = tổng doanh thu Adjust / tổng chi của mọi creative người đó có chạy trong kỳ, gộp mọi app (ROAS từng app xem ở trang riêng của người đó); chấm xanh = có creative win trong kỳ (rê chuột để xem số, chi tiết ở tab Kết quả).
         Bấm tên để mở trang riêng. <CreativeStamp q={creativeQ} />
       </p>
     </>
@@ -375,7 +375,7 @@ export function Allocation(p: ViewProps) {
       { id: 'creatives', header: 'Đang chạy', align: 'right', sortValue: (r) => r.agg.creatives, cell: (r) => int(r.agg.creatives) },
       { id: 'win', header: `Win / ${testedLabel(team?.min_spend)}`, defaultHidden: true, sortValue: (r) => (r.agg.tested ? r.agg.win / r.agg.tested : null), csvValue: (r) => `${r.agg.win}/${r.agg.tested}`, className: 'min-w-40', cell: (r) => <WinBar a={r.agg} /> },
       { id: 'spend', header: 'Chi', align: 'right', sortValue: (r) => r.agg.spend, cell: (r) => usd(r.agg.spend) },
-      { id: 'roas', header: 'ROAS QC', align: 'right', sortValue: (r) => creativeRoas(r.agg), csvValue: (r) => creativeRoas(r.agg), cell: (r) => <RoasWithDot a={r.agg} min={team?.min_spend} /> },
+      { id: 'roas', header: 'ROAS', align: 'right', sortValue: (r) => creativeRoas(r.agg), csvValue: (r) => creativeRoas(r.agg), cell: (r) => <RoasWithDot a={r.agg} min={team?.min_spend} /> },
     ],
     [go, team?.min_spend],
   )
@@ -443,7 +443,7 @@ export function Results(p: ViewProps) {
       { id: 'spend', header: 'Chi', align: 'right', sortValue: (r) => r.cr.spend, cell: (r) => usd(r.cr.spend) },
       { id: 'revenue', header: 'Doanh thu Adjust', align: 'right', defaultHidden: true, sortValue: (r) => r.cr.revenue, cell: (r) => usd(r.cr.revenue) },
       {
-        id: 'roas', header: 'ROAS QC', align: 'right', sortValue: (r) => creativeRoas(r.cr), csvValue: (r) => creativeRoas(r.cr),
+        id: 'roas', header: 'Avg ROAS', align: 'right', sortValue: (r) => creativeRoas(r.cr), csvValue: (r) => creativeRoas(r.cr),
         cell: (r) => <RoasWithDot a={r.cr} min={team?.min_spend} />,
         totalCell: (r) => <RoasWithDot a={r.cr} min={team?.min_spend} dot={false} />,
       },
@@ -466,8 +466,8 @@ export function Results(p: ViewProps) {
       ) : <Empty>Không có creative nào chạy trong khoảng ngày này.</Empty>)}
       {team && (
         <p className={`mt-3 text-xs ${MUTED}`}>
-          Creative mới = lên lần đầu trong kỳ. Chi và ROAS QC tính trên mọi creative của người đó có chạy trong kỳ (cả creative lên từ trước);
-          ROAS QC = doanh thu Adjust / chi. Chấm xanh cạnh ROAS = có creative win trong kỳ, tức creative đã chi từ ${team.min_spend} và có
+          Creative mới = lên lần đầu trong kỳ. Chi và Avg ROAS tính trên mọi creative của người đó có chạy trong kỳ (cả creative lên từ trước), gộp mọi app;
+          Avg ROAS = tổng doanh thu Adjust / tổng chi — app chi nhiều kéo con số về phía nó; ROAS từng app xem ở trang riêng của người đó. Chấm xanh cạnh ROAS = có creative win trong kỳ, tức creative đã chi từ ${team.min_spend} và có
           ROAS quảng cáo từ {(team.roas_threshold * 100).toFixed(0)}%; rê chuột để xem số, hoặc bật hai cột ẩn sẵn trong nút "Cột".
           Số khớp màn Kho creative của ZooKeeper cho cùng khoảng ngày. Dòng Cả đội đếm mỗi creative một lần. Creative không ghi nhận được người
           lên được ZooKeeper gán cho người chạy app đó nhiều nhất; tên dạng email là tài khoản ZooKeeper chưa khai ở Thiết lập → Mapping người (bật cột "ZooKeeper suy ra" để xem bao nhiêu). Lãi theo app xem ở tab Tiền theo app.{' '}

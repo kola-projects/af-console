@@ -13,18 +13,24 @@ import {
   mondayOf,
   pct,
   shortDay,
+  testedLabel,
   usd,
   weekdayVN,
+  type CreativeApp,
   type CreativeItem,
   type CreativeItems,
+  type CreativePerson,
   type PipelineReply,
+  type UaApp,
   type UaLevel,
+  type UaSummary,
 } from '../../lib/uaReport'
-import DataTable, { type Column } from '../../components/DataTable'
+import DataTable, { type Column, type TotalRow } from '../../components/DataTable'
 import { Badge, Empty, Stat } from '../../components/ui'
 import ActionLog from './ActionLog'
 import { KIND_COLOR, RoasWithDot, focusApps, shortApp } from './Activity'
 import {
+  AppIconImg,
   BTN,
   CreativeNote,
   DASH,
@@ -104,7 +110,7 @@ const ITEM_COLUMNS: Column<CreativeItem>[] = [
   { id: 'uploaded_at', header: 'Lên lúc', sortValue: (r) => r.uploaded_at, csvValue: (r) => r.uploaded_at, className: 'whitespace-nowrap', cell: (r) => hhmm(r.uploaded_at) || DASH },
   { id: 'spend', header: 'Chi', align: 'right', sortValue: (r) => r.spend, cell: (r) => (r.spend ? usd(r.spend) : <span className="text-neutral-300 dark:text-neutral-700">$0</span>) },
   { id: 'revenue', header: 'Doanh thu Adjust', align: 'right', defaultHidden: true, sortValue: (r) => r.revenue, cell: (r) => usd(r.revenue) },
-  { id: 'roas', header: 'ROAS QC', align: 'right', sortValue: (r) => creativeRoas(r), cell: (r) => pct(creativeRoas(r)) },
+  { id: 'roas', header: 'ROAS', align: 'right', sortValue: (r) => creativeRoas(r), cell: (r) => pct(creativeRoas(r)) },
   {
     id: 'status', header: 'Trạng thái', sortValue: (r) => r.status,
     cell: (r) => { const st = STATUS[r.status ?? '']; return st ? <Badge tone={st.tone ?? 'neutral'}>{st.label}</Badge> : r.status ?? DASH },
@@ -156,6 +162,58 @@ function DayDetail(p: ViewProps & { personKey: string; day: string; level: UaLev
         </div>
       )}
     </div>
+  )
+}
+
+type PersonAppRow = CreativeApp & { ua: UaApp | null }
+const PERSON_APP_TOTAL = ['new', 'creatives', 'spend', 'revenue', 'roas', 'tested', 'win']
+
+/** [3.53.2] Bảng theo app của một người: Avg ROAS ở ô số đầu trang là số GỘP mọi app (app chi nhiều kéo con số
+ *  về phía nó), nên cần thấy ROAS từng app để biết app nào đang tốt, app nào đang kéo xuống. */
+function PersonApps({ cr, s, minSpend, csvName }: { cr: CreativePerson; s: UaSummary; minSpend: number | undefined; csvName: string }) {
+  const rows = useMemo<PersonAppRow[]>(() => {
+    const appOf = new Map(s.apps.map((a) => [a.app_id, a]))
+    return cr.apps.filter((a) => a.creatives > 0 || a.spend > 0).map((a) => ({ ...a, ua: a.app_id ? appOf.get(a.app_id) ?? null : null }))
+  }, [cr, s.apps])
+  const columns = useMemo<Column<PersonAppRow>[]>(
+    () => [
+      {
+        id: 'app', header: 'App', locked: true, sortValue: (r) => r.ua?.app_name ?? r.app,
+        cell: (r) => (
+          <div className="flex items-center gap-2.5">
+            <AppIconImg url={r.ua?.icon_url} name={r.ua?.app_name ?? r.app} size={24} />
+            <span title={`Tên trên ZooKeeper: ${r.app}`}>{r.ua?.app_name ?? r.app}</span>
+          </div>
+        ),
+        totalCell: () => null,
+      },
+      { id: 'new', header: 'Creative mới', align: 'right', sortValue: (r) => r.new, cell: (r) => (r.new ? int(r.new) : <span className="text-neutral-300 dark:text-neutral-700">0</span>) },
+      { id: 'creatives', header: 'Đang chạy', align: 'right', sortValue: (r) => r.creatives, cell: (r) => int(r.creatives) },
+      { id: 'spend', header: 'Đã chi', align: 'right', sortValue: (r) => r.spend, cell: (r) => usd(r.spend) },
+      { id: 'revenue', header: 'Doanh thu Adjust', align: 'right', sortValue: (r) => r.revenue, cell: (r) => usd(r.revenue) },
+      {
+        id: 'roas', header: 'ROAS', align: 'right', sortValue: (r) => creativeRoas(r), csvValue: (r) => creativeRoas(r),
+        cell: (r) => <RoasWithDot a={r} min={minSpend} />,
+        totalCell: (r) => <RoasWithDot a={r} min={minSpend} dot={false} />,
+      },
+      { id: 'tested', header: testedLabel(minSpend).replace(/^c/, 'C'), align: 'right', defaultHidden: true, sortValue: (r) => r.tested, cell: (r) => int(r.tested) },
+      { id: 'win', header: 'Win', align: 'right', defaultHidden: true, sortValue: (r) => r.win, cell: (r) => int(r.win) },
+    ],
+    [minSpend],
+  )
+  const total = useMemo<TotalRow<PersonAppRow>>(
+    () => ({ row: { ...cr, app: 'Tổng', app_id: null, ua: null }, columns: PERSON_APP_TOTAL, label: `Tổng ${int(rows.length)} app (Avg ROAS)` }),
+    [cr, rows.length],
+  )
+  if (!rows.length) return <Empty>Không có creative nào của người này chạy trong khoảng ngày đang chọn.</Empty>
+  return (
+    <>
+      <DataTable tableId="ua-person-apps" columns={columns} rows={rows} rowKey={(r) => r.app} defaultSort={{ id: 'spend', dir: 'desc' }} totalRow={total} csvName={csvName} />
+      <p className={`mt-2 text-xs ${MUTED}`}>
+        ROAS = doanh thu Adjust / chi của các creative người này có trên app đó trong kỳ. Dòng Tổng là Avg ROAS ở ô số đầu trang: tổng doanh thu / tổng chi
+        của mọi app, nên app chi nhiều kéo con số về phía nó. Chấm xanh = app có creative win.
+      </p>
+    </>
   )
 }
 
@@ -228,7 +286,7 @@ export default function PersonPage(p: ViewProps & {
         <Stat label="Creative mới" value={cr ? int(cr.new) : team ? '0' : '—'} hint={waiting ?? `${range} · ${int(a.kinds.upload)} lượt lên theo lịch`} />
         <Stat label="Thao tác campaign" value={int(a.actions)} hint={`${range} · tạo, bật / tắt, chỉnh ngân sách`} />
         <Stat label="Chi quảng cáo" value={cr ? usd(cr.spend) : '—'} hint={waiting ?? (cr ? `doanh thu Adjust ${usd(cr.revenue)}` : undefined)} />
-        <Stat label="ROAS quảng cáo" value={cr ? <RoasWithDot a={cr} min={team?.min_spend} /> : '—'} hint={waiting ?? (cr?.win ? 'chấm xanh = có creative win trong kỳ' : cr ? 'doanh thu Adjust / chi của creative' : undefined)} />
+        <Stat label="Avg ROAS" value={cr ? <RoasWithDot a={cr} min={team?.min_spend} /> : '—'} hint={waiting ?? (cr ? `gộp mọi app: doanh thu Adjust / chi${cr.win ? ' · chấm xanh = có creative win' : ''}` : undefined)} />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -255,6 +313,15 @@ export default function PersonPage(p: ViewProps & {
           )) : <div className={`text-sm ${MUTED}`}>{team ? '—' : waiting ?? '—'}</div>}
         </div>
       </div>
+
+      <h2 className="mb-2 mt-8 text-sm font-semibold">Theo app · {range}</h2>
+      {cr ? (
+        <PersonApps cr={cr} s={s} minSpend={team?.min_spend} csvName={`ua-theo-app_${personKey}_${s.from}_${s.to}`} />
+      ) : team ? (
+        <Empty>Không có creative nào của người này chạy trong khoảng ngày đang chọn.</Empty>
+      ) : (
+        <CreativeNote q={creativeQ} />
+      )}
 
       <h2 className="mb-2 mt-8 text-sm font-semibold">Creative mới trong kỳ · {range}</h2>
       <CreativeItemsTable q={items} tableId="ua-person-creatives" csvName={`ua-creative_${personKey}_${s.from}_${s.to}`} emptyText="Không có creative mới nào của người này trong khoảng ngày đang chọn." />

@@ -3,6 +3,11 @@
 Version của AFC đồng bộ theo version framework AF (bắt đầu gắn từ 3.8.0).
 Luật release note (theo `app-factory/RELEASE.md`): chỉ THÊM mục mới, không sửa/đổi tên mục cũ.
 
+## 3.53.2 — 2026-11-25
+
+- **UA activity Report — nhãn "Avg ROAS"** thay cho "ROAS QC" / "ROAS quảng cáo" ở mọi chỗ hiện ROAS GỘP của một người hoặc cả đội (Tổng quan, tab Kết quả, ô số đầu trang, trang từng UA). Con số này là tổng doanh thu Adjust / tổng chi của mọi app người đó có creative chạy trong kỳ — không phải ROAS của app tốt nhất — nên app chi nhiều kéo nó về phía mình; tên mới để khỏi hiểu nhầm. Cách tính không đổi. ROAS của một app hay một creative thì ghi "ROAS".
+- **Trang từng UA thêm bảng "Theo app"**: mỗi app người đó có creative chạy trong kỳ một dòng — creative mới, đang chạy, đã chi, doanh thu Adjust, ROAS (chấm xanh khi app có creative win); dòng Tổng là Avg ROAS ở ô số đầu trang. Hai cột "Chi ≥ $10" và "Win" ẩn sẵn. Sắp xếp, chọn cột, tải CSV như mọi bảng.
+
 ## 3.53.1 — 2026-11-25
 
 - **UA activity Report — chấm xanh thay số win ở mọi màn** (chủ sản phẩm chốt sau khi dùng thử): tab **Kết quả**, **Phân bổ → Theo app** và **trang từng UA** không còn viết "x win / y chi ≥ $10". Người / app có creative win trong kỳ thì có một chấm xanh nhỏ cạnh ROAS quảng cáo; số win hiện khi rê chuột. Hai cột "Chi ≥ $10" và "Win / chi ≥ $10" vẫn còn, ẩn sẵn — bật trong nút "Cột"; file CSV và MCP không đổi.
